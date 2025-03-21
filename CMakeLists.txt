@@ -1,0 +1,85 @@
+cmake_minimum_required(VERSION 3.20)
+
+# ============================
+# SETUP
+# ============================
+project(Honeycomb2 CXX)
+set(Honeycomb2_Version 0.0.1)
+
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_options(-Wall -Wextra -fPIC -O3 -Wno-unused-parameter -Wno-unused-variable)
+
+# Check the processor architecture
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
+  # x86-specific compiler flags
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse2")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+  # ARM-specific compiler flags
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
+endif()
+
+if(NOT DEFINED CMAKE_MACOSX_RPATH)
+  set(CMAKE_MACOSX_RPATH 0)
+endif()
+
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27.0")
+  cmake_policy(SET CMP0148 OLD)
+endif()
+
+# ============================
+# MAIN
+# ============================
+include_directories(${PROJECT_SOURCE_DIR}/inc)
+
+# Generate list of source files
+file(GLOB source_files src/*.cc)
+
+# Define target library
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+add_library(Honeycomb2 SHARED ${source_files})
+
+# Define libraries to be linked
+target_link_libraries(Honeycomb2)
+
+# glog
+# find_package(glog REQUIRED)
+# target_link_libraries(Honeycomb2 glog::glog)
+
+# Find PkgConfig
+find_package(PkgConfig REQUIRED)
+
+# Find yaml-cpp
+pkg_search_module(YAML_CPP QUIET yaml-cpp)
+
+if(YAML_CPP_FOUND)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${YAML_CPP_CFLAGS}")
+  target_link_libraries(Honeycomb2 ${YAML_CPP_LINK_LIBRARIES})
+else(YAML_CPP_FOUND)
+  message(FATAL_ERROR "yaml-cpp not found!")
+endif(YAML_CPP_FOUND)
+
+add_subdirectory(tests)
+
+# Configure version to file
+configure_file("${PROJECT_SOURCE_DIR}/inc/honeycomb2/version.hpp.in" "${PROJECT_SOURCE_DIR}/inc/honeycomb2/version.hpp")
+
+# Configure configuration script
+set(prefix ${CMAKE_INSTALL_PREFIX})
+set(includedir "${prefix}/include")
+set(libdir "${prefix}/lib")
+set(cflags "-I${prefix}/include")
+set(ldflags "-L${prefix}/lib -lHoneycomb2")
+
+configure_file("${PROJECT_SOURCE_DIR}/bin/Honeycomb2-config.in" "${PROJECT_BINARY_DIR}/bin/Honeycomb2-config")
+
+# ============================
+# INSTALLATION
+# ============================
+
+# Installation of code
+install(TARGETS Honeycomb2 RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
+install(DIRECTORY inc/honeycomb2 DESTINATION include)
+install(FILES ${PROJECT_BINARY_DIR}/bin/Honeycomb2-config DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

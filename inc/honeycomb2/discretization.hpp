@@ -1,0 +1,254 @@
+#pragma once
+
+#include <honeycomb2/default.hpp>
+#include <honeycomb2/utilities.hpp>
+
+#include <eigen3/Eigen/Dense>
+
+namespace Honeycomb
+{
+
+struct StandardGrid {
+   public:
+      StandardGrid(size_t N = 3);
+
+      double interpolate(double t, Eigen::VectorXd &fj, long int start, long int end) const;
+
+      double poli_weight(double t, size_t j) const;
+      double poli_weight_sub(double t, size_t j) const;
+      double poli_weight_der(double t, size_t j) const;
+
+      double tj(size_t j) const
+      {
+         return _tj[j];
+      }
+
+      size_t _N;
+      std::vector<double> _tj;
+      std::vector<double> _betaj;
+      std::vector<std::vector<double>> _Dij;
+};
+
+// ================================================================
+
+// For either radius or angle
+struct SingleDiscretizationInfo {
+   public:
+      SingleDiscretizationInfo() = default;
+
+      SingleDiscretizationInfo(
+          std::vector<double> inter, std::vector<size_t> g_size,
+          std::function<double(double)> to_i_space =
+              [](double x) {
+                 return x;
+              },
+          std::function<double(double)> to_i_space_der =
+              [](double x) {
+                 (void)x;
+                 return 1;
+              },
+          std::function<double(double)> to_p_space =
+              [](double x) {
+                 return x;
+              },
+          std::function<double(double)> to_p_space_der =
+              [](double x) {
+                 (void)x;
+                 return 1;
+              })
+          : intervals(inter.size() - 1, {0, 0}), grid_sizes(g_size), to_inter_space(to_i_space), to_inter_space_der(to_i_space_der),
+            to_phys_space(to_p_space), to_phys_space_der(to_p_space_der)
+      {
+         if (g_size.size() != (inter.size() - 1)) {
+            logger(Logger::ERROR, std::format("[SingleDiscretizationInfo] Incompatible sizes for number of subintervals ({:d}) andentries in the "
+                                              "vector of number of points for each subinterval ({:d})",
+                                              inter.size() - 1, g_size.size()));
+         }
+         for (size_t i = 0; i < inter.size() - 1; i++)
+            intervals[i] = {to_i_space(inter[i]), to_i_space(inter[i + 1])};
+      };
+
+      std::vector<std::pair<double, double>> intervals;
+      std::vector<size_t> grid_sizes;
+      std::function<double(double)> to_inter_space;
+      std::function<double(double)> to_inter_space_der;
+      std::function<double(double)> to_phys_space;
+      std::function<double(double)> to_phys_space_der;
+};
+
+// Store the grid in either the radius or the angle
+struct Grid {
+      Grid() {};
+
+      // u=a <=> t=+1
+      // u=b <=> t=-1
+      double from_ab_to_m1p1(double u, double a, double b) const noexcept
+      {
+         return -2 * (u - a) / (b - a) + 1;
+      };
+      double from_m1p1_to_ab(double t, double a, double b) const noexcept
+      {
+         return (b - a) * (1 - t) * 0.5 + a;
+      };
+      double from_ab_to_m1p1_der(double a, double b) const noexcept
+      {
+         return -2 / (b - a);
+      };
+
+      enum W_CASE { N = 1, D = 2, S = 3 };
+
+      Grid(const SingleDiscretizationInfo &d_info);
+
+      double get_der_matrix(size_t a, size_t j, size_t b, size_t k) const;
+
+      // NOTE: u is in interpolation space, not physical space
+      template <int w_case>
+      double weight_aj(double u, size_t a, size_t j);
+
+      // NOTE: Support is given in interpolation space, not physical space.
+      std::pair<double, double> get_support_weight_aj(size_t index) const
+      {
+         for (size_t a = 0; a < _d_info.intervals.size(); a++) {
+            if (_delim_indexes[a] <= index && index < _delim_indexes[a + 1]) return {_d_info.intervals[a].first, _d_info.intervals[a].second};
+         }
+         logger(Logger::ERROR, std::format("[Grid::get_support_weight_aj] Index out of bound"));
+         return {NAN, NAN};
+      }
+
+      const SingleDiscretizationInfo _d_info;
+      std::vector<std::function<double(double)>> _weights;
+      std::vector<std::function<double(double)>> _weights_der; //  these are dw/du
+      std::vector<std::function<double(double)>> _weights_sub; //  these are w-1
+      std::vector<double> _coord;
+      std::vector<std::vector<double>> _der_matrix;
+      std::vector<size_t> _delim_indexes;
+      size_t size;
+      long int size_li;
+};
+
+namespace RnC
+{
+struct Pair {
+      Pair() : v({0, 0}) {};
+
+      Pair(double a, double b) : v({a, b}) {};
+
+      double &operator[](int i)
+      {
+         assert(i >= 0 && i <= 1);
+         return v[i];
+      }
+      double operator()(int i) const
+      {
+         assert(i >= 0 && i <= 1);
+         return v[i];
+      }
+      std::array<double, 2> v;
+};
+
+struct Triplet {
+      Triplet() : v({0, 0, 0}) {};
+      Triplet(double a, double b, double c) : v({a, b, c}) {};
+
+      double &operator[](int i)
+      {
+         assert(i >= 0 && i <= 2);
+         return v[i];
+      }
+      double operator()(int i) const
+      {
+         assert(i >= 0 && i <= 2);
+         return v[i];
+      }
+      std::array<double, 3> v;
+};
+
+Triplet from_rhophi_to_x123(double rho, double phi);
+Triplet from_rhophi_to_x123(Pair rf)
+{
+   return from_rhophi_to_x123(rf[0], rf[1]);
+};
+Pair from_x123_to_rhophi(double x1, double x2, double x3);
+Pair from_x123_to_rhophi(Triplet x123)
+{
+   return from_x123_to_rhophi(x123[0], x123[1], x123[2]);
+};
+
+std::pair<Triplet, Triplet> dx123_drhophi(Pair rhophi);
+}; // namespace RnC
+
+struct Grid2D {
+
+      Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi)
+          : grid_radius(d_info_rho), grid_angle(d_info_phi) {};
+
+      const Grid grid_radius;
+      const Grid grid_angle;
+};
+
+struct Discretization {
+   public:
+      Discretization(const Grid2D &grid, std::function<double(double, double, double)> const &function);
+
+      double interpolate_as_weights(const RnC::Pair &rhophi) const;
+      double interpolate_as_weights(const RnC::Triplet &x123) const
+      {
+         return interpolate_as_weights(RnC::from_x123_to_rhophi(x123));
+      };
+      double interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi) const;
+
+      std::function<double(const RnC::Pair &rhophi)> get_dw_dx3_fixed_x1(size_t index) const;
+
+      double operator()(const RnC::Pair &rhophi) const
+      {
+         return interpolate_as_weights(rhophi);
+      }
+      double operator()(const RnC::Triplet &x123) const
+      {
+         return interpolate_as_weights(x123);
+      }
+
+      size_t get_flatten_index(size_t i_r, size_t i_a) const
+      {
+         return i_r + (_grid.grid_radius.size) * i_a;
+      }
+      size_t get_flatten_index(const std::pair<size_t, size_t> &p) const
+      {
+         return get_flatten_index(p.first, p.second);
+      }
+
+      std::pair<size_t, size_t> get_double_index(size_t index) const
+      {
+         size_t i_r = index % _grid.grid_radius.size;
+         size_t i_a = (index - i_r) / _grid.grid_radius.size;
+         return {i_r, i_a};
+      }
+
+      const Grid2D &_grid;
+
+      size_t size; // Global flatten size
+      long int size_li;
+      std::vector<RnC::Triplet> _x123;
+      Eigen::VectorXd _fj;
+      std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
+};
+
+struct Discretization1D {
+   public:
+      Discretization1D(const Grid &grid, std::function<double(double)> const &function);
+
+      double interpolate_as_weights(double x) const;
+
+      double operator()(double x) const
+      {
+         return interpolate_as_weights(x);
+      }
+
+      const Grid &_grid;
+
+      size_t size; // Global flatten size
+      long int size_li;
+      Eigen::VectorXd _fj;
+};
+
+} // namespace Honeycomb
