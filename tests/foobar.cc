@@ -1,5 +1,12 @@
 #include <honeycomb2/honeycomb2.hpp>
 
+#define Pi M_PI
+#define Sqrt sqrt
+#define Power pow
+#define Cos cos
+#define Sin sin
+#define Log log
+
 double T_test(double x1, double x2, double x3)
 {
    return (1 - x1 * x1) * (1 - x2 * x2) * (1 - x3 * x3);
@@ -8,9 +15,20 @@ double T_test_2(double x1, double x2, double x3)
 {
    return (1.0 - cos(T_test(x1, x2, x3))) * 2 * sin(M_PI * x2) / std::max(std::max(std::fabs(x1), std::fabs(x2)), std::fabs(x3));
 }
+
 double T_test_3(double x1, double x2, double x3)
 {
    return (1.0 - cos(T_test(x1, x2, x3))) * 2 * sin(M_PI * x2) / (x1 * x1 + x2 * x2 + x3 * x3);
+}
+
+double T_test_3_der(double x1, double x2, double x3)
+{
+   return (-2 * M_PI * cos(M_PI * x2) * (1 - cos((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2))))) / (pow(x1, 2) + pow(x2, 2) + pow(x3, 2)) -
+          (2 * (-2 * x2 + 2 * x3) * (1 - cos((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2)))) * sin(M_PI * x2)) /
+              pow(pow(x1, 2) + pow(x2, 2) + pow(x3, 2), 2) +
+          (2 * (-2 * (1 - pow(x1, 2)) * (1 - pow(x2, 2)) * x3 + 2 * (1 - pow(x1, 2)) * x2 * (1 - pow(x3, 2))) * sin(M_PI * x2) *
+           sin((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2)))) /
+              (pow(x1, 2) + pow(x2, 2) + pow(x3, 2));
 }
 
 double T_test_4(double x1, double x2, double x3)
@@ -18,12 +36,33 @@ double T_test_4(double x1, double x2, double x3)
    return (1.0 - cos(T_test(x1, x2, x3))) * 2 * sin(M_PI * x2);
 }
 
+double T_test_4_der(double x1, double x2, double x3)
+{
+   return -2 * Pi * Cos(Pi * x2) * (1 - Cos((1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)))) +
+          2 * (-2 * (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * x3 + 2 * (1 - Power(x1, 2)) * x2 * (1 - Power(x3, 2))) * Sin(Pi * x2) *
+              Sin((1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)));
+}
+
+double T_test_5(double x1, double x2, double x3)
+{
+   return T_test(x1, x2, x3) * (log(x1 * x1 + x2 * x2 + x3 * x3) + cos(M_PI * x1 * x3));
+}
+
+double T_test_5_der(double x1, double x2, double x3)
+{
+   return -2 * (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * x3 * (Cos(Pi * x1 * x3) + Log(Power(x1, 2) + Power(x2, 2) + Power(x3, 2))) +
+          2 * (1 - Power(x1, 2)) * x2 * (1 - Power(x3, 2)) * (Cos(Pi * x1 * x3) + Log(Power(x1, 2) + Power(x2, 2) + Power(x3, 2))) +
+          (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)) *
+              ((-2 * x2 + 2 * x3) / (Power(x1, 2) + Power(x2, 2) + Power(x3, 2)) - Pi * x1 * Sin(Pi * x1 * x3));
+}
 double f1_test(double x)
 {
    return exp(x);
 }
 
-void check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretization &F, std::function<double(double, double, double)> test_fnc,
+typedef double (*model_fnc_t)(double, double, double);
+
+void check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretization &F, model_fnc_t test_fnc, model_fnc_t test_fnc_der,
                  std::FILE *fp)
 {
    const Honeycomb::RnC::Triplet x123 = Honeycomb::RnC::from_rhophi_to_x123(rhophi);
@@ -32,8 +71,11 @@ void check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretiza
    const double approx = F(rhophi);
 
    const double dx = 1.0e-7;
+
    const double num_der =
-       (test_fnc(x123(0), -x123(0) - x123(2) - dx, x123(2) + dx) - test_fnc(x123(0), -x123(0) - x123(2) + dx, x123(2) - dx)) / (2.0 * dx);
+       (test_fnc_der != nullptr)
+           ? test_fnc_der(x123(0), x123(1), x123(2))
+           : (test_fnc(x123(0), -x123(0) - x123(2) - dx, x123(2) + dx) - test_fnc(x123(0), -x123(0) - x123(2) + dx, x123(2) - dx)) / (2.0 * dx);
 
    const double inter_der = F.interpolate_df_dx3_fixed_x1(rhophi);
 
@@ -54,8 +96,7 @@ int main()
 {
 
    //
-   const size_t n    = 14;
-   const double rmin = 0.01;
+
    // const double rmax = 0.75;
 
    std::function<double(double)> r_to_i_s = [](double x) -> double {
@@ -84,11 +125,14 @@ int main()
       // return exp(-expm1(-u) - u);
    };
 
-   Honeycomb::SingleDiscretizationInfo info_radius({rmin, 0.65, 1}, {16, 16}, r_to_i_s, r_to_i_s_der, r_to_p_s, r_to_p_s_der);
+   const size_t n    = 12;
+   const double rmin = 0.01;
+   Honeycomb::SingleDiscretizationInfo info_radius({rmin, 0.33, 0.66, 1}, {12, 12, 12}, r_to_i_s, r_to_i_s_der, r_to_p_s, r_to_p_s_der);
    // Honeycomb::SingleDiscretizationInfo info_radius({rmin, 0.65, 1}, {16, 16});
    Honeycomb::SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, {n, n, n, n, n, n});
 
-   std::function<double(double, double, double)> test = T_test_3;
+   model_fnc_t test     = T_test_5;
+   model_fnc_t test_der = T_test_5_der;
 
    Honeycomb::Grid2D grid(info_radius, info_angle);
 
@@ -116,7 +160,7 @@ int main()
    const size_t nSamples = 1000;
    std::FILE *fp         = fopen("interpolation_checks.dat", "w");
    for (size_t i = 0; i < nSamples; i++) {
-      check_point({Honeycomb::Random::random_uniform(rmin, 1), Honeycomb::Random::random_uniform(0, 6)}, f, test, fp);
+      check_point({Honeycomb::Random::random_uniform(rmin, 1), Honeycomb::Random::random_uniform(0, 6)}, f, test, test_der, fp);
    }
    fclose(fp);
    return 0;
