@@ -74,14 +74,15 @@ bool LoadAndVerify(const std::string &file_name, T &data)
    std::fclose(file);
 
    if (n_char != file_size)
-      logger(Logger::ERROR, "[LoadAndVerify]: Read" + std::format("{:d}", n_char) + " character where size of file " + file_name + " is " +
-                                std::format("{:d}", file_size));
+      logger(Logger::ERROR, "[LoadAndVerify]: Read" + std::format("{:d}", n_char) + " character where size of file " +
+                                file_name + " is " + std::format("{:d}", file_size));
    // Compute checksum of data
    uint64_t computed_checksum = crc64((const uint8_t *)buffer.data(), file_size);
 
    // Verify checksum
    if (computed_checksum)
-      logger(Logger::ERROR, "[LoadAndVerify]: File: " + file_name + "has incorrect checksum! Got: " + std::format("{:d}", computed_checksum));
+      logger(Logger::ERROR, "[LoadAndVerify]: File: " + file_name +
+                                "has incorrect checksum! Got: " + std::format("{:d}", computed_checksum));
 
    std::stringstream ss;
    ss.write(buffer.data(), file_size - sizeof(uint64_t));
@@ -109,8 +110,8 @@ bool LoadArchive(const std::string &file_name, T &data)
    std::fclose(file);
 
    if (n_char != file_size)
-      logger(Logger::ERROR,
-             " Read" + std::format("{:d}", n_char) + " character where size of file " + file_name + " is " + std::format("{:d}", file_size));
+      logger(Logger::ERROR, " Read" + std::format("{:d}", n_char) + " character where size of file " + file_name +
+                                " is " + std::format("{:d}", file_size));
 
    std::stringstream ss;
    ss.write(buffer.data(), file_size);

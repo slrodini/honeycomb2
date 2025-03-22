@@ -48,8 +48,9 @@ uint64_t compute_file_checksum(const char *file_path)
    // here assume that fread does not append extra null-termination (shoudl not)
    size_t n_char = std::fread((void *)data, 1, file_size, fp);
    if (static_cast<int64_t>(n_char) != file_size)
-      logger(Logger::ERROR, "[compute_file_checksum]: Read" + std::format("{:d}", n_char) + " character where size of file " +
-                                std::string(file_path) + " is " + std::format("{:d}", file_size));
+      logger(Logger::ERROR, "[compute_file_checksum]: Read" + std::format("{:d}", n_char) +
+                                " character where size of file " + std::string(file_path) + " is " +
+                                std::format("{:d}", file_size));
 
    fclose(fp);
 

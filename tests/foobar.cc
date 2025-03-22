@@ -13,7 +13,8 @@ double T_test(double x1, double x2, double x3)
 }
 double T_test_2(double x1, double x2, double x3)
 {
-   return (1.0 - cos(T_test(x1, x2, x3))) * 2 * sin(M_PI * x2) / std::max(std::max(std::fabs(x1), std::fabs(x2)), std::fabs(x3));
+   return (1.0 - cos(T_test(x1, x2, x3))) * 2 * sin(M_PI * x2) /
+          std::max(std::max(std::fabs(x1), std::fabs(x2)), std::fabs(x3));
 }
 
 double T_test_3(double x1, double x2, double x3)
@@ -23,11 +24,13 @@ double T_test_3(double x1, double x2, double x3)
 
 double T_test_3_der(double x1, double x2, double x3)
 {
-   return (-2 * M_PI * cos(M_PI * x2) * (1 - cos((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2))))) / (pow(x1, 2) + pow(x2, 2) + pow(x3, 2)) -
-          (2 * (-2 * x2 + 2 * x3) * (1 - cos((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2)))) * sin(M_PI * x2)) /
+   return (-2 * M_PI * cos(M_PI * x2) * (1 - cos((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2))))) /
+              (pow(x1, 2) + pow(x2, 2) + pow(x3, 2)) -
+          (2 * (-2 * x2 + 2 * x3) * (1 - cos((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2)))) *
+           sin(M_PI * x2)) /
               pow(pow(x1, 2) + pow(x2, 2) + pow(x3, 2), 2) +
-          (2 * (-2 * (1 - pow(x1, 2)) * (1 - pow(x2, 2)) * x3 + 2 * (1 - pow(x1, 2)) * x2 * (1 - pow(x3, 2))) * sin(M_PI * x2) *
-           sin((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2)))) /
+          (2 * (-2 * (1 - pow(x1, 2)) * (1 - pow(x2, 2)) * x3 + 2 * (1 - pow(x1, 2)) * x2 * (1 - pow(x3, 2))) *
+           sin(M_PI * x2) * sin((1 - pow(x1, 2)) * (1 - pow(x2, 2)) * (1 - pow(x3, 2)))) /
               (pow(x1, 2) + pow(x2, 2) + pow(x3, 2));
 }
 
@@ -39,8 +42,8 @@ double T_test_4(double x1, double x2, double x3)
 double T_test_4_der(double x1, double x2, double x3)
 {
    return -2 * Pi * Cos(Pi * x2) * (1 - Cos((1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)))) +
-          2 * (-2 * (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * x3 + 2 * (1 - Power(x1, 2)) * x2 * (1 - Power(x3, 2))) * Sin(Pi * x2) *
-              Sin((1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)));
+          2 * (-2 * (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * x3 + 2 * (1 - Power(x1, 2)) * x2 * (1 - Power(x3, 2))) *
+              Sin(Pi * x2) * Sin((1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)));
 }
 
 double T_test_5(double x1, double x2, double x3)
@@ -50,8 +53,10 @@ double T_test_5(double x1, double x2, double x3)
 
 double T_test_5_der(double x1, double x2, double x3)
 {
-   return -2 * (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * x3 * (Cos(Pi * x1 * x3) + Log(Power(x1, 2) + Power(x2, 2) + Power(x3, 2))) +
-          2 * (1 - Power(x1, 2)) * x2 * (1 - Power(x3, 2)) * (Cos(Pi * x1 * x3) + Log(Power(x1, 2) + Power(x2, 2) + Power(x3, 2))) +
+   return -2 * (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * x3 *
+              (Cos(Pi * x1 * x3) + Log(Power(x1, 2) + Power(x2, 2) + Power(x3, 2))) +
+          2 * (1 - Power(x1, 2)) * x2 * (1 - Power(x3, 2)) *
+              (Cos(Pi * x1 * x3) + Log(Power(x1, 2) + Power(x2, 2) + Power(x3, 2))) +
           (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)) *
               ((-2 * x2 + 2 * x3) / (Power(x1, 2) + Power(x2, 2) + Power(x3, 2)) - Pi * x1 * Sin(Pi * x1 * x3));
 }
@@ -62,8 +67,8 @@ double f1_test(double x)
 
 typedef double (*model_fnc_t)(double, double, double);
 
-void check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretization &F, model_fnc_t test_fnc, model_fnc_t test_fnc_der,
-                 std::FILE *fp)
+void check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretization &F, model_fnc_t test_fnc,
+                 model_fnc_t test_fnc_der, std::FILE *fp)
 {
    const Honeycomb::RnC::Triplet x123 = Honeycomb::RnC::from_rhophi_to_x123(rhophi);
 
@@ -72,21 +77,22 @@ void check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretiza
 
    const double dx = 1.0e-7;
 
-   const double num_der =
-       (test_fnc_der != nullptr)
-           ? test_fnc_der(x123(0), x123(1), x123(2))
-           : (test_fnc(x123(0), -x123(0) - x123(2) - dx, x123(2) + dx) - test_fnc(x123(0), -x123(0) - x123(2) + dx, x123(2) - dx)) / (2.0 * dx);
+   const double num_der = (test_fnc_der != nullptr) ? test_fnc_der(x123(0), x123(1), x123(2))
+                                                    : (test_fnc(x123(0), -x123(0) - x123(2) - dx, x123(2) + dx) -
+                                                       test_fnc(x123(0), -x123(0) - x123(2) + dx, x123(2) - dx)) /
+                                                          (2.0 * dx);
 
    const double inter_der = F.interpolate_df_dx3_fixed_x1(rhophi);
 
-   const double err     = std::abs(exact) > 1.0e-10 ? std::abs(1 - approx / exact) : std::abs(approx - exact);
-   const double err_der = std::abs(num_der) > 1.0e-10 ? std::abs(1 - inter_der / num_der) : std::abs(inter_der - num_der);
+   const double err = std::abs(exact) > 1.0e-10 ? std::abs(1 - approx / exact) : std::abs(approx - exact);
+   const double err_der =
+       std::abs(num_der) > 1.0e-10 ? std::abs(1 - inter_der / num_der) : std::abs(inter_der - num_der);
 
    if (nullptr != fp) {
       fprintf(fp, "%+.16e\t%+.16e\t%+.16e\t%+.16e\n", rhophi(0), rhophi(1), err, err_der);
    } else {
-      Honeycomb::logger(Honeycomb::Logger::INFO,
-                        std::format("{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}", x123(0), x123(1), x123(2), err, err_der));
+      Honeycomb::logger(Honeycomb::Logger::INFO, std::format("{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}",
+                                                             x123(0), x123(1), x123(2), err, err_der));
    }
 }
 
@@ -127,23 +133,23 @@ int main()
 
    const size_t n    = 12;
    const double rmin = 0.01;
-   Honeycomb::SingleDiscretizationInfo info_radius({rmin, 0.33, 0.66, 1}, {12, 12, 12}, r_to_i_s, r_to_i_s_der, r_to_p_s, r_to_p_s_der);
-   // Honeycomb::SingleDiscretizationInfo info_radius({rmin, 0.65, 1}, {16, 16});
-   Honeycomb::SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, {n, n, n, n, n, n});
+
+   Honeycomb::Grid2D grid = Honeycomb::generate_complaiant_Grid2D(n, {rmin, 0.33, 0.66, 1}, {12, 12, 12}, r_to_i_s,
+                                                                  r_to_i_s_der, r_to_p_s, r_to_p_s_der);
 
    model_fnc_t test     = T_test_5;
    model_fnc_t test_der = T_test_5_der;
-
-   Honeycomb::Grid2D grid(info_radius, info_angle);
 
    Honeycomb::Discretization f(grid, test);
    Honeycomb::logger(Honeycomb::Logger::WARNING, std::format("{:d}", f.size_li));
    Honeycomb::logger(
        Honeycomb::Logger::WARNING,
-       std::format("Estimated kernel sizes in MB: {:f}", static_cast<double>(f.size_li) * static_cast<double>(f.size_li) * 8.0 / (1024.0 * 1024.0)));
+       std::format("Estimated kernel sizes in MB: {:f}",
+                   static_cast<double>(f.size_li) * static_cast<double>(f.size_li) * 8.0 / (1024.0 * 1024.0)));
 
    Honeycomb::logger(Honeycomb::Logger::WARNING,
-                     std::format("Compare with current honeycomb (which needs to store at least the 2 indexes for each kernel as int32_t, plus some "
+                     std::format("Compare with current honeycomb (which needs to store at least the 2 indexes for each "
+                                 "kernel as int32_t, plus some "
                                  "additional space for efficient parallelization) MB: {:f}",
                                  503846 * 8.0 * 2 / (1024.0 * 1024.0)));
 
@@ -160,7 +166,8 @@ int main()
    const size_t nSamples = 1000;
    std::FILE *fp         = fopen("interpolation_checks.dat", "w");
    for (size_t i = 0; i < nSamples; i++) {
-      check_point({Honeycomb::Random::random_uniform(rmin, 1), Honeycomb::Random::random_uniform(0, 6)}, f, test, test_der, fp);
+      check_point({Honeycomb::Random::random_uniform(rmin, 1), Honeycomb::Random::random_uniform(0, 6)}, f, test,
+                  test_der, fp);
    }
    fclose(fp);
    return 0;
@@ -193,7 +200,8 @@ void dummy()
       return 3.0 * shu * shu * shu * tanh(-u);
    };
 
-   Honeycomb::SingleDiscretizationInfo info_radius({rmin, 0.5, 1}, {n, n}, r_to_i_s, r_to_i_s_der, r_to_p_s, r_to_p_s_der);
+   Honeycomb::SingleDiscretizationInfo info_radius({rmin, 0.5, 1}, {n, n}, r_to_i_s, r_to_i_s_der, r_to_p_s,
+                                                   r_to_p_s_der);
    Honeycomb::SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, {n, n, n, n, n, n});
 
    Honeycomb::Grid2D grid(info_radius, info_angle);
@@ -215,15 +223,24 @@ void dummy()
    // }
    // fclose(fp);
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("{:.16e}\t{:.16e}", f({0.27, 0.52, -0.27 - 0.52}), T_test(0.27, 0.52, -0.27 - 0.52)));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("{:.16e}\t{:.16e}", f({0.27, 0.52, -0.27 - 0.52}), T_test(0.27, 0.52, -0.27 - 0.52)));
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Radius only: {:+.16e} at {:.3f}", f_radius(0.59) - f1_test(0.59), 0.59));
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Radius only: {:+.16e} at {:.3f}", f_radius(0.29) - f1_test(0.29), 0.29));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Radius only: {:+.16e} at {:.3f}", f_radius(0.59) - f1_test(0.59), 0.59));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Radius only: {:+.16e} at {:.3f}", f_radius(0.29) - f1_test(0.29), 0.29));
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Angle only: {:+.16e} at {:.3f}", f_angle(0.29) - f1_test(0.29), 0.29));
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Angle only: {:+.16e} at {:.3f}", f_angle(1.29) - f1_test(1.29), 1.29));
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Angle only: {:+.16e} at {:.3f}", f_angle(2.29) - f1_test(2.29), 2.29));
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Angle only: {:+.16e} at {:.3f}", f_angle(3.29) - f1_test(3.29), 3.29));
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Angle only: {:+.16e} at {:.3f}", f_angle(4.29) - f1_test(4.29), 4.29));
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Angle only: {:+.16e} at {:.3f}", f_angle(5.29) - f1_test(5.29), 5.29));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Angle only: {:+.16e} at {:.3f}", f_angle(0.29) - f1_test(0.29), 0.29));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Angle only: {:+.16e} at {:.3f}", f_angle(1.29) - f1_test(1.29), 1.29));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Angle only: {:+.16e} at {:.3f}", f_angle(2.29) - f1_test(2.29), 2.29));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Angle only: {:+.16e} at {:.3f}", f_angle(3.29) - f1_test(3.29), 3.29));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Angle only: {:+.16e} at {:.3f}", f_angle(4.29) - f1_test(4.29), 4.29));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Angle only: {:+.16e} at {:.3f}", f_angle(5.29) - f1_test(5.29), 5.29));
 }

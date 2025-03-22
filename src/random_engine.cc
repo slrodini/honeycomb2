@@ -6,7 +6,8 @@ namespace Random
 {
 std::shared_ptr<RandomEngine> get_random_engine(uint32_t seed)
 {
-   static std::shared_ptr<Honeycomb::Random::RandomEngine> engine = std::make_shared<Honeycomb::Random::RandomEngine>(seed);
+   static std::shared_ptr<Honeycomb::Random::RandomEngine> engine =
+       std::make_shared<Honeycomb::Random::RandomEngine>(seed);
    return engine;
 }
 
