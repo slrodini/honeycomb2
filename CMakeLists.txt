@@ -32,14 +32,14 @@ endif()
 # ============================
 # MAIN
 # ============================
-include_directories(${PROJECT_SOURCE_DIR}/inc)
-
 # Generate list of source files
 file(GLOB source_files src/*.cc)
 
 # Define target library
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 add_library(Honeycomb2 SHARED ${source_files})
+
+target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc)
 
 # Define libraries to be linked
 target_link_libraries(Honeycomb2)
@@ -51,6 +51,31 @@ target_link_libraries(Honeycomb2)
 # Find PkgConfig
 find_package(PkgConfig REQUIRED)
 
+pkg_search_module(EIGEN3 eigen3)
+
+if(NOT EIGEN3_FOUND)
+  message(FATAL_ERROR "Could not find Eigen3, aborting...")
+else()
+  message(STATUS "Found Eigen in ${EIGEN3_INCLUDE_DIRS}")
+
+  # a bit of an hack. The EIGEN3_INCLUDE_DIRS contains the path to Eigen, I need the path to eigen3/ (which contains Eigen/)
+  target_include_directories(Honeycomb2 PUBLIC "${EIGEN3_INCLUDE_DIRS}/..")
+endif()
+
+set(USER_INCLUDE_DIR "" CACHE PATH "Path to search for cereal library (Should be path to parent folder of cereal/)")
+
+find_path(CEREAL_DIR
+  NAMES "cereal/cereal.hpp"
+  PATHS ${USER_INCLUDE_DIR}
+)
+
+if(CEREAL_DIR)
+  message(STATUS "Found cereal in: ${CEREAL_DIR}")
+  target_include_directories(Honeycomb2 PUBLIC ${CEREAL_DIR})
+else()
+  message(FATAL_ERROR "Could not find cereal.")
+endif()
+
 # Find yaml-cpp
 pkg_search_module(YAML_CPP QUIET yaml-cpp)
 
@@ -61,6 +86,7 @@ else(YAML_CPP_FOUND)
   message(FATAL_ERROR "yaml-cpp not found!")
 endif(YAML_CPP_FOUND)
 
+enable_testing()
 add_subdirectory(tests)
 
 # Configure version to file

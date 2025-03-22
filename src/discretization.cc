@@ -365,6 +365,43 @@ double Discretization::interpolate_as_weights(const RnC::Pair &rf) const
    return res;
 }
 
+double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi) const
+{
+
+   const Grid &radius = _grid.grid_radius;
+   const Grid &angle  = _grid.grid_angle;
+   const double r     = radius._d_info.to_inter_space(rhophi(0));
+   const double f     = angle._d_info.to_inter_space(rhophi(1));
+
+   size_t sector = static_cast<size_t>(floor(rhophi(1)));
+   if (sector == 6) sector--;
+
+   // Works only with Grid2D compliant with the angular sector decomposition
+   size_t kmin = angle._delim_indexes[sector];
+   size_t kmax = angle._delim_indexes[sector + 1];
+   size_t jmin = 0;
+   size_t jmax = 0;
+
+   for (size_t a = 0; a < radius._d_info.intervals.size(); a++) {
+      if (radius._coord[radius._delim_indexes[a]] <= rhophi(0) &&
+          rhophi(0) < radius._coord[radius._delim_indexes[a + 1] - 1]) {
+         jmin = radius._delim_indexes[a];
+         jmax = radius._delim_indexes[a + 1];
+         break;
+      }
+   }
+
+   double res = 0;
+
+   for (size_t k = kmin; k < kmax; k++) {
+      for (size_t j = jmin; j < jmax; j++) {
+         res += _fj(static_cast<long int>(get_flatten_index(j, k))) * radius._weights[j](r) * angle._weights[k](f);
+      }
+   }
+
+   return res;
+}
+
 std::function<double(const RnC::Pair &rhophi)> Discretization::get_dw_dx3_fixed_x1(size_t index) const
 {
    auto [j, k] = get_double_index(index);

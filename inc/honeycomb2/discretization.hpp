@@ -194,6 +194,18 @@ public:
    Discretization(const Grid2D &grid, std::function<double(double, double, double)> const &function);
 
    double interpolate_as_weights(const RnC::Pair &rhophi) const;
+
+   // This only works with sector compliant grids. The sectors are
+   //
+   //   (++-) -> 0 <= phi <  1
+   //   (-+-) -> 1 <= phi <  2
+   //   (-++) -> 2 <= phi <  3
+   //   (--+) -> 3 <= phi <  4
+   //   (+-+) -> 4 <= phi <  5
+   //   (+--) -> 5 <= phi <= 6
+   //
+   double interpolate_as_weights_v2(const RnC::Pair &rhophi) const;
+
    double interpolate_as_weights(const RnC::Triplet &x123) const
    {
       return interpolate_as_weights(RnC::from_x123_to_rhophi(x123));

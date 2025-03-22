@@ -67,13 +67,22 @@ double f1_test(double x)
 
 typedef double (*model_fnc_t)(double, double, double);
 
+double fnc_elapsed     = 0;
+double fnc_der_elapsed = 0;
+size_t fnc_count       = 0;
+
 void check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretization &F, model_fnc_t test_fnc,
                  model_fnc_t test_fnc_der, std::FILE *fp)
 {
    const Honeycomb::RnC::Triplet x123 = Honeycomb::RnC::from_rhophi_to_x123(rhophi);
 
-   const double exact  = test_fnc(x123(0), x123(1), x123(2));
-   const double approx = F(rhophi);
+   const double exact = test_fnc(x123(0), x123(1), x123(2));
+
+   // const double approx          = F(rhophi);
+   Honeycomb::timer::mark begin = Honeycomb::timer::now();
+   const double approx          = F.interpolate_as_weights_v2(rhophi);
+   Honeycomb::timer::mark end   = Honeycomb::timer::now();
+   fnc_elapsed += Honeycomb::timer::elapsed_ns(end, begin);
 
    const double dx = 1.0e-7;
 
@@ -82,7 +91,11 @@ void check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretiza
                                                        test_fnc(x123(0), -x123(0) - x123(2) + dx, x123(2) - dx)) /
                                                           (2.0 * dx);
 
+   begin                  = Honeycomb::timer::now();
    const double inter_der = F.interpolate_df_dx3_fixed_x1(rhophi);
+   end                    = Honeycomb::timer::now();
+   fnc_der_elapsed += Honeycomb::timer::elapsed_ns(end, begin);
+   fnc_count++;
 
    const double err = std::abs(exact) > 1.0e-10 ? std::abs(1 - approx / exact) : std::abs(approx - exact);
    const double err_der =
@@ -134,34 +147,52 @@ int main()
    const size_t n    = 12;
    const double rmin = 0.01;
 
-   Honeycomb::Grid2D grid = Honeycomb::generate_complaiant_Grid2D(n, {rmin, 0.33, 0.66, 1}, {12, 12, 12}, r_to_i_s,
-                                                                  r_to_i_s_der, r_to_p_s, r_to_p_s_der);
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.33, 0.66, 1}, {12, 12, 12}, r_to_i_s,
+                                                                 r_to_i_s_der, r_to_p_s, r_to_p_s_der);
 
    model_fnc_t test     = T_test_5;
    model_fnc_t test_der = T_test_5_der;
 
    Honeycomb::Discretization f(grid, test);
-   Honeycomb::logger(Honeycomb::Logger::WARNING, std::format("{:d}", f.size_li));
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("{:d}", f.size_li));
    Honeycomb::logger(
-       Honeycomb::Logger::WARNING,
+       Honeycomb::Logger::INFO,
        std::format("Estimated kernel sizes in MB: {:f}",
                    static_cast<double>(f.size_li) * static_cast<double>(f.size_li) * 8.0 / (1024.0 * 1024.0)));
 
-   Honeycomb::logger(Honeycomb::Logger::WARNING,
+   Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Compare with current honeycomb (which needs to store at least the 2 indexes for each "
                                  "kernel as int32_t, plus some "
                                  "additional space for efficient parallelization) MB: {:f}",
                                  503846 * 8.0 * 2 / (1024.0 * 1024.0)));
 
-   const double x1 = 0.27;
-   const double x3 = 0.52;
-   const double x2 = -x1 - x3;
+   const double phi_check                   = grid.grid_angle._coord[15];
+   const double rho_check                   = grid.grid_radius._coord[grid.grid_radius._delim_indexes[1]] - 0.001;
+   const Honeycomb::RnC::Triplet x123_check = Honeycomb::RnC::from_rhophi_to_x123(rho_check, phi_check);
+
+   // const double x1 = 0.27;
+   // const double x3 = 0.52;
+   // const double x2 = -x1 - x3;
+   const double x1 = x123_check(0);
+   const double x3 = x123_check(1);
+   const double x2 = x123_check(2);
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("(x1,x2, x3) = ({:+.16e}, {:+.16e}, {:+.16e})", x1, x2, x3));
+
    const double dx = 1.0e-5;
 
    const double num_der   = (test(x1, -x1 - x3 - dx, x3 + dx) - test(x1, -x1 - x3 + dx, x3 - dx)) / (2.0 * dx);
+   const double exact_der = test_der == nullptr ? 0 : test_der(x1, -x1 - x3, x3);
    const double inter_der = f.interpolate_df_dx3_fixed_x1(Honeycomb::RnC::from_x123_to_rhophi(x1, x2, x3));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("Derivative at ({:.2f}, {:.2f}, {:.2f}) => NumDer: {:+.10e}\tExactDer: {:+.10e}\tInterDer: {:+.10e}",
+                   x1, x2, x3, num_der, exact_der, inter_der));
 
-   Honeycomb::logger(Honeycomb::Logger::WARNING, std::format("{:+.10e}\t{:+.10e}", num_der, inter_der));
+   const double approx = f.interpolate_as_weights_v2(Honeycomb::RnC::from_x123_to_rhophi(x1, x2, x3));
+   const double exact  = test(x1, x2, x3);
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Function at ({:.2f}, {:.2f}, {:.2f}) => Exact: {:+.10e}\tInter: {:+.10e}", x1, x2, x3,
+                                 exact, approx));
 
    const size_t nSamples = 1000;
    std::FILE *fp         = fopen("interpolation_checks.dat", "w");
@@ -170,6 +201,10 @@ int main()
                   test_der, fp);
    }
    fclose(fp);
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("Average interpolation time: {:+.6e} ns; Average derivative interpolation time: {:+.6e} ns.",
+                   fnc_elapsed / static_cast<double>(fnc_count), fnc_der_elapsed / static_cast<double>(fnc_count)));
    return 0;
 }
 

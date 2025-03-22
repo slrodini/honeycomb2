@@ -3,7 +3,7 @@
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
 #include <honeycomb2/random_engine.hpp>
-#include <honeycomb2/timing.hpp>
+#include <honeycomb2/timer.hpp>
 #include <honeycomb2/checksum.hpp>
 #include <honeycomb2/cereal_extension.hpp>
 #include <honeycomb2/discretization.hpp>
