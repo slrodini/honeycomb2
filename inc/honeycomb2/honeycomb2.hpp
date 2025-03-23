@@ -9,3 +9,4 @@
 #include <honeycomb2/discretization.hpp>
 
 #include <honeycomb2/runge_kutta.hpp>
+#include <honeycomb2/gauss_kronrod.hpp>

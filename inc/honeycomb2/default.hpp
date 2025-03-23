@@ -6,6 +6,7 @@
 #include <format>
 #include <filesystem>
 #include <fstream>
+
 // Memory
 #include <cstdlib>
 
@@ -24,3 +25,7 @@
 #include <functional>
 #include <algorithm>
 #include <random>
+
+// Concepts
+#include <type_traits>
+#include <concepts>

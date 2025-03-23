@@ -150,8 +150,8 @@ int main()
    Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.33, 0.66, 1}, {12, 12, 12}, r_to_i_s,
                                                                  r_to_i_s_der, r_to_p_s, r_to_p_s_der);
 
-   model_fnc_t test     = T_test_5;
-   model_fnc_t test_der = T_test_5_der;
+   model_fnc_t test     = T_test_3;
+   model_fnc_t test_der = T_test_3_der;
 
    Honeycomb::Discretization f(grid, test);
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("{:d}", f.size_li));
