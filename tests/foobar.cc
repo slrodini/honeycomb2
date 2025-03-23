@@ -11,6 +11,12 @@ double T_test(double x1, double x2, double x3)
 {
    return (1 - x1 * x1) * (1 - x2 * x2) * (1 - x3 * x3);
 }
+
+double T_test_der(double x1, double x2, double x3)
+{
+   return -2 * (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * x3 + 2 * (1 - Power(x1, 2)) * x2 * (1 - Power(x3, 2));
+}
+
 double T_test_2(double x1, double x2, double x3)
 {
    return (1.0 - cos(T_test(x1, x2, x3))) * 2 * sin(M_PI * x2) /
@@ -60,6 +66,24 @@ double T_test_5_der(double x1, double x2, double x3)
           (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)) *
               ((-2 * x2 + 2 * x3) / (Power(x1, 2) + Power(x2, 2) + Power(x3, 2)) - Pi * x1 * Sin(Pi * x1 * x3));
 }
+
+double T_test_6(double x1, double x2, double x3)
+{
+   return (1.0 - cos(T_test(x1, x2, x3))) * 2 * cos(M_PI * x2) / (x1 * x1 + x2 * x2 + x3 * x3);
+}
+
+double T_test_6_der(double x1, double x2, double x3)
+{
+   return (-2 * (-2 * x2 + 2 * x3) * Cos(Pi * x2) *
+           (1 - Cos((1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2))))) /
+              Power(Power(x1, 2) + Power(x2, 2) + Power(x3, 2), 2) +
+          (2 * Pi * (1 - Cos((1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)))) * Sin(Pi * x2)) /
+              (Power(x1, 2) + Power(x2, 2) + Power(x3, 2)) +
+          (2 * (-2 * (1 - Power(x1, 2)) * (1 - Power(x2, 2)) * x3 + 2 * (1 - Power(x1, 2)) * x2 * (1 - Power(x3, 2))) *
+           Cos(Pi * x2) * Sin((1 - Power(x1, 2)) * (1 - Power(x2, 2)) * (1 - Power(x3, 2)))) /
+              (Power(x1, 2) + Power(x2, 2) + Power(x3, 2));
+}
+
 double f1_test(double x)
 {
    return exp(x);
@@ -114,44 +138,13 @@ void dummy();
 int main()
 {
 
-   //
-
-   // const double rmax = 0.75;
-
-   std::function<double(double)> r_to_i_s = [](double x) -> double {
-      return log(x);
-      // const double t = (rmax - rmin) * (x - rmin) / (1 - rmin) + rmin;
-      // return log(t);
-      // return -log(1 - log(x));
-   };
-   std::function<double(double)> r_to_i_s_der = [](double x) -> double {
-      return 1.0 / x;
-      // const double t = (rmax - rmin) * (x - rmin) / (1 - rmin) + rmin;
-      // return (rmax - rmin) / (1 - rmin) / t;
-      // return 1.0 / (x * (1 - log(x)));
-   };
-
-   std::function<double(double)> r_to_p_s = [](double u) -> double {
-      return exp(u);
-      // const double eu = exp(u);
-      // return (eu - rmin) * (1 - rmin) / (rmax - rmin) + rmin;
-      // return exp(-expm1(-u));
-   };
-   std::function<double(double)> r_to_p_s_der = [](double u) -> double {
-      return exp(u);
-      // const double eu = exp(u);
-      // return (eu) * (1 - rmin) / (rmax - rmin);
-      // return exp(-expm1(-u) - u);
-   };
-
    const size_t n    = 12;
    const double rmin = 0.01;
 
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.33, 0.66, 1}, {12, 12, 12}, r_to_i_s,
-                                                                 r_to_i_s_der, r_to_p_s, r_to_p_s_der);
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.33, 0.66, 1}, {12, 12, 12});
 
-   model_fnc_t test     = T_test_3;
-   model_fnc_t test_der = T_test_3_der;
+   model_fnc_t test     = T_test_6;
+   model_fnc_t test_der = T_test_6_der;
 
    Honeycomb::Discretization f(grid, test);
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("{:d}", f.size_li));

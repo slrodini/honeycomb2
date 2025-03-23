@@ -22,12 +22,12 @@ double elapsed_ns(const mark &end, const mark &begin)
 
 double elapsed_us(const mark &end, const mark &begin)
 {
-   return 1.0e+3 * static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
+   return 1.0e-3 * static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
 }
 
 double elapsed_ms(const mark &end, const mark &begin)
 {
-   return 1.0e+6 * static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
+   return 1.0e-6 * static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
 }
 
 } // namespace timer

@@ -269,26 +269,24 @@ public:
 // Utility function, ensures that the angular grid is generated with only 6
 // subintervals, corresponding to the 6 triangular regions. This is fundamental for the correct working of various
 // parts of the library, especially the routines to determine the support of the weights int the physical momentum
-// coordinates
+// coordinates. Moreover, the radial grid is defaulted to the logarithmic grid.
 Grid2D generate_compliant_Grid2D(
     size_t n_pts_for_angle_sector, std::vector<double> radius_inter, std::vector<size_t> radius_g_size,
     std::function<double(double)> radius_to_i_space =
         [](double x) {
-           return x;
+           return log(x);
         },
     std::function<double(double)> radius_to_i_space_der =
         [](double x) {
-           (void)x;
-           return 1;
+           return 1.0 / x;
         },
     std::function<double(double)> radius_to_p_space =
-        [](double x) {
-           return x;
+        [](double u) {
+           return exp(u);
         },
     std::function<double(double)> radius_to_p_space_der =
-        [](double x) {
-           (void)x;
-           return 1;
+        [](double u) {
+           return exp(u);
         },
     std::function<double(double)> angle_to_i_space =
         [](double x) {
@@ -300,12 +298,12 @@ Grid2D generate_compliant_Grid2D(
            return 1;
         },
     std::function<double(double)> angle_to_p_space =
-        [](double x) {
-           return x;
+        [](double u) {
+           return u;
         },
     std::function<double(double)> angle_to_p_space_der =
-        [](double x) {
-           (void)x;
+        [](double u) {
+           (void)u;
            return 1;
         });
 
