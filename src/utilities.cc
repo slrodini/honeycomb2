@@ -25,6 +25,10 @@ std::string to_lower_case(std::string s)
 //_________________________________________________________________________________
 void setup_logging(std::string outpath, std::string outname, bool to_stderr, size_t min_log_level)
 {
+   if (to_stderr) {
+      logger.init("EMPTY", 0, true);
+      return;
+   }
 
    if (!std::filesystem::exists(outpath)) std::filesystem::create_directories(outpath);
    else {
@@ -33,6 +37,6 @@ void setup_logging(std::string outpath, std::string outname, bool to_stderr, siz
          std::filesystem::create_directories(outpath);
       }
    }
-   logger.init(outpath + "/" + outname + "_logger.txt", 0);
+   logger.init(outpath + "/" + outname + "_logger.txt", 0, false);
 }
 } // namespace Honeycomb
