@@ -37,7 +37,7 @@ public:
    SingleDiscretizationInfo() = default;
 
    SingleDiscretizationInfo(
-       std::vector<double> inter, std::vector<size_t> g_size,
+       std::vector<double> inter, std::vector<size_t> g_size, bool is_per = false,
        std::function<double(double)> to_i_space =
            [](double x) {
               return x;
@@ -56,7 +56,7 @@ public:
               (void)x;
               return 1;
            })
-       : intervals(inter.size() - 1, {0, 0}), grid_sizes(g_size), to_inter_space(to_i_space),
+       : is_periodic(is_per), intervals(inter.size() - 1, {0, 0}), grid_sizes(g_size), to_inter_space(to_i_space),
          to_inter_space_der(to_i_space_der), to_phys_space(to_p_space), to_phys_space_der(to_p_space_der)
    {
       if (g_size.size() != (inter.size() - 1)) {
@@ -70,6 +70,7 @@ public:
          intervals[i] = {to_i_space(inter[i]), to_i_space(inter[i + 1])};
    };
 
+   bool is_periodic;
    std::vector<std::pair<double, double>> intervals;
    std::vector<size_t> grid_sizes;
    std::function<double(double)> to_inter_space;
@@ -80,7 +81,6 @@ public:
 
 // Store the grid in either the radius or the angle
 struct Grid {
-   Grid() {};
 
    // u=a <=> t=+1
    // u=b <=> t=-1
@@ -123,10 +123,13 @@ struct Grid {
    std::vector<std::function<double(double)>> _weights_der; //  these are dw/du
    std::vector<std::function<double(double)>> _weights_sub; //  these are w-1
    std::vector<double> _coord;
+   std::vector<long int> _from_iw_to_ic;
    std::vector<std::vector<double>> _der_matrix;
    std::vector<size_t> _delim_indexes;
    size_t size;
    long int size_li;
+   size_t c_size;
+   long int c_size_li;
 };
 
 namespace RnC
@@ -223,6 +226,7 @@ public:
       return interpolate_as_weights(x123);
    }
 
+   // NOTE: for the weights
    size_t get_flatten_index(size_t i_r, size_t i_a) const
    {
       return i_r + (_grid.grid_radius.size) * i_a;
@@ -231,7 +235,6 @@ public:
    {
       return get_flatten_index(p.first, p.second);
    }
-
    std::pair<size_t, size_t> get_double_index(size_t index) const
    {
       size_t i_r = index % _grid.grid_radius.size;
@@ -239,10 +242,24 @@ public:
       return {i_r, i_a};
    }
 
+   // NOTE: for _fj
+   size_t fj_get_flatten_index(size_t i_r, size_t i_a) const
+   {
+      return i_r + (_grid.grid_radius.c_size) * i_a;
+   }
+   size_t fj_get_flatten_index(const std::pair<size_t, size_t> &p) const
+   {
+      return fj_get_flatten_index(p.first, p.second);
+   }
+   // NOTE: no need for the inverse, I never iterate over global _fj index, only over global w indexes, and use the grid
+   // NOTE: utilities to transform double w indexes into double _fj ones
+
    const Grid2D &_grid;
 
-   size_t size; // Global flatten size
-   long int size_li;
+   size_t size;        // Global flatten size
+   long int size_li;   // Global flatten size
+   size_t f_size;      // Size of _fj (different from size, because merging points are stored once)
+   long int f_size_li; // Size of _fj (different from size, because merging points are stored once)
    std::vector<RnC::Triplet> _x123;
    Eigen::VectorXd _fj;
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
@@ -266,45 +283,117 @@ public:
    Eigen::VectorXd _fj;
 };
 
+struct LinearGrid {
+   static double to_i_space(double x)
+   {
+      return x;
+   };
+   static double to_i_space_der(double x)
+   {
+      (void)x;
+      return 1;
+   };
+   static double to_p_space(double u)
+   {
+      return u;
+   };
+   static double to_p_space_der(double u)
+   {
+      (void)u;
+      return 1;
+   };
+};
+
+struct LogGrid {
+   static double to_i_space(double x)
+   {
+      return log(x);
+   };
+   static double to_i_space_der(double x)
+   {
+      return 1.0 / x;
+   };
+   static double to_p_space(double u)
+   {
+      return exp(u);
+   };
+   static double to_p_space_der(double u)
+   {
+      return exp(u);
+   };
+};
+
+struct OneOverXGrid {
+   static double to_i_space(double x)
+   {
+      return 1.0 - 1.0 / x;
+   };
+   static double to_i_space_der(double x)
+   {
+      return 1.0 / (x * x);
+   };
+   static double to_p_space(double u)
+   {
+      return 1.0 / (1.0 - u);
+   };
+   static double to_p_space_der(double u)
+   {
+      return 1.0 / sq(1.0 - u);
+   };
+};
+
+struct OneOverSqrtXGrid {
+   static double to_i_space(double x)
+   {
+      return 1.0 - 1.0 / sqrt(x);
+   };
+   static double to_i_space_der(double x)
+   {
+      return 0.5 / sqrt(cu(x));
+   };
+   static double to_p_space(double u)
+   {
+      return 1.0 / sq(1.0 - u);
+   };
+   static double to_p_space_der(double u)
+   {
+      return 2.0 / cu(1.0 - u);
+   };
+};
+
 // Utility function, ensures that the angular grid is generated with only 6
 // subintervals, corresponding to the 6 triangular regions. This is fundamental for the correct working of various
 // parts of the library, especially the routines to determine the support of the weights int the physical momentum
 // coordinates. Moreover, the radial grid is defaulted to the logarithmic grid.
-Grid2D generate_compliant_Grid2D(
-    size_t n_pts_for_angle_sector, std::vector<double> radius_inter, std::vector<size_t> radius_g_size,
-    std::function<double(double)> radius_to_i_space =
-        [](double x) {
-           return log(x);
-        },
-    std::function<double(double)> radius_to_i_space_der =
-        [](double x) {
-           return 1.0 / x;
-        },
-    std::function<double(double)> radius_to_p_space =
-        [](double u) {
-           return exp(u);
-        },
-    std::function<double(double)> radius_to_p_space_der =
-        [](double u) {
-           return exp(u);
-        },
-    std::function<double(double)> angle_to_i_space =
-        [](double x) {
-           return x;
-        },
-    std::function<double(double)> angle_to_i_space_der =
-        [](double x) {
-           (void)x;
-           return 1;
-        },
-    std::function<double(double)> angle_to_p_space =
-        [](double u) {
-           return u;
-        },
-    std::function<double(double)> angle_to_p_space_der =
-        [](double u) {
-           (void)u;
-           return 1;
-        });
+Grid2D generate_compliant_Grid2D(size_t n_pts_for_angle_sector, std::vector<double> radius_inter,
+                                 std::vector<size_t> radius_g_size,
+                                 std::function<double(double)> radius_to_i_space     = LogGrid::to_i_space,
+                                 std::function<double(double)> radius_to_i_space_der = LogGrid::to_i_space_der,
+                                 std::function<double(double)> radius_to_p_space     = LogGrid::to_p_space,
+                                 std::function<double(double)> radius_to_p_space_der = LogGrid::to_p_space_der,
+                                 std::function<double(double)> angle_to_i_space      = LinearGrid::to_i_space,
+                                 std::function<double(double)> angle_to_i_space_der  = LinearGrid::to_i_space_der,
+                                 std::function<double(double)> angle_to_p_space      = LinearGrid::to_p_space,
+                                 std::function<double(double)> angle_to_p_space_der  = LinearGrid::to_p_space_der);
 
+/*
+
+std::function<double(double)> angle_to_i_space =
+[](double x) {
+   return x;
+},
+std::function<double(double)> angle_to_i_space_der =
+[](double x) {
+   (void)x;
+   return 1;
+},
+std::function<double(double)> angle_to_p_space =
+[](double u) {
+   return u;
+},
+std::function<double(double)> angle_to_p_space_der =
+[](double u) {
+   (void)u;
+   return 1;
+}*/
 } // namespace Honeycomb

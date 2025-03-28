@@ -31,7 +31,7 @@ StandardGrid::StandardGrid(size_t N)
    _betaj[0] = 0.5;
    _betaj[N] = 0.5;
    for (size_t j = 0; j <= N; j++) {
-      _tj[j] = chebyshev_points_scaled(j, N);
+      _tj[j]     = chebyshev_points_scaled(j, N);
       _betaj[j] *= (j % 2 ? 1 : -1);
    }
 
@@ -128,12 +128,15 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
       }
    }
 
-   size_li = static_cast<long int>(size);
+   size_li   = static_cast<long int>(size);
+   c_size    = size - d_info.intervals.size() + (!d_info.is_periodic);
+   c_size_li = static_cast<long int>(size - d_info.intervals.size() + (!d_info.is_periodic));
 
    _weights.resize(size);
    _weights_der.resize(size);
    _weights_sub.resize(size);
-   _coord.resize(size);
+   _from_iw_to_ic.resize(size);
+   _coord.resize(c_size);
    _delim_indexes.resize(d_info.intervals.size() + 1);
 
    _der_matrix.resize(size);
@@ -141,16 +144,22 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
       _der_matrix[i].resize(size);
 
    // No check on order of the interval
-   long int index = 0;
+   long int index       = 0;
+   long int index_coord = 0;
    for (size_t a = 0; a < d_info.intervals.size(); a++) {
 
       const StandardGrid &sg = stored_grids.at(d_info.grid_sizes[a]);
       _delim_indexes[a]      = index;
 
       for (size_t j = 0; j <= d_info.grid_sizes[a]; j++) {
+         // NOTE: _coord stores only the UNIQUES coordinates
 
-         _coord[index] =
-             d_info.to_phys_space(from_m1p1_to_ab(sg.tj(j), d_info.intervals[a].first, d_info.intervals[a].second));
+         if (j != d_info.grid_sizes[a] || (!d_info.is_periodic && a == d_info.intervals.size() - 1))
+            _coord[index_coord] =
+                d_info.to_phys_space(from_m1p1_to_ab(sg.tj(j), d_info.intervals[a].first, d_info.intervals[a].second));
+
+         _from_iw_to_ic[index] = index_coord;
+         if (j != d_info.grid_sizes[a]) index_coord++;
 
          _weights[index] = [a, j, this](double u) -> double {
             return this->weight_aj<W_CASE::N>(u, a, j);
@@ -172,6 +181,7 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
       }
    }
    _delim_indexes[d_info.intervals.size()] = index;
+   if (d_info.is_periodic) _from_iw_to_ic[size - 1] = 0;
 }
 
 double Grid::get_der_matrix(size_t a, size_t j, size_t b, size_t k) const
@@ -319,20 +329,31 @@ std::pair<RnC::Triplet, RnC::Triplet> RnC::dx123_drhophi(RnC::Pair rhophi)
 
 Discretization::Discretization(const Grid2D &grid, std::function<double(double, double, double)> const &function)
     : _grid(grid), size(grid.grid_radius.size * grid.grid_angle.size),
-      size_li(grid.grid_radius.size_li * grid.grid_angle.size_li), _x123(size), _fj(size_li), _dw_dx3(size)
+      size_li(grid.grid_radius.size_li * grid.grid_angle.size_li),
+      f_size(grid.grid_radius.c_size * grid.grid_angle.c_size), f_size_li(static_cast<long int>(f_size)), _x123(f_size),
+      _fj(f_size_li), _dw_dx3(size)
 {
 
    const Grid &radius = grid.grid_radius;
    const Grid &angle  = grid.grid_angle;
 
+   // These are loops over the double w indexes
    for (size_t k = 0; k < angle.size; k++) {
+      size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+
       for (size_t j = 0; j < radius.size; j++) {
+         size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+
          size_t index      = get_flatten_index(j, k);
          long int index_li = static_cast<long int>(index);
-         RnC::Pair rf(radius._coord[j], angle._coord[k]);
-         _x123[index]   = RnC::from_rhophi_to_x123(rf);
-         _fj(index_li)  = function(_x123[index][0], _x123[index][1], _x123[index][2]);
-         _dw_dx3[index] = get_dw_dx3_fixed_x1(index);
+
+         size_t f_index      = fj_get_flatten_index(c_j, c_k);
+         long int f_index_li = static_cast<long int>(f_index);
+
+         RnC::Pair rf(radius._coord[c_j], angle._coord[c_k]);
+         _x123[f_index]  = RnC::from_rhophi_to_x123(rf);
+         _fj(f_index_li) = function(_x123[f_index][0], _x123[f_index][1], _x123[f_index][2]);
+         _dw_dx3[index]  = get_dw_dx3_fixed_x1(index);
       }
    }
 
@@ -340,13 +361,13 @@ Discretization::Discretization(const Grid2D &grid, std::function<double(double, 
    //
 }
 
-double Discretization::interpolate_as_weights(const RnC::Pair &rf) const
+double Discretization::interpolate_as_weights(const RnC::Pair &rhophi) const
 {
 
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
-   const double r     = radius._d_info.to_inter_space(rf(0));
-   const double f     = angle._d_info.to_inter_space(rf(1));
+   const double r     = radius._d_info.to_inter_space(rhophi(0));
+   const double f     = angle._d_info.to_inter_space(rhophi(1));
 
    double res = 0;
 
@@ -358,7 +379,11 @@ double Discretization::interpolate_as_weights(const RnC::Pair &rf) const
          auto r_supp = radius.get_support_weight_aj(j);
          if (r < r_supp.first || r > r_supp.second) continue;
 
-         res += _fj(static_cast<long int>(get_flatten_index(j, k))) * radius._weights[j](r) * angle._weights[k](f);
+         size_t c_k = _grid.grid_angle._from_iw_to_ic[k];
+         size_t c_j = _grid.grid_radius._from_iw_to_ic[j];
+
+         const double fj  = _fj(static_cast<long int>(fj_get_flatten_index(c_j, c_k)));
+         res             += fj * radius._weights[j](r) * angle._weights[k](f);
       }
    }
 
@@ -383,8 +408,9 @@ double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi) const
    size_t jmax = 0;
 
    for (size_t a = 0; a < radius._d_info.intervals.size(); a++) {
-      if (radius._coord[radius._delim_indexes[a]] <= rhophi(0) &&
-          rhophi(0) < radius._coord[radius._delim_indexes[a + 1] - 1]) {
+      size_t low  = radius._from_iw_to_ic[radius._delim_indexes[a]];
+      size_t high = radius._from_iw_to_ic[radius._delim_indexes[a + 1] - 1];
+      if (radius._coord[low] <= rhophi(0) && rhophi(0) < radius._coord[high]) {
          jmin = radius._delim_indexes[a];
          jmax = radius._delim_indexes[a + 1];
          break;
@@ -395,7 +421,10 @@ double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi) const
 
    for (size_t k = kmin; k < kmax; k++) {
       for (size_t j = jmin; j < jmax; j++) {
-         res += _fj(static_cast<long int>(get_flatten_index(j, k))) * radius._weights[j](r) * angle._weights[k](f);
+         size_t c_k       = _grid.grid_angle._from_iw_to_ic[k];
+         size_t c_j       = _grid.grid_radius._from_iw_to_ic[j];
+         const double fj  = _fj(static_cast<long int>(fj_get_flatten_index(c_j, c_k)));
+         res             += fj * radius._weights[j](r) * angle._weights[k](f);
       }
    }
 
@@ -440,10 +469,34 @@ std::function<double(const RnC::Pair &rhophi)> Discretization::get_dw_dx3_fixed_
 
 double Discretization::interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi) const
 {
+   // double res = 0;
+   // for (size_t index = 0, index_li = 0; index < size; index++, index_li++) {
+   //    const double fj  = _fj(index_li);
+   //    res             += fj * _dw_dx3[index](rhophi);
+   // }
+   const Grid &radius = _grid.grid_radius;
+   const Grid &angle  = _grid.grid_angle;
+   const double r     = radius._d_info.to_inter_space(rhophi(0));
+   const double f     = angle._d_info.to_inter_space(rhophi(1));
+
    double res = 0;
-   for (size_t index = 0, index_li = 0; index < size; index++, index_li++) {
-      const double fj = _fj(index_li);
-      res += fj * _dw_dx3[index](rhophi);
+
+   for (size_t k = 0; k < angle.size; k++) {
+      auto f_supp = angle.get_support_weight_aj(k);
+      if (f < f_supp.first || f > f_supp.second) continue;
+
+      for (size_t j = 0; j < radius.size; j++) {
+         auto r_supp = radius.get_support_weight_aj(j);
+         if (r < r_supp.first || r > r_supp.second) continue;
+
+         size_t c_k = _grid.grid_angle._from_iw_to_ic[k];
+         size_t c_j = _grid.grid_radius._from_iw_to_ic[j];
+
+         size_t index = get_flatten_index(j, k);
+
+         const double fj  = _fj(static_cast<long int>(fj_get_flatten_index(c_j, c_k)));
+         res             += fj * _dw_dx3[index](rhophi);
+      }
    }
    return res;
 }
@@ -544,7 +597,7 @@ Grid2D generate_compliant_Grid2D(
       logger(
           Logger::ERROR,
           std::format(
-              "The radial map derivative is not correctly coded. From r'({:.2f}) I find: {:+.16e} instead of {:+.16e}",
+              "The radial map derivative is not correctly coded. From r=({:.2f}) I find: {:+.16e} instead of {:+.16e}",
               r_check, r_der, r_num_der));
    }
    const double f_der     = angle_to_i_space_der(f_check);
@@ -553,7 +606,7 @@ Grid2D generate_compliant_Grid2D(
       logger(
           Logger::ERROR,
           std::format(
-              "The angular map derivative is not correctly coded. From f'({:.2f}) I find: {:+.16e} instead of {:+.16e}",
+              "The angular map derivative is not correctly coded. From f=({:.2f}) I find: {:+.16e} instead of {:+.16e}",
               f_check, f_der, f_num_der));
    }
 
@@ -577,11 +630,11 @@ Grid2D generate_compliant_Grid2D(
 
    // SECTION: Done with checks, can initialize and return
 
-   SingleDiscretizationInfo info_radius(radius_inter, radius_g_size, radius_to_i_space, radius_to_i_space_der,
+   SingleDiscretizationInfo info_radius(radius_inter, radius_g_size, false, radius_to_i_space, radius_to_i_space_der,
                                         radius_to_p_space, radius_to_p_space_der);
 
    const std::vector<size_t> is_a(6, n_pts_for_angle_sector);
-   SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, is_a, angle_to_i_space, angle_to_i_space_der,
+   SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, is_a, true, angle_to_i_space, angle_to_i_space_der,
                                        angle_to_p_space, angle_to_p_space_der);
 
    return Grid2D(info_radius, info_angle);
@@ -595,13 +648,15 @@ Grid2D generate_compliant_Grid2D(
 //========================================================
 
 Discretization1D::Discretization1D(const Grid &grid, std::function<double(double)> const &function)
-    : _grid(grid), size(grid.size), size_li(grid.size_li), _fj(size_li)
+    : _grid(grid), size(grid.size), size_li(grid.size_li), _fj(grid.c_size)
 {
-   long int index_li = 0;
+   // long int index_li = 0;
+   // for (size_t k = 0; k < grid.c_size; k++) {
+   //    _fj(index_li++) = function(grid._coord[k]);
+   // }
 
    for (size_t k = 0; k < grid.size; k++) {
-      _fj(index_li) = function(grid._coord[k]);
-      index_li++;
+      _fj(_grid._from_iw_to_ic[k]) = function(grid._coord[_grid._from_iw_to_ic[k]]);
    }
 }
 
@@ -615,7 +670,7 @@ double Discretization1D::interpolate_as_weights(double x) const
    double res = 0;
 
    for (size_t k = 0; k < _grid.size; k++) {
-      res += _fj(index_li++) * _grid._weights[k](r);
+      res += _fj(_grid._from_iw_to_ic[k]) * _grid._weights[k](r);
    }
 
    return res;

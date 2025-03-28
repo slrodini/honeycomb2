@@ -29,3 +29,14 @@
 // Concepts
 #include <type_traits>
 #include <concepts>
+
+// Small inline functions
+inline double sq(double x) noexcept
+{
+   return x * x;
+};
+
+inline double cu(double x) noexcept
+{
+   return x * x * x;
+};
