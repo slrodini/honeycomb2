@@ -56,8 +56,9 @@ public:
               (void)x;
               return 1;
            })
-       : is_periodic(is_per), intervals(inter.size() - 1, {0, 0}), grid_sizes(g_size), to_inter_space(to_i_space),
-         to_inter_space_der(to_i_space_der), to_phys_space(to_p_space), to_phys_space_der(to_p_space_der)
+       : is_periodic(is_per), intervals(inter.size() - 1, {0, 0}), intervals_phys(inter.size() - 1, {0, 0}),
+         grid_sizes(g_size), to_inter_space(to_i_space), to_inter_space_der(to_i_space_der), to_phys_space(to_p_space),
+         to_phys_space_der(to_p_space_der)
    {
       if (g_size.size() != (inter.size() - 1)) {
          logger(Logger::ERROR,
@@ -66,12 +67,15 @@ public:
                     "vector of number of points for each subinterval ({:d})",
                     inter.size() - 1, g_size.size()));
       }
-      for (size_t i = 0; i < inter.size() - 1; i++)
-         intervals[i] = {to_i_space(inter[i]), to_i_space(inter[i + 1])};
+      for (size_t i = 0; i < inter.size() - 1; i++) {
+         intervals[i]      = {to_i_space(inter[i]), to_i_space(inter[i + 1])};
+         intervals_phys[i] = {inter[i], inter[i + 1]};
+      }
    };
 
    bool is_periodic;
    std::vector<std::pair<double, double>> intervals;
+   std::vector<std::pair<double, double>> intervals_phys;
    std::vector<size_t> grid_sizes;
    std::function<double(double)> to_inter_space;
    std::function<double(double)> to_inter_space_der;
@@ -113,6 +117,16 @@ struct Grid {
       for (size_t a = 0; a < _d_info.intervals.size(); a++) {
          if (_delim_indexes[a] <= index && index < _delim_indexes[a + 1])
             return {_d_info.intervals[a].first, _d_info.intervals[a].second};
+      }
+      logger(Logger::ERROR, std::format("[Grid::get_support_weight_aj] Index out of bound"));
+      return {NAN, NAN};
+   }
+
+   std::pair<double, double> get_phys_support_weight_aj(size_t index) const
+   {
+      for (size_t a = 0; a < _d_info.intervals.size(); a++) {
+         if (_delim_indexes[a] <= index && index < _delim_indexes[a + 1])
+            return {_d_info.intervals_phys[a].first, _d_info.intervals_phys[a].second};
       }
       logger(Logger::ERROR, std::format("[Grid::get_support_weight_aj] Index out of bound"));
       return {NAN, NAN};
@@ -170,26 +184,63 @@ struct Triplet {
 };
 
 Triplet from_rhophi_to_x123(double rho, double phi);
-Triplet from_rhophi_to_x123(Pair rf)
-{
-   return from_rhophi_to_x123(rf[0], rf[1]);
-};
+Triplet from_rhophi_to_x123(Pair rf);
 Pair from_x123_to_rhophi(double x1, double x2, double x3);
-Pair from_x123_to_rhophi(Triplet x123)
-{
-   return from_x123_to_rhophi(x123[0], x123[1], x123[2]);
-};
+Pair from_x123_to_rhophi(Triplet x123);
 
 std::pair<Triplet, Triplet> dx123_drhophi(Pair rhophi);
 }; // namespace RnC
 
 struct Grid2D {
 
-   Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi)
-       : grid_radius(d_info_rho), grid_angle(d_info_phi) {};
+   Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi);
+
+   std::function<double(const RnC::Pair &rhophi)> get_dw_dx3_fixed_x1(size_t index) const;
+
+   // NOTE: for the weights
+   size_t get_flatten_index(size_t i_r, size_t i_a) const
+   {
+      return i_r + (grid_radius.size) * i_a;
+   }
+   size_t get_flatten_index(const std::pair<size_t, size_t> &p) const
+   {
+      return get_flatten_index(p.first, p.second);
+   }
+   std::pair<size_t, size_t> get_double_index(size_t index) const
+   {
+      size_t i_r = index % grid_radius.size;
+      size_t i_a = (index - i_r) / grid_radius.size;
+      return {i_r, i_a};
+   }
+
+   // NOTE: for _x123
+   size_t c_get_flatten_index(size_t i_r, size_t i_a) const
+   {
+      return i_r + (grid_radius.c_size) * i_a;
+   }
+   size_t c_get_flatten_index(const std::pair<size_t, size_t> &p) const
+   {
+      return c_get_flatten_index(p.first, p.second);
+   }
 
    const Grid grid_radius;
    const Grid grid_angle;
+
+   size_t size;      // Global flatten size
+   long int size_li; // Global flatten size
+
+   size_t c_size;      // Size of _fj (different from size, because merging points are stored once)
+   long int c_size_li; // Size of _fj (different from size, because merging points are stored once)
+
+   // c_size cooridnates
+   std::vector<RnC::Triplet> _x123;
+
+   // Of "size" size, not c_size, it is one for each weight
+   std::vector<std::pair<RnC::Triplet, RnC::Triplet>> _x123_minmax;
+
+   // size weights derivatives
+   std::vector<std::function<double(const RnC::Pair &rhophi)>> _w;
+   std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
 };
 
 struct Discretization {
@@ -208,14 +259,13 @@ public:
    //   (+--) -> 5 <= phi <= 6
    //
    double interpolate_as_weights_v2(const RnC::Pair &rhophi) const;
+   double interpolate_as_weights_v3(const RnC::Pair &rhophi) const;
 
    double interpolate_as_weights(const RnC::Triplet &x123) const
    {
       return interpolate_as_weights(RnC::from_x123_to_rhophi(x123));
    };
    double interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi) const;
-
-   std::function<double(const RnC::Pair &rhophi)> get_dw_dx3_fixed_x1(size_t index) const;
 
    double operator()(const RnC::Pair &rhophi) const
    {
@@ -226,43 +276,8 @@ public:
       return interpolate_as_weights(x123);
    }
 
-   // NOTE: for the weights
-   size_t get_flatten_index(size_t i_r, size_t i_a) const
-   {
-      return i_r + (_grid.grid_radius.size) * i_a;
-   }
-   size_t get_flatten_index(const std::pair<size_t, size_t> &p) const
-   {
-      return get_flatten_index(p.first, p.second);
-   }
-   std::pair<size_t, size_t> get_double_index(size_t index) const
-   {
-      size_t i_r = index % _grid.grid_radius.size;
-      size_t i_a = (index - i_r) / _grid.grid_radius.size;
-      return {i_r, i_a};
-   }
-
-   // NOTE: for _fj
-   size_t fj_get_flatten_index(size_t i_r, size_t i_a) const
-   {
-      return i_r + (_grid.grid_radius.c_size) * i_a;
-   }
-   size_t fj_get_flatten_index(const std::pair<size_t, size_t> &p) const
-   {
-      return fj_get_flatten_index(p.first, p.second);
-   }
-   // NOTE: no need for the inverse, I never iterate over global _fj index, only over global w indexes, and use the grid
-   // NOTE: utilities to transform double w indexes into double _fj ones
-
    const Grid2D &_grid;
-
-   size_t size;        // Global flatten size
-   long int size_li;   // Global flatten size
-   size_t f_size;      // Size of _fj (different from size, because merging points are stored once)
-   long int f_size_li; // Size of _fj (different from size, because merging points are stored once)
-   std::vector<RnC::Triplet> _x123;
    Eigen::VectorXd _fj;
-   std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
 };
 
 struct Discretization1D {

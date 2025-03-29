@@ -106,23 +106,23 @@ std::pair<double, double> GaussKronrod<Rule>::gauss_kronrod_simplified(std::func
    if (n % 2 == 0) result_gauss = f_center * Rule::w_g[n / 2 - 1];
 
    for (size_t j = 0, jtw = 1; j < (n - 1) / 2; j++, jtw += 2) {
-      const double abscissa = half_length * Rule::x_gk[jtw];
-      const double fv1      = fnc(center - abscissa);
-      const double fv2      = fnc(center + abscissa);
-      const double fsum     = fv1 + fv2;
-      result_gauss += Rule::w_g[j] * fsum;
-      result_kronrod += Rule::w_gk[jtw] * fsum;
+      const double abscissa  = half_length * Rule::x_gk[jtw];
+      const double fv1       = fnc(center - abscissa);
+      const double fv2       = fnc(center + abscissa);
+      const double fsum      = fv1 + fv2;
+      result_gauss          += Rule::w_g[j] * fsum;
+      result_kronrod        += Rule::w_gk[jtw] * fsum;
    }
 
    for (size_t j = 0; j < n - 1; j += 2) {
-      const double abscissa = half_length * Rule::x_gk[j];
-      const double fv1      = fnc(center - abscissa);
-      const double fv2      = fnc(center + abscissa);
-      result_kronrod += Rule::w_gk[j] * (fv1 + fv2);
+      const double abscissa  = half_length * Rule::x_gk[j];
+      const double fv1       = fnc(center - abscissa);
+      const double fv2       = fnc(center + abscissa);
+      result_kronrod        += Rule::w_gk[j] * (fv1 + fv2);
    }
 
    result_kronrod *= half_length;
-   result_gauss *= half_length;
+   result_gauss   *= half_length;
 
    return {result_kronrod, std::fabs(result_kronrod - result_gauss)};
 }
@@ -137,7 +137,7 @@ std::pair<double, double> GaussKronrod<Rule>::gauss_kronrod_recursive_step(std::
    const double center  = (a + b) * 0.5;
    const double err_rel = (std::fabs(res) > eps_abs) ? (err / res) : err;
 
-   if (err <= eps_abs || subinterval_too_small(a, center, b) || depth > 100) return {res, err};
+   if (err <= eps_abs || subinterval_too_small(a, center, b) || depth > 200) return {res, err};
 
    depth++;
    auto [res1, err1] = gauss_kronrod_recursive_step(fnc, a, center, depth, eps_rel, eps_abs);

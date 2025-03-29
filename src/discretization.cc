@@ -8,6 +8,9 @@ std::map<size_t, Honeycomb::StandardGrid> stored_grids;
 namespace Honeycomb
 {
 
+// =======================================================
+// =================== STANDARD GRID =====================
+// =======================================================
 double linear_map(double x, double a, double b)
 {
    return (x - a) / (b - a);
@@ -114,6 +117,8 @@ double StandardGrid::poli_weight_der(double t, size_t j) const
 }
 
 // =======================================================
+// ========================= GRID ========================
+// =======================================================
 
 Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
 {
@@ -216,149 +221,122 @@ double Grid::weight_aj(double u, size_t a, size_t j)
    return res;
 }
 
-RnC::Triplet RnC::from_rhophi_to_x123(double rho, double phi)
+// =======================================================
+// ======================== GRID2D =======================
+// =======================================================
+
+Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi)
+    : grid_radius(d_info_rho), grid_angle(d_info_phi), size(grid_radius.size * grid_angle.size),
+      size_li(static_cast<long int>(size)), c_size(grid_radius.c_size * grid_angle.c_size),
+      c_size_li(static_cast<long int>(c_size)), _x123(c_size), _x123_minmax(size), _w(size), _dw_dx3(size)
 {
-   Triplet x123(0, 0, 0);
-   if (phi < 0 || phi > 6) {
-      logger(Logger::ERROR, std::format("[Grid2D::from_rhophi_to_x123] Invalid angle: {:+.16e}", phi));
-   } else if (0 <= phi && phi < 1) {
-      x123[0] = rho * (1 - phi);
-      x123[1] = rho * (phi);
-      x123[2] = rho * (-1);
-   } else if (1 <= phi && phi < 2) {
-      x123[0] = rho * (1 - phi);
-      x123[1] = rho * (1);
-      x123[2] = rho * (phi - 2);
-   } else if (2 <= phi && phi < 3) {
-      x123[0] = rho * (-1);
-      x123[1] = rho * (3 - phi);
-      x123[2] = rho * (phi - 2);
-   } else if (3 <= phi && phi < 4) {
-      x123[0] = rho * (phi - 4);
-      x123[1] = rho * (3 - phi);
-      x123[2] = rho * (1);
-   } else if (4 <= phi && phi < 5) {
-      x123[0] = rho * (phi - 4);
-      x123[1] = rho * (-1);
-      x123[2] = rho * (5 - phi);
-   } else if (5 <= phi && phi <= 6) {
-      x123[0] = rho * (1);
-      x123[1] = rho * (phi - 6);
-      x123[2] = rho * (5 - phi);
-   }
-   return x123;
-}
-
-RnC::Pair RnC::from_x123_to_rhophi(double x1, double x2, double x3)
-{
-   Pair rf(0, 0);
-   const double r = std::max(std::fabs(x1), std::max(std::fabs(x2), std::fabs(x3)));
-
-   rf[0] = r;
-
-   if (x1 > 0 && x2 >= 0 && x3 < 0) rf[1] = x2 / r;
-   else if (x1 <= 0 && x2 > 0 && x3 < 0) rf[1] = (1 - x1 / r);
-   else if (x1 < 0 && x2 > 0 && x3 >= 0) rf[1] = (3 - x2 / r);
-   else if (x1 < 0 && x2 <= 0 && x3 > 0) rf[1] = (3 - x2 / r);
-   else if (x1 >= 0 && x2 < 0 && x3 > 0) rf[1] = (4 + x1 / r);
-   else if (x1 > 0 && x2 < 0 && x3 <= 0) rf[1] = (6 + x2 / r);
-   return rf;
-}
-
-std::pair<RnC::Triplet, RnC::Triplet> RnC::dx123_drhophi(RnC::Pair rhophi)
-{
-   RnC::Triplet dx123_drho, dx123_dphi;
-
-   const double rho = rhophi(0);
-   const double phi = rhophi(1);
-
-   if (phi < 0 || phi > 6) {
-      logger(Logger::ERROR, std::format("[Grid2D::dx123_drhophi] Invalid angle: {:+.16e}", phi));
-   } else if (0 <= phi && phi < 1) {
-      dx123_drho[0] = (1 - phi);
-      dx123_drho[1] = (phi);
-      dx123_drho[2] = (-1);
-
-      dx123_dphi[0] = rho * (-1);
-      dx123_dphi[1] = rho * (+1);
-      dx123_dphi[2] = rho * (+0);
-   } else if (1 <= phi && phi < 2) {
-      dx123_drho[0] = (1 - phi);
-      dx123_drho[1] = (1);
-      dx123_drho[2] = (phi - 2);
-
-      dx123_dphi[0] = rho * (-1);
-      dx123_dphi[1] = rho * (+0);
-      dx123_dphi[2] = rho * (+1);
-   } else if (2 <= phi && phi < 3) {
-      dx123_drho[0] = (-1);
-      dx123_drho[1] = (3 - phi);
-      dx123_drho[2] = (phi - 2);
-
-      dx123_dphi[0] = rho * (+0);
-      dx123_dphi[1] = rho * (-1);
-      dx123_dphi[2] = rho * (+1);
-   } else if (3 <= phi && phi < 4) {
-      dx123_drho[0] = (phi - 4);
-      dx123_drho[1] = (3 - phi);
-      dx123_drho[2] = (1);
-
-      dx123_dphi[0] = rho * (+1);
-      dx123_dphi[1] = rho * (-1);
-      dx123_dphi[2] = rho * (+0);
-   } else if (4 <= phi && phi < 5) {
-      dx123_drho[0] = (phi - 4);
-      dx123_drho[1] = (-1);
-      dx123_drho[2] = (5 - phi);
-
-      dx123_dphi[0] = rho * (+1);
-      dx123_dphi[1] = rho * (+0);
-      dx123_dphi[2] = rho * (-1);
-   } else if (5 <= phi && phi <= 6) {
-      dx123_drho[0] = (1);
-      dx123_drho[1] = (phi - 6);
-      dx123_drho[2] = (5 - phi);
-
-      dx123_dphi[0] = rho * (+0);
-      dx123_dphi[1] = rho * (+1);
-      dx123_dphi[2] = rho * (-1);
-   }
-
-   return {dx123_drho, dx123_dphi};
-}
-
-Discretization::Discretization(const Grid2D &grid, std::function<double(double, double, double)> const &function)
-    : _grid(grid), size(grid.grid_radius.size * grid.grid_angle.size),
-      size_li(grid.grid_radius.size_li * grid.grid_angle.size_li),
-      f_size(grid.grid_radius.c_size * grid.grid_angle.c_size), f_size_li(static_cast<long int>(f_size)), _x123(f_size),
-      _fj(f_size_li), _dw_dx3(size)
-{
-
-   const Grid &radius = grid.grid_radius;
-   const Grid &angle  = grid.grid_angle;
-
+   size_t k = 0;
+   size_t j = 0;
    // These are loops over the double w indexes
-   for (size_t k = 0; k < angle.size; k++) {
-      size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+   for (size_t a = 0; a < grid_angle._d_info.intervals.size(); a++) {
+      for (size_t ka = 0; ka <= grid_angle._d_info.grid_sizes[a]; ka++) {
 
-      for (size_t j = 0; j < radius.size; j++) {
-         size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+         j = 0;
+         for (size_t b = 0; b < grid_radius._d_info.intervals.size(); b++) {
 
-         size_t index      = get_flatten_index(j, k);
-         long int index_li = static_cast<long int>(index);
+            // NOTE: the support only needs the sub-interval
+            auto [phi_min, phi_max] = grid_angle._d_info.intervals_phys[a];
+            auto [rho_min, rho_max] = grid_radius._d_info.intervals_phys[b];
 
-         size_t f_index      = fj_get_flatten_index(c_j, c_k);
-         long int f_index_li = static_cast<long int>(f_index);
+            RnC::Triplet pts[4] = {
+                RnC::from_rhophi_to_x123(rho_min, phi_min),
+                RnC::from_rhophi_to_x123(rho_min, phi_max),
+                RnC::from_rhophi_to_x123(rho_max, phi_min),
+                RnC::from_rhophi_to_x123(rho_max, phi_max),
+            };
 
-         RnC::Pair rf(radius._coord[c_j], angle._coord[c_k]);
-         _x123[f_index]  = RnC::from_rhophi_to_x123(rf);
-         _fj(f_index_li) = function(_x123[f_index][0], _x123[f_index][1], _x123[f_index][2]);
-         _dw_dx3[index]  = get_dw_dx3_fixed_x1(index);
+            RnC::Triplet xmin(pts[0]), xmax(pts[0]);
+            for (size_t q = 1; q < 4; q++) {
+               const RnC::Triplet &pt = pts[q];
+               for (size_t i_x = 0; i_x < 3; i_x++) {
+                  xmin[i_x] = std::min(pt(i_x), xmin(i_x));
+                  xmax[i_x] = std::max(pt(i_x), xmax(i_x));
+               }
+            }
+
+            for (size_t kb = 0; kb <= grid_radius._d_info.grid_sizes[b]; kb++) {
+               { // Stuff
+                  size_t c_k = grid_angle._from_iw_to_ic[k];
+                  size_t c_j = grid_radius._from_iw_to_ic[j];
+
+                  size_t index      = get_flatten_index(j, k);
+                  long int index_li = static_cast<long int>(index);
+
+                  size_t f_index      = c_get_flatten_index(c_j, c_k);
+                  long int f_index_li = static_cast<long int>(f_index);
+
+                  RnC::Pair rf(grid_radius._coord[c_j], grid_angle._coord[c_k]);
+                  _x123[f_index] = RnC::from_rhophi_to_x123(rf);
+
+                  _w[index] = [j, k, this](const RnC::Pair &rhophi) -> double {
+                     const double r = grid_radius._d_info.to_inter_space(rhophi(0));
+                     const double f = grid_angle._d_info.to_inter_space(rhophi(1));
+                     return grid_radius._weights[j](r) * grid_angle._weights[k](f);
+                  };
+                  _dw_dx3[index] = get_dw_dx3_fixed_x1(index);
+
+                  _x123_minmax[index] = {xmin, xmax};
+               }
+               j++;
+            }
+         }
+         k++;
       }
    }
+};
 
-   //
-   //
+std::function<double(const RnC::Pair &rhophi)> Grid2D::get_dw_dx3_fixed_x1(size_t index) const
+{
+   auto [j, k] = get_double_index(index);
+
+   std::function<double(const RnC::Pair &rhophi)> res = [this, j, k](const RnC::Pair &rhophi) -> double {
+      const Grid &radius = grid_radius;
+      const Grid &angle  = grid_angle;
+
+      const double r = radius._d_info.to_inter_space(rhophi(0));
+      const double f = angle._d_info.to_inter_space(rhophi(1));
+
+      auto f_supp = angle.get_support_weight_aj(k);
+      if (f < f_supp.first || f > f_supp.second) return 0;
+      auto r_supp = radius.get_support_weight_aj(j);
+      if (r < r_supp.first || r > r_supp.second) return 0;
+
+      const double drho_dr     = radius._d_info.to_phys_space_der(r);
+      const double dphi_df     = angle._d_info.to_phys_space_der(f);
+      const double drrho_dfphi = drho_dr * dphi_df;
+
+      const auto [dxi_drho, dxi_dphi] = RnC::dx123_drhophi(rhophi);
+
+      const double den = drrho_dfphi * (-dxi_dphi(2) * dxi_drho(0) + dxi_dphi(0) * dxi_drho(2));
+
+      if (std::fabs(den) < 1.0e-15) {
+         logger(Logger::ERROR, "[interpolate_df_dx3_fixed_x1] Vanishing denominator, can this be possible?");
+      }
+
+      const double num = (angle._weights[k](f) * radius._weights_der[j](r) * (dphi_df * dxi_dphi(0)) -
+                          radius._weights[j](r) * angle._weights_der[k](f) * (drho_dr * dxi_drho(0)));
+
+      return num / den;
+   };
+   return res;
+}
+
+// =======================================================
+// =================== DISCRETIZATION ====================
+// =======================================================
+
+Discretization::Discretization(const Grid2D &grid, std::function<double(double, double, double)> const &function)
+    : _grid(grid), _fj(grid.c_size_li)
+{
+   // These are loops over the double w indexes
+   for (long int i = 0; i < grid.c_size_li; i++) {
+      _fj(i) = function(grid._x123[i](0), grid._x123[i](1), grid._x123[i](2));
+   }
 }
 
 double Discretization::interpolate_as_weights(const RnC::Pair &rhophi) const
@@ -382,8 +360,39 @@ double Discretization::interpolate_as_weights(const RnC::Pair &rhophi) const
          size_t c_k = _grid.grid_angle._from_iw_to_ic[k];
          size_t c_j = _grid.grid_radius._from_iw_to_ic[j];
 
-         const double fj  = _fj(static_cast<long int>(fj_get_flatten_index(c_j, c_k)));
+         const double fj  = _fj(static_cast<long int>(_grid.c_get_flatten_index(c_j, c_k)));
          res             += fj * radius._weights[j](r) * angle._weights[k](f);
+      }
+   }
+
+   return res;
+}
+
+double Discretization::interpolate_as_weights_v3(const RnC::Pair &rhophi) const
+{
+
+   const Grid &radius = _grid.grid_radius;
+   const Grid &angle  = _grid.grid_angle;
+   const double rho   = rhophi(0);
+   const double phi   = rhophi(1);
+
+   double res = 0;
+
+   for (size_t k = 0; k < angle.size; k++) {
+      auto f_supp = angle.get_phys_support_weight_aj(k);
+      if (phi < f_supp.first || phi > f_supp.second) continue;
+
+      for (size_t j = 0; j < radius.size; j++) {
+         auto r_supp = radius.get_phys_support_weight_aj(j);
+         if (rho < r_supp.first || rho > r_supp.second) continue;
+
+         size_t c_k = _grid.grid_angle._from_iw_to_ic[k];
+         size_t c_j = _grid.grid_radius._from_iw_to_ic[j];
+
+         size_t index = _grid.get_flatten_index(j, k);
+
+         const double fj  = _fj(static_cast<long int>(_grid.c_get_flatten_index(c_j, c_k)));
+         res             += fj * _grid._w[index](rhophi);
       }
    }
 
@@ -423,7 +432,7 @@ double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi) const
       for (size_t j = jmin; j < jmax; j++) {
          size_t c_k       = _grid.grid_angle._from_iw_to_ic[k];
          size_t c_j       = _grid.grid_radius._from_iw_to_ic[j];
-         const double fj  = _fj(static_cast<long int>(fj_get_flatten_index(c_j, c_k)));
+         const double fj  = _fj(static_cast<long int>(_grid.c_get_flatten_index(c_j, c_k)));
          res             += fj * radius._weights[j](r) * angle._weights[k](f);
       }
    }
@@ -431,49 +440,8 @@ double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi) const
    return res;
 }
 
-std::function<double(const RnC::Pair &rhophi)> Discretization::get_dw_dx3_fixed_x1(size_t index) const
-{
-   auto [j, k] = get_double_index(index);
-
-   std::function<double(const RnC::Pair &rhophi)> res = [this, j, k](const RnC::Pair &rhophi) -> double {
-      const Grid &radius = _grid.grid_radius;
-      const Grid &angle  = _grid.grid_angle;
-
-      const double r = radius._d_info.to_inter_space(rhophi(0));
-      const double f = angle._d_info.to_inter_space(rhophi(1));
-
-      auto f_supp = angle.get_support_weight_aj(k);
-      if (f < f_supp.first || f > f_supp.second) return 0;
-      auto r_supp = radius.get_support_weight_aj(j);
-      if (r < r_supp.first || r > r_supp.second) return 0;
-
-      const double drho_dr     = radius._d_info.to_phys_space_der(r);
-      const double dphi_df     = angle._d_info.to_phys_space_der(f);
-      const double drrho_dfphi = drho_dr * dphi_df;
-
-      const auto [dxi_drho, dxi_dphi] = RnC::dx123_drhophi(rhophi);
-
-      const double den = drrho_dfphi * (-dxi_dphi(2) * dxi_drho(0) + dxi_dphi(0) * dxi_drho(2));
-
-      if (std::fabs(den) < 1.0e-15) {
-         logger(Logger::ERROR, "[interpolate_df_dx3_fixed_x1] Vanishing denominator, can this be possible?");
-      }
-
-      const double num = (angle._weights[k](f) * radius._weights_der[j](r) * (dphi_df * dxi_dphi(0)) -
-                          radius._weights[j](r) * angle._weights_der[k](f) * (drho_dr * dxi_drho(0)));
-
-      return num / den;
-   };
-   return res;
-}
-
 double Discretization::interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi) const
 {
-   // double res = 0;
-   // for (size_t index = 0, index_li = 0; index < size; index++, index_li++) {
-   //    const double fj  = _fj(index_li);
-   //    res             += fj * _dw_dx3[index](rhophi);
-   // }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
    const double r     = radius._d_info.to_inter_space(rhophi(0));
@@ -492,10 +460,10 @@ double Discretization::interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi) cons
          size_t c_k = _grid.grid_angle._from_iw_to_ic[k];
          size_t c_j = _grid.grid_radius._from_iw_to_ic[j];
 
-         size_t index = get_flatten_index(j, k);
+         size_t index = _grid.get_flatten_index(j, k);
 
-         const double fj  = _fj(static_cast<long int>(fj_get_flatten_index(c_j, c_k)));
-         res             += fj * _dw_dx3[index](rhophi);
+         const double fj  = _fj(static_cast<long int>(_grid.c_get_flatten_index(c_j, c_k)));
+         res             += fj * _grid._dw_dx3[index](rhophi);
       }
    }
    return res;
@@ -514,13 +482,11 @@ Grid2D generate_compliant_Grid2D(
       logger(Logger::ERROR, "[generate_complaiant_Grid2D] Empty radial interval.");
    } else if (radius_inter.size() == 1) {
       if (is_near(radius_inter[0], 1)) {
-         logger(
-             Logger::ERROR,
-             "[generate_complaiant_Grid2D] Radial interval with only one point, too near 1. Do not know what to do.");
+         logger(Logger::ERROR, "[generate_complaiant_Grid2D] Radial interval with only one point, too near 1. Do "
+                               "not know what to do.");
       } else if (radius_inter[0] > 1 || radius_inter[0] <= 0) {
-         logger(
-             Logger::ERROR,
-             "[generate_complaiant_Grid2D] Radial interval with only one point, outside the allowed range of (0,1).");
+         logger(Logger::ERROR, "[generate_complaiant_Grid2D] Radial interval with only one point, outside the "
+                               "allowed range of (0,1).");
       } else {
          if (radius_g_size.size() != 1) {
             logger(Logger::ERROR,
@@ -594,20 +560,16 @@ Grid2D generate_compliant_Grid2D(
    const double r_der     = radius_to_i_space_der(r_check);
    const double r_num_der = (radius_to_i_space(r_check + dx) - radius_to_i_space(r_check - dx)) / (2.0 * dx);
    if (!is_near(r_der, r_num_der, dx)) {
-      logger(
-          Logger::ERROR,
-          std::format(
-              "The radial map derivative is not correctly coded. From r=({:.2f}) I find: {:+.16e} instead of {:+.16e}",
-              r_check, r_der, r_num_der));
+      logger(Logger::ERROR, std::format("The radial map derivative is not correctly coded. From r=({:.2f}) I find: "
+                                        "{:+.16e} instead of {:+.16e}",
+                                        r_check, r_der, r_num_der));
    }
    const double f_der     = angle_to_i_space_der(f_check);
    const double f_num_der = (angle_to_i_space(f_check + dx) - angle_to_i_space(f_check - dx)) / (2.0 * dx);
    if (!is_near(f_der, f_num_der, dx)) {
-      logger(
-          Logger::ERROR,
-          std::format(
-              "The angular map derivative is not correctly coded. From f=({:.2f}) I find: {:+.16e} instead of {:+.16e}",
-              f_check, f_der, f_num_der));
+      logger(Logger::ERROR, std::format("The angular map derivative is not correctly coded. From f=({:.2f}) I find: "
+                                        "{:+.16e} instead of {:+.16e}",
+                                        f_check, f_der, f_num_der));
    }
 
    // SUBSECTION: To phys space derivatives

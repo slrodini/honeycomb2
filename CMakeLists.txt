@@ -10,15 +10,29 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
-add_compile_options(-Wall -Wextra -fPIC -O3 -Wno-unused-parameter -Wno-unused-variable)
+add_compile_options(
+  -Wall -Wextra
+  -fPIC
+  -O3
+  -mtune=native
+  -march=native
+  -funroll-loops
+  -Wno-unused-parameter -Wno-unused-variable # To be removed later
+)
+
+# # -flto causes problems with YAML-CPP
 
 # Check the processor architecture
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
   # x86-specific compiler flags
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse2")
+  message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
   # ARM-specific compiler flags
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
+  message(STATUS "CPU architecture is one of: arm64|aarch64")
+else()
+  message(WARNING "Unrecognized CPU architecture")
 endif()
 
 if(NOT DEFINED CMAKE_MACOSX_RPATH)

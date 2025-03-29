@@ -103,8 +103,10 @@ std::pair<double, double> check_point(const Honeycomb::RnC::Pair &rhophi, const 
    const double exact = test_fnc(x123(0), x123(1), x123(2));
 
    // const double approx          = F(rhophi);
+   // const double approx = F.interpolate_as_weights_v2(rhophi);
+
    Honeycomb::timer::mark begin  = Honeycomb::timer::now();
-   const double approx           = F.interpolate_as_weights_v2(rhophi);
+   const double approx           = F.interpolate_as_weights_v3(rhophi);
    Honeycomb::timer::mark end    = Honeycomb::timer::now();
    fnc_elapsed                  += Honeycomb::timer::elapsed_ns(end, begin);
 
@@ -148,11 +150,12 @@ int main()
    Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
 
    Honeycomb::Discretization f(grid, test);
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("fj size: {:d}, weights size: {:d}", f.f_size_li, f.size_li));
-   Honeycomb::logger(
-       Honeycomb::Logger::INFO,
-       std::format("Estimated kernel sizes in MB:      {:f}",
-                   static_cast<double>(f.f_size_li) * static_cast<double>(f.f_size_li) * 8.0 / (1024.0 * 1024.0)));
+   long int fj_size = f._grid.c_size_li;
+
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("fj size: {:d}, weights size: {:d}", fj_size, f._grid.size));
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Estimated kernel sizes in MB:      {:f}",
+                                                          static_cast<double>(fj_size) * static_cast<double>(fj_size) *
+                                                              8.0 / (1024.0 * 1024.0)));
 
    //
    // Current honeycomb needs to store at least the 2 indexes for each kernel as int32_t, plus some additional space for
@@ -178,7 +181,7 @@ int main()
                      std::format("Derivative at ({:+.3f}, {:+.3f}, {:+.3f}) => [E, N, I]: [{:+.8e}, {:+.8e}, {:+.8e}]",
                                  x1, x2, x3, exact_der, num_der, inter_der));
 
-   const double approx = f.interpolate_as_weights_v2(Honeycomb::RnC::from_x123_to_rhophi(x1, x2, x3));
+   const double approx = f.interpolate_as_weights_v3(Honeycomb::RnC::from_x123_to_rhophi(x1, x2, x3));
    const double exact  = test(x1, x2, x3);
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Function at   ({:+.3f}, {:+.3f}, {:+.3f}) => [E, I]:    [{:+.10e}, {:+.10e}]", x1, x2,
