@@ -96,7 +96,8 @@ double fnc_der_elapsed = 0;
 size_t fnc_count       = 0;
 
 std::pair<double, double> check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretization &F,
-                                      model_fnc_t test_fnc, model_fnc_t test_fnc_der, std::FILE *fp)
+                                      const Eigen::VectorXd &fj, model_fnc_t test_fnc, model_fnc_t test_fnc_der,
+                                      std::FILE *fp)
 {
    const Honeycomb::RnC::Triplet x123 = Honeycomb::RnC::from_rhophi_to_x123(rhophi);
 
@@ -106,7 +107,7 @@ std::pair<double, double> check_point(const Honeycomb::RnC::Pair &rhophi, const 
    // const double approx = F.interpolate_as_weights_v2(rhophi);
 
    Honeycomb::timer::mark begin  = Honeycomb::timer::now();
-   const double approx           = F.interpolate_as_weights_v3(rhophi);
+   const double approx           = F.interpolate_as_weights_v3(rhophi, fj);
    Honeycomb::timer::mark end    = Honeycomb::timer::now();
    fnc_elapsed                  += Honeycomb::timer::elapsed_ns(end, begin);
 
@@ -118,7 +119,7 @@ std::pair<double, double> check_point(const Honeycomb::RnC::Pair &rhophi, const 
                                                           (2.0 * dx);
 
    begin                   = Honeycomb::timer::now();
-   const double inter_der  = F.interpolate_df_dx3_fixed_x1(rhophi);
+   const double inter_der  = F.interpolate_df_dx3_fixed_x1(rhophi, fj);
    end                     = Honeycomb::timer::now();
    fnc_der_elapsed        += Honeycomb::timer::elapsed_ns(end, begin);
    fnc_count++;
@@ -149,10 +150,13 @@ int main()
 
    Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
 
-   Honeycomb::Discretization f(grid, test);
-   long int fj_size = f._grid.c_size_li;
+   Honeycomb::Discretization discr(grid);
+   Eigen::VectorXd fj = discr(test);
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("fj size: {:d}, weights size: {:d}", fj_size, f._grid.size));
+   long int fj_size = discr._grid.c_size_li;
+
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("fj size: {:d}, weights size: {:d}", fj_size, discr._grid.size));
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Estimated kernel sizes in MB:      {:f}",
                                                           static_cast<double>(fj_size) * static_cast<double>(fj_size) *
                                                               8.0 / (1024.0 * 1024.0)));
@@ -176,12 +180,12 @@ int main()
 
    const double num_der   = (test(x1, -x1 - x3 - dx, x3 + dx) - test(x1, -x1 - x3 + dx, x3 - dx)) / (2.0 * dx);
    const double exact_der = test_der == nullptr ? 0 : test_der(x1, -x1 - x3, x3);
-   const double inter_der = f.interpolate_df_dx3_fixed_x1(Honeycomb::RnC::from_x123_to_rhophi(x1, x2, x3));
+   const double inter_der = discr.interpolate_df_dx3_fixed_x1(Honeycomb::RnC::from_x123_to_rhophi(x1, x2, x3), fj);
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Derivative at ({:+.3f}, {:+.3f}, {:+.3f}) => [E, N, I]: [{:+.8e}, {:+.8e}, {:+.8e}]",
                                  x1, x2, x3, exact_der, num_der, inter_der));
 
-   const double approx = f.interpolate_as_weights_v3(Honeycomb::RnC::from_x123_to_rhophi(x1, x2, x3));
+   const double approx = discr.interpolate_as_weights_v3(Honeycomb::RnC::from_x123_to_rhophi(x1, x2, x3), fj);
    const double exact  = test(x1, x2, x3);
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Function at   ({:+.3f}, {:+.3f}, {:+.3f}) => [E, I]:    [{:+.10e}, {:+.10e}]", x1, x2,
@@ -191,8 +195,9 @@ int main()
    const size_t nSamples = 1000;
    std::FILE *fp         = fopen("interpolation_checks.dat", "w");
    for (size_t i = 0; i < nSamples; i++) {
-      auto [err, err_der] = check_point(
-          {Honeycomb::Random::random_uniform(rmin, 1), Honeycomb::Random::random_uniform(0, 6)}, f, test, test_der, fp);
+      auto [err, err_der] =
+          check_point({Honeycomb::Random::random_uniform(rmin, 1), Honeycomb::Random::random_uniform(0, 6)}, discr, fj,
+                      test, test_der, fp);
       ave     += err;
       ave_der += err_der;
    }

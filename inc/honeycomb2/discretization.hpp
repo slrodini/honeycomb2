@@ -243,9 +243,9 @@ struct Grid2D {
 
 struct Discretization {
 public:
-   Discretization(const Grid2D &grid, std::function<double(double, double, double)> const &function);
+   Discretization(const Grid2D &grid);
 
-   double interpolate_as_weights(const RnC::Pair &rhophi) const;
+   double interpolate_as_weights(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const;
 
    // This only works with sector compliant grids. The sectors are
    //
@@ -256,44 +256,23 @@ public:
    //   (+-+) -> 4 <= phi <  5
    //   (+--) -> 5 <= phi <= 6
    //
-   double interpolate_as_weights_v2(const RnC::Pair &rhophi) const;
-   double interpolate_as_weights_v3(const RnC::Pair &rhophi) const;
+   double interpolate_as_weights_v2(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const;
+   double interpolate_as_weights_v3(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const;
 
-   double interpolate_as_weights(const RnC::Triplet &x123) const
+   double interpolate_as_weights(const RnC::Triplet &x123, const Eigen::VectorXd &_fj) const
    {
-      return interpolate_as_weights(RnC::from_x123_to_rhophi(x123));
+      return interpolate_as_weights(RnC::from_x123_to_rhophi(x123), _fj);
    };
-   double interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi) const;
+   double interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const;
 
-   double operator()(const RnC::Pair &rhophi) const
+   Eigen::VectorXd operator()(std::function<double(double, double, double)> const &function) const;
+
+   Eigen::VectorXd discretize(std::function<double(double, double, double)> const &function) const
    {
-      return interpolate_as_weights(rhophi);
-   }
-   double operator()(const RnC::Triplet &x123) const
-   {
-      return interpolate_as_weights(x123);
+      return this->operator()(function);
    }
 
    const Grid2D &_grid;
-   Eigen::VectorXd _fj;
-};
-
-struct Discretization1D {
-public:
-   Discretization1D(const Grid &grid, std::function<double(double)> const &function);
-
-   double interpolate_as_weights(double x) const;
-
-   double operator()(double x) const
-   {
-      return interpolate_as_weights(x);
-   }
-
-   const Grid &_grid;
-
-   size_t size; // Global flatten size
-   long int size_li;
-   Eigen::VectorXd _fj;
 };
 
 struct LinearGrid {
@@ -389,24 +368,23 @@ Grid2D generate_compliant_Grid2D(size_t n_pts_for_angle_sector, std::vector<doub
                                  std::function<double(double)> angle_to_p_space      = LinearGrid::to_p_space,
                                  std::function<double(double)> angle_to_p_space_der  = LinearGrid::to_p_space_der);
 
-/*
+// TODO: Legacy stuff, will be removed later.
+struct Discretization1D {
+public:
+   Discretization1D(const Grid &grid, std::function<double(double)> const &function);
 
-std::function<double(double)> angle_to_i_space =
-[](double x) {
-   return x;
-},
-std::function<double(double)> angle_to_i_space_der =
-[](double x) {
-   (void)x;
-   return 1;
-},
-std::function<double(double)> angle_to_p_space =
-[](double u) {
-   return u;
-},
-std::function<double(double)> angle_to_p_space_der =
-[](double u) {
-   (void)u;
-   return 1;
-}*/
+   double interpolate_as_weights(double x) const;
+
+   double operator()(double x) const
+   {
+      return interpolate_as_weights(x);
+   }
+
+   const Grid &_grid;
+
+   size_t size; // Global flatten size
+   long int size_li;
+   Eigen::VectorXd _fj;
+};
+
 } // namespace Honeycomb

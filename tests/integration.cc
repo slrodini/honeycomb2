@@ -86,7 +86,8 @@ int main()
    const double rmin = 0.01;
 
    Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
-   Honeycomb::Discretization f(grid, test);
+   Honeycomb::Discretization discr(grid);
+   Eigen::VectorXd _fj = discr(test);
 
    fp_out = std::fopen("g2_interp.dat", "w");
 
@@ -99,7 +100,7 @@ int main()
    for (size_t i_x = 0; i_x < sx; i_x++) {
       // if (i_x <= 2) continue;
       const double &xBj = xBjs[i_x];
-      std::fprintf(stderr, "Computing... \n");
+      std::fprintf(stderr, "Computing... ");
       std::map<size_t, double> weight_results;
 
       const double der_dx = 1.0e-4;
@@ -112,16 +113,16 @@ int main()
             auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
             const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
             const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = f._grid.get_flatten_index(j, k);
+            auto index          = grid.get_flatten_index(j, k);
 
             auto fnc_external = [&](double xi) -> double {
                auto fnc_internal_1 = [&](double eta) -> double {
                   auto rhophi = Honeycomb::RnC::from_x123_to_rhophi(eta, xi - eta, -xi);
-                  return -f._grid._dw_dx3[index](rhophi) / eta;
+                  return -grid._dw_dx3[index](rhophi) / eta;
 
                   // auto rhophi_p = Honeycomb::RnC::from_x123_to_rhophi(eta, xi - der_dx - eta, -xi + der_dx);
                   // auto rhophi_m = Honeycomb::RnC::from_x123_to_rhophi(eta, xi + der_dx - eta, -xi - der_dx);
-                  // return -der_pr * (f._grid._w[index](rhophi_p) - f._grid._w[index](rhophi_m)) / eta;
+                  // return -der_pr * (grid._w[index](rhophi_p) - grid._w[index](rhophi_m)) / eta;
                };
 
                return integrator::integrate(fnc_internal_1, xBj, xi, int_e_r, int_e_a).first / xi;
@@ -143,17 +144,17 @@ int main()
             auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
             const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
             const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = f._grid.get_flatten_index(j, k);
+            auto index          = grid.get_flatten_index(j, k);
 
             auto fnc_external = [&](double xi) -> double {
                auto fnc_internal_1 = [&](double eta) -> double {
                   // Switched arguments, and mind the global `-` sign
                   auto rhophi = Honeycomb::RnC::from_x123_to_rhophi(eta, -eta - xi, xi);
-                  return -(f._grid._dw_dx3[index](rhophi)) / (eta + xi);
+                  return -(grid._dw_dx3[index](rhophi)) / (eta + xi);
 
                   // auto rhophi_p = Honeycomb::RnC::from_x123_to_rhophi(eta, -eta - xi - der_dx, xi + der_dx);
                   // auto rhophi_m = Honeycomb::RnC::from_x123_to_rhophi(eta, -eta - xi + der_dx, xi - der_dx);
-                  // return -der_pr * (f._grid._w[index](rhophi_p) - f._grid._w[index](rhophi_m)) / (eta + xi);
+                  // return -der_pr * (grid._w[index](rhophi_p) - grid._w[index](rhophi_m)) / (eta + xi);
                };
 
                return (integrator::integrate(fnc_internal_1, -xBj, 0, int_e_r, int_e_a).first) / xi;
@@ -175,21 +176,21 @@ int main()
             auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
             const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
             const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = f._grid.get_flatten_index(j, k);
+            auto index          = grid.get_flatten_index(j, k);
 
             auto fnc_external = [&](double xi) -> double {
                auto fnc_internal_1 = [&](double eta) -> double {
                   auto rhophi_1 = Honeycomb::RnC::from_x123_to_rhophi(eta, -xi, xi - eta);
                   auto rhophi_2 = Honeycomb::RnC::from_x123_to_rhophi(xi - eta, -xi, eta);
-                  return (f._grid._dw_dx3[index](rhophi_1) - f._grid._dw_dx3[index](rhophi_2)) / eta;
+                  return (grid._dw_dx3[index](rhophi_1) - grid._dw_dx3[index](rhophi_2)) / eta;
 
                   // auto rhophi_1_p = Honeycomb::RnC::from_x123_to_rhophi(eta, -xi - der_dx, xi - eta + der_dx);
                   // auto rhophi_1_m = Honeycomb::RnC::from_x123_to_rhophi(eta, -xi + der_dx, xi - eta - der_dx);
                   // auto rhophi_2_p = Honeycomb::RnC::from_x123_to_rhophi(xi - eta, -xi - der_dx, eta + der_dx);
                   // auto rhophi_2_m = Honeycomb::RnC::from_x123_to_rhophi(xi - eta, -xi + der_dx, eta - der_dx);
                   // return der_pr *
-                  //        (f._grid._w[index](rhophi_1_p) - f._grid._w[index](rhophi_2_p) -
-                  //         f._grid._w[index](rhophi_1_m) + f._grid._w[index](rhophi_2_m)) /
+                  //        (grid._w[index](rhophi_1_p) - grid._w[index](rhophi_2_p) -
+                  //         grid._w[index](rhophi_1_m) + grid._w[index](rhophi_2_m)) /
                   //        eta;
                };
 
@@ -213,24 +214,24 @@ int main()
             auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
             const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
             const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = f._grid.get_flatten_index(j, k);
+            auto index          = grid.get_flatten_index(j, k);
 
             auto fnc_external = [&](double xi) -> double {
                auto fnc_internal_1 = [&](double eta) -> double {
                   auto rhophi = Honeycomb::RnC::from_x123_to_rhophi(xi, -eta - xi, eta);
-                  return f._grid._dw_dx3[index](rhophi) / eta;
+                  return grid._dw_dx3[index](rhophi) / eta;
 
                   // auto rhophi_p = Honeycomb::RnC::from_x123_to_rhophi(xi, -eta - xi - der_dx, eta + der_dx);
                   // auto rhophi_m = Honeycomb::RnC::from_x123_to_rhophi(xi, -eta - xi + der_dx, eta - der_dx);
-                  // return der_pr * (f._grid._w[index](rhophi_p) - f._grid._w[index](rhophi_m)) / eta;
+                  // return der_pr * (grid._w[index](rhophi_p) - grid._w[index](rhophi_m)) / eta;
                };
                auto fnc_internal_2 = [&](double eta) -> double {
                   auto rhophi = Honeycomb::RnC::from_x123_to_rhophi(xi, -eta - xi, eta);
-                  return (f._grid._dw_dx3[index](rhophi)) / (eta + xi);
+                  return (grid._dw_dx3[index](rhophi)) / (eta + xi);
 
                   // auto rhophi_p = Honeycomb::RnC::from_x123_to_rhophi(xi, -eta - xi - der_dx, eta + der_dx);
                   // auto rhophi_m = Honeycomb::RnC::from_x123_to_rhophi(xi, -eta - xi + der_dx, eta - der_dx);
-                  // return der_pr * (f._grid._w[index](rhophi_p) - f._grid._w[index](rhophi_m)) / (eta + xi);
+                  // return der_pr * (grid._w[index](rhophi_p) - grid._w[index](rhophi_m)) / (eta + xi);
                };
 
                // Combines pieces from first and second integral
@@ -250,15 +251,17 @@ int main()
       }
 
       for (const auto &[key, val] : weight_results) {
-         auto [j, k] = f._grid.get_double_index(key);
+         auto [j, k] = grid.get_double_index(key);
          size_t f_index =
-             f._grid.c_get_flatten_index(f._grid.grid_radius._from_iw_to_ic[j], f._grid.grid_angle._from_iw_to_ic[k]);
-         res += f._fj(static_cast<long int>(f_index)) * val;
+             grid.c_get_flatten_index(grid.grid_radius._from_iw_to_ic[j], grid.grid_angle._from_iw_to_ic[k]);
+         res += _fj(static_cast<long int>(f_index)) * val;
       }
-
+#ifdef PRINT_DEBUG
+      std::fprintf(stderr, "\n");
+#endif
       const double g2 = res;
       std::fprintf(fp_out, "%.16e\t%+.16e\n", xBj, g2);
-      std::fprintf(stderr, "\nDone: %lf, %le\n", xBj, g2);
+      std::fprintf(stderr, "Done: %lf, %le\n", xBj, g2);
       // x_weight_results.emplace_back(weight_results);
    }
    std::fprintf(stderr, "\n");

@@ -330,18 +330,27 @@ std::function<double(const RnC::Pair &rhophi)> Grid2D::get_dw_dx3_fixed_x1(size_
 // =================== DISCRETIZATION ====================
 // =======================================================
 
-Discretization::Discretization(const Grid2D &grid, std::function<double(double, double, double)> const &function)
-    : _grid(grid), _fj(grid.c_size_li)
+Discretization::Discretization(const Grid2D &grid) : _grid(grid)
 {
-   // These are loops over the double w indexes
-   for (long int i = 0; i < grid.c_size_li; i++) {
-      _fj(i) = function(grid._x123[i](0), grid._x123[i](1), grid._x123[i](2));
-   }
 }
 
-double Discretization::interpolate_as_weights(const RnC::Pair &rhophi) const
+Eigen::VectorXd Discretization::operator()(std::function<double(double, double, double)> const &function) const
 {
+   Eigen::VectorXd _fj(_grid.c_size_li);
+   for (long int i = 0; i < _grid.c_size_li; i++) {
+      _fj(i) = function(_grid._x123[i](0), _grid._x123[i](1), _grid._x123[i](2));
+   }
+   return _fj;
+}
 
+double Discretization::interpolate_as_weights(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const
+{
+   if (_fj.size() != _grid.c_size_li) {
+      logger(
+          Logger::ERROR,
+          std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
+                      _fj.size(), _grid.c_size_li));
+   }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
    const double r     = radius._d_info.to_inter_space(rhophi(0));
@@ -357,8 +366,8 @@ double Discretization::interpolate_as_weights(const RnC::Pair &rhophi) const
          auto r_supp = radius.get_support_weight_aj(j);
          if (r < r_supp.first || r > r_supp.second) continue;
 
-         size_t c_k = _grid.grid_angle._from_iw_to_ic[k];
-         size_t c_j = _grid.grid_radius._from_iw_to_ic[j];
+         size_t c_k = angle._from_iw_to_ic[k];
+         size_t c_j = radius._from_iw_to_ic[j];
 
          const double fj  = _fj(static_cast<long int>(_grid.c_get_flatten_index(c_j, c_k)));
          res             += fj * radius._weights[j](r) * angle._weights[k](f);
@@ -368,9 +377,14 @@ double Discretization::interpolate_as_weights(const RnC::Pair &rhophi) const
    return res;
 }
 
-double Discretization::interpolate_as_weights_v3(const RnC::Pair &rhophi) const
+double Discretization::interpolate_as_weights_v3(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const
 {
-
+   if (_fj.size() != _grid.c_size_li) {
+      logger(
+          Logger::ERROR,
+          std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
+                      _fj.size(), _grid.c_size_li));
+   }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
    const double rho   = rhophi(0);
@@ -386,8 +400,8 @@ double Discretization::interpolate_as_weights_v3(const RnC::Pair &rhophi) const
          auto r_supp = radius.get_phys_support_weight_aj(j);
          if (rho < r_supp.first || rho > r_supp.second) continue;
 
-         size_t c_k = _grid.grid_angle._from_iw_to_ic[k];
-         size_t c_j = _grid.grid_radius._from_iw_to_ic[j];
+         size_t c_k = angle._from_iw_to_ic[k];
+         size_t c_j = radius._from_iw_to_ic[j];
 
          size_t index = _grid.get_flatten_index(j, k);
 
@@ -399,9 +413,14 @@ double Discretization::interpolate_as_weights_v3(const RnC::Pair &rhophi) const
    return res;
 }
 
-double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi) const
+double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const
 {
-
+   if (_fj.size() != _grid.c_size_li) {
+      logger(
+          Logger::ERROR,
+          std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
+                      _fj.size(), _grid.c_size_li));
+   }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
    const double r     = radius._d_info.to_inter_space(rhophi(0));
@@ -430,8 +449,8 @@ double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi) const
 
    for (size_t k = kmin; k < kmax; k++) {
       for (size_t j = jmin; j < jmax; j++) {
-         size_t c_k       = _grid.grid_angle._from_iw_to_ic[k];
-         size_t c_j       = _grid.grid_radius._from_iw_to_ic[j];
+         size_t c_k       = angle._from_iw_to_ic[k];
+         size_t c_j       = radius._from_iw_to_ic[j];
          const double fj  = _fj(static_cast<long int>(_grid.c_get_flatten_index(c_j, c_k)));
          res             += fj * radius._weights[j](r) * angle._weights[k](f);
       }
@@ -440,8 +459,15 @@ double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi) const
    return res;
 }
 
-double Discretization::interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi) const
+double Discretization::interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const
 {
+
+   if (_fj.size() != _grid.c_size_li) {
+      logger(
+          Logger::ERROR,
+          std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
+                      _fj.size(), _grid.c_size_li));
+   }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
    const double r     = radius._d_info.to_inter_space(rhophi(0));
@@ -457,8 +483,8 @@ double Discretization::interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi) cons
          auto r_supp = radius.get_support_weight_aj(j);
          if (r < r_supp.first || r > r_supp.second) continue;
 
-         size_t c_k = _grid.grid_angle._from_iw_to_ic[k];
-         size_t c_j = _grid.grid_radius._from_iw_to_ic[j];
+         size_t c_k = angle._from_iw_to_ic[k];
+         size_t c_j = radius._from_iw_to_ic[j];
 
          size_t index = _grid.get_flatten_index(j, k);
 
