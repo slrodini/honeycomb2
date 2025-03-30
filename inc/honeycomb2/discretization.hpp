@@ -34,8 +34,6 @@ public:
 // For either radius or angle
 struct SingleDiscretizationInfo {
 public:
-   SingleDiscretizationInfo() = default;
-
    SingleDiscretizationInfo(
        std::vector<double> inter, std::vector<size_t> g_size, bool is_per = false,
        std::function<double(double)> to_i_space =
@@ -73,14 +71,14 @@ public:
       }
    };
 
-   bool is_periodic;
+   const bool is_periodic;
    std::vector<std::pair<double, double>> intervals;
    std::vector<std::pair<double, double>> intervals_phys;
-   std::vector<size_t> grid_sizes;
-   std::function<double(double)> to_inter_space;
-   std::function<double(double)> to_inter_space_der;
-   std::function<double(double)> to_phys_space;
-   std::function<double(double)> to_phys_space_der;
+   const std::vector<size_t> grid_sizes;
+   const std::function<double(double)> to_inter_space;
+   const std::function<double(double)> to_inter_space_der;
+   const std::function<double(double)> to_phys_space;
+   const std::function<double(double)> to_phys_space_der;
 };
 
 // Store the grid in either the radius or the angle
