@@ -116,7 +116,7 @@ struct Grid {
          if (_delim_indexes[a] <= index && index < _delim_indexes[a + 1])
             return {_d_info.intervals[a].first, _d_info.intervals[a].second};
       }
-      logger(Logger::ERROR, std::format("[Grid::get_support_weight_aj] Index out of bound"));
+      logger(Logger::ERROR, std::format("[Grid::get_support_weight_aj] Index {:d} out of bound", index));
       return {NAN, NAN};
    }
 
@@ -126,7 +126,7 @@ struct Grid {
          if (_delim_indexes[a] <= index && index < _delim_indexes[a + 1])
             return {_d_info.intervals_phys[a].first, _d_info.intervals_phys[a].second};
       }
-      logger(Logger::ERROR, std::format("[Grid::get_support_weight_aj] Index out of bound"));
+      logger(Logger::ERROR, std::format("[Grid::get_phys_support_weight_aj] Index {:d} out of bound", index));
       return {NAN, NAN};
    }
 
