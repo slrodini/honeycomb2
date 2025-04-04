@@ -1,8 +1,7 @@
 #pragma once
 
 #include <honeycomb2/discretization.hpp>
-#include <honeycomb2/KernelFunctions/discretized_kernel.hpp>
-#include <honeycomb2/KernelFunctions/Hhat12.hpp>
+#include <honeycomb2/kernel_functions.hpp>
 
 #include <eigen3/Eigen/Dense>
 
@@ -76,7 +75,7 @@ struct Solution {
 
 struct Kernels {
 
-   Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_Nc * _Nc - 1) / (2.0 * _Nc)) {};
+   Kernels(const Grid2D &g, double _Nc);
 
    const Grid2D &grid;
 

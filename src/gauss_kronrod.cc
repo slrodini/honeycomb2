@@ -92,8 +92,8 @@ const std::array<double, 31> GK_61::w_gk = {
 
 template <typename Rule>
 requires IsGKRule<Rule, Rule::size>
-std::pair<double, double> GaussKronrod<Rule>::gauss_kronrod_simplified(std::function<double(double)> const &fnc,
-                                                                       double const &a, double const &b)
+std::tuple<double, double, double>
+GaussKronrod<Rule>::gauss_kronrod_simplified(std::function<double(double)> const &fnc, double const &a, double const &b)
 {
    const size_t n           = Rule::size;
    const double center      = 0.5 * (a + b);
@@ -124,33 +124,36 @@ std::pair<double, double> GaussKronrod<Rule>::gauss_kronrod_simplified(std::func
    result_kronrod *= half_length;
    result_gauss   *= half_length;
 
-   return {result_kronrod, std::fabs(result_kronrod - result_gauss)};
+   return std::make_tuple(result_kronrod, std::fabs(1.0 - result_gauss / result_kronrod),
+                          std::fabs(result_kronrod - result_gauss));
 }
 
 template <typename Rule>
 requires IsGKRule<Rule, Rule::size>
-std::pair<double, double> GaussKronrod<Rule>::gauss_kronrod_recursive_step(std::function<double(double)> const &fnc,
-                                                                           double const &a, double const &b,
-                                                                           size_t depth, double eps_rel, double eps_abs)
+std::tuple<double, double, double>
+GaussKronrod<Rule>::gauss_kronrod_recursive_step(std::function<double(double)> const &fnc, double const &a,
+                                                 double const &b, size_t depth, double eps_rel, double eps_abs)
 {
-   auto [res, err]      = gauss_kronrod_simplified(fnc, a, b);
-   const double center  = (a + b) * 0.5;
-   const double err_rel = (std::fabs(res) > eps_abs) ? (err / res) : err;
+   auto [res, err_rel, err_abs] = gauss_kronrod_simplified(fnc, a, b);
+   const double center          = (a + b) * 0.5;
 
-   if (err <= eps_abs || subinterval_too_small(a, center, b) || depth > 200) return {res, err};
+   if (err_abs <= eps_abs || err_rel <= eps_rel || subinterval_too_small(a, center, b) || depth > 200)
+      return {res, err_rel, err_abs};
 
    depth++;
-   auto [res1, err1] = gauss_kronrod_recursive_step(fnc, a, center, depth, eps_rel, eps_abs);
-   auto [res2, err2] = gauss_kronrod_recursive_step(fnc, center, b, depth, eps_rel, eps_abs);
-   return {res1 + res2, sqrt(err1 * err1 + err2 * err2)};
+   auto [res_1, err_rel_1, err_abs_1] = gauss_kronrod_recursive_step(fnc, a, center, depth, eps_rel, eps_abs);
+   auto [res_2, err_rel_2, err_abs_2] = gauss_kronrod_recursive_step(fnc, center, b, depth, eps_rel, eps_abs);
+   return {res_1 + res_2, sqrt(err_rel_1 * err_rel_1 + err_rel_2 * err_rel_2),
+           sqrt(err_abs_1 * err_abs_1 + err_abs_2 * err_abs_2)};
 }
 
 template <typename Rule>
 requires IsGKRule<Rule, Rule::size>
-std::pair<double, double> GaussKronrod<Rule>::integrate(std::function<double(double)> const &fnc, double const &a,
-                                                        double const &b, double eps_rel, double eps_abs)
+double GaussKronrod<Rule>::integrate(std::function<double(double)> const &fnc, double const &a, double const &b,
+                                     double eps_rel, double eps_abs)
 {
-   return gauss_kronrod_recursive_step(fnc, a, b, 0, eps_rel, eps_abs);
+   auto res = gauss_kronrod_recursive_step(fnc, a, b, 0, eps_rel, eps_abs);
+   return std::get<0>(res);
 }
 
 template struct GaussKronrod<GK_21>;

@@ -25,11 +25,12 @@ add_compile_options(
 # Check the processor architecture
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
   # x86-specific compiler flags
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse2")
+  add_compile_options(-mfpmath=sse -msse2)
   message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
   # ARM-specific compiler flags
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
+
   message(STATUS "CPU architecture is one of: arm64|aarch64")
 else()
   message(WARNING "Unrecognized CPU architecture")
@@ -47,7 +48,10 @@ endif()
 # MAIN
 # ============================
 # Generate list of source files
-file(GLOB source_files src/*.cc)
+file(GLOB source_files
+  src/*.cc
+  src/kernels/*.cc
+)
 
 # Define target library
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
@@ -58,9 +62,15 @@ target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc)
 # Define libraries to be linked
 target_link_libraries(Honeycomb2)
 
-# glog
-# find_package(glog REQUIRED)
-# target_link_libraries(Honeycomb2 glog::glog)
+find_package(OpenMP)
+
+if(OpenMP_CXX_FOUND)
+  message(STATUS "OpenMP found, enabling OpenMP support.")
+  target_link_libraries(Honeycomb2 OpenMP::OpenMP_CXX)
+  target_compile_definitions(Honeycomb2 PRIVATE USE_OPENMP)
+else()
+  message(STATUS "OpenMP not found, building without OpenMP support.")
+endif()
 
 # Find PkgConfig
 find_package(PkgConfig REQUIRED)

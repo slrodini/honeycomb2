@@ -228,7 +228,7 @@ double Grid::weight_aj(double u, size_t a, size_t j)
 Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi)
     : grid_radius(d_info_rho), grid_angle(d_info_phi), size(grid_radius.size * grid_angle.size),
       size_li(static_cast<long int>(size)), c_size(grid_radius.c_size * grid_angle.c_size),
-      c_size_li(static_cast<long int>(c_size)), _x123(c_size), _x123_minmax(size), _w(size), _dw_dx3(size)
+      c_size_li(static_cast<long int>(c_size)), _x123(c_size), _x123_minmax(size), _w(size), _w_sub(size), _dw_dx3(size)
 {
    size_t k = 0;
    size_t j = 0;
@@ -277,6 +277,15 @@ Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretiz
                      const double r = grid_radius._d_info.to_inter_space(rhophi(0));
                      const double f = grid_angle._d_info.to_inter_space(rhophi(1));
                      return grid_radius._weights[j](r) * grid_angle._weights[k](f);
+                  };
+
+                  _w_sub[index] = [j, k, this](const RnC::Pair &rhophi) -> double {
+                     const double r  = grid_radius._d_info.to_inter_space(rhophi(0));
+                     const double f  = grid_angle._d_info.to_inter_space(rhophi(1));
+                     const double wf = grid_angle._weights_sub[k](f);
+                     const double wr = grid_radius._weights_sub[j](r);
+                     // This should be wj wi - 1 = (wj-1)(wi-1) + (wj-1) + (wi-1)
+                     return wr * wf + wf + wr;
                   };
                   _dw_dx3[index] = get_dw_dx3_fixed_x1(index);
 

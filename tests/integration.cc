@@ -67,13 +67,13 @@ int main()
    //       auto fnc_internal_2 = [&](double eta) -> double {
    //          return (test_der(xi, -xi - eta, eta) - test_der(eta, -xi - eta, xi)) / (eta + xi);
    //       };
-   //       return (integrator::integrate(fnc_internal_1, -1, -xBj, 1.0e-10, 1.0e-10).first +
-   //               integrator::integrate(fnc_internal_2, -xBj, 1 - xi, 1.0e-10, 1.0e-10).first) /
+   //       return (integrator::integrate(fnc_internal_1, -1, -xBj, 1.0e-10, 1.0e-10) +
+   //               integrator::integrate(fnc_internal_2, -xBj, 1 - xi, 1.0e-10, 1.0e-10)) /
    //              xi;
    //    };
    //    std::fprintf(stderr, "\r\033[2K"); // Clean line
    //    std::fprintf(stderr, "Computing... ");
-   //    const double g2 = integrator::integrate(fnc_external, xBj, 1, 1.0e-10, 1.0e-10).first;
+   //    const double g2 = integrator::integrate(fnc_external, xBj, 1, 1.0e-10, 1.0e-10);
    //    std::fprintf(fp_out, "%.16e\t%+.16e\n", xBj, g2);
    //    std::fprintf(stderr, "Done: %lf, %le\n", xBj, g2);
    // }
@@ -158,9 +158,9 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
                   return -grid._dw_dx3[index](rhophi) / eta;
                };
 
-               return integrator::integrate(fnc_internal_1, xBj, xi, int_e_r, int_e_a).first / xi;
+               return integrator::integrate(fnc_internal_1, xBj, xi, int_e_r, int_e_a) / xi;
             };
-            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a).first;
+            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weight_results[index] += tmp;
@@ -189,9 +189,9 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
                   return -(grid._dw_dx3[index](rhophi)) / (eta + xi);
                };
 
-               return (integrator::integrate(fnc_internal_1, -xBj, 0, int_e_r, int_e_a).first) / xi;
+               return (integrator::integrate(fnc_internal_1, -xBj, 0, int_e_r, int_e_a)) / xi;
             };
-            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a).first;
+            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weight_results[index] += tmp;
@@ -220,9 +220,9 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
                };
 
                // yes, |t| in denominator
-               return (integrator::integrate(fnc_internal_1, xBj, xi, int_e_r, int_e_a).first) / xi;
+               return (integrator::integrate(fnc_internal_1, xBj, xi, int_e_r, int_e_a)) / xi;
             };
-            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a).first;
+            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weight_results[index] += tmp;
@@ -254,11 +254,11 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
                };
 
                // Combines pieces from first and second integral
-               return (integrator::integrate(fnc_internal_1, -xi, -xBj, int_e_r, int_e_a).first +
-                       integrator::integrate(fnc_internal_2, -xBj, 0, int_e_r, int_e_a).first) /
+               return (integrator::integrate(fnc_internal_1, -xi, -xBj, int_e_r, int_e_a) +
+                       integrator::integrate(fnc_internal_2, -xBj, 0, int_e_r, int_e_a)) /
                       xi;
             };
-            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a).first;
+            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weight_results[index] += tmp;

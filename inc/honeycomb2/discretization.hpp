@@ -238,6 +238,7 @@ struct Grid2D {
 
    // size weights derivatives
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _w;
+   std::vector<std::function<double(const RnC::Pair &rhophi)>> _w_sub;
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
 };
 

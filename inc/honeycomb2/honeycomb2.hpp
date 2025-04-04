@@ -13,4 +13,4 @@
 
 #include <honeycomb2/thread_pool.hpp>
 
-// #include <honeycomb2/kernels.hpp>
+#include <honeycomb2/kernels.hpp>

@@ -20,6 +20,7 @@
 #include <string>
 #include <array>
 #include <span>
+#include <tuple>
 
 // Routines
 #include <functional>
