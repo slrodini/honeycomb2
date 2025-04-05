@@ -84,6 +84,8 @@ struct Kernels {
    const double CF;
 
    Eigen::MatrixXd H_NS, H_CO, H_d13, H_gg_p, H_gg_m, H_qg_p, H_qg_m, H_gq_p, H_gq_m;
+
+   Eigen::MatrixXd H_plus_12_v1, H_plus_12_v2;
 };
 
 } // namespace Honeycomb

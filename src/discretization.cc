@@ -187,6 +187,16 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
    }
    _delim_indexes[d_info.intervals.size()] = index;
    if (d_info.is_periodic) _from_iw_to_ic[size - 1] = 0;
+
+   _from_ic_to_iw.resize(c_size);
+   for (size_t i = 0; i < _from_iw_to_ic.size(); i++) {
+      _from_ic_to_iw[_from_iw_to_ic[i]].push_back(i);
+   }
+
+   // for (const auto &v : _from_ic_to_iw) {
+   //    logger(Logger::WARNING, std::format("{:d}", v.size()));
+   // }
+   // logger(Logger::WARNING, "========================");
 }
 
 double Grid::get_der_matrix(size_t a, size_t j, size_t b, size_t k) const
@@ -228,7 +238,7 @@ double Grid::weight_aj(double u, size_t a, size_t j)
 Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi)
     : grid_radius(d_info_rho), grid_angle(d_info_phi), size(grid_radius.size * grid_angle.size),
       size_li(static_cast<long int>(size)), c_size(grid_radius.c_size * grid_angle.c_size),
-      c_size_li(static_cast<long int>(c_size)), _x123(c_size), _x123_minmax(size), _w(size), _w_sub(size), _dw_dx3(size)
+      c_size_li(static_cast<long int>(c_size)), _x123(c_size), _x123_minmax(size), _w(size), _dw_dx3(size)
 {
    size_t k = 0;
    size_t j = 0;
@@ -279,14 +289,6 @@ Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretiz
                      return grid_radius._weights[j](r) * grid_angle._weights[k](f);
                   };
 
-                  _w_sub[index] = [j, k, this](const RnC::Pair &rhophi) -> double {
-                     const double r  = grid_radius._d_info.to_inter_space(rhophi(0));
-                     const double f  = grid_angle._d_info.to_inter_space(rhophi(1));
-                     const double wf = grid_angle._weights_sub[k](f);
-                     const double wr = grid_radius._weights_sub[j](r);
-                     // This should be wj wi - 1 = (wj-1)(wi-1) + (wj-1) + (wi-1)
-                     return wr * wf + wf + wr;
-                  };
                   _dw_dx3[index] = get_dw_dx3_fixed_x1(index);
 
                   _x123_minmax[index] = {xmin, xmax};

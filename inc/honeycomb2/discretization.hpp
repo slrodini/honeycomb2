@@ -136,6 +136,7 @@ struct Grid {
    std::vector<std::function<double(double)>> _weights_sub; //  these are w-1
    std::vector<double> _coord;
    std::vector<long int> _from_iw_to_ic;
+   std::vector<std::vector<long int>> _from_ic_to_iw;
    std::vector<std::vector<double>> _der_matrix;
    std::vector<size_t> _delim_indexes;
    size_t size;
@@ -220,6 +221,12 @@ struct Grid2D {
    {
       return c_get_flatten_index(p.first, p.second);
    }
+   std::pair<size_t, size_t> c_get_double_index(size_t index) const
+   {
+      size_t i_r = index % grid_radius.c_size;
+      size_t i_a = (index - i_r) / grid_radius.c_size;
+      return {i_r, i_a};
+   }
 
    const Grid grid_radius;
    const Grid grid_angle;
@@ -238,7 +245,6 @@ struct Grid2D {
 
    // size weights derivatives
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _w;
-   std::vector<std::function<double(const RnC::Pair &rhophi)>> _w_sub;
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
 };
 

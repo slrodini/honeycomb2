@@ -8,17 +8,15 @@ double T_test(double x1, double x2, double x3)
 int main()
 {
 
-   const size_t n    = 6;
+   // const size_t n    = 6;
+   // const double rmin = 0.01;
+
+   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+
+   const size_t n    = 13;
    const double rmin = 0.01;
 
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
-
-   // double tmp = 0;
-   // for (size_t i = 0; i < grid.c_size; i++) {
-   //    tmp += grid._w[678](Honeycomb::RnC::from_x123_to_rhophi(grid._x123[i]));
-   // }
-   // std::cout << tmp << std::endl;
-   // exit(0);
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
 
    double fnc_elapsed = 0;
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
@@ -36,6 +34,14 @@ int main()
             Honeycomb::logger(Honeycomb::Logger::WARNING, std::format("NAN or INF in kernels! {:d}, {:d}", i, j));
       }
    }
+
+   double max = 0;
+   for (long int i = 0; i < kers.H_NS.rows(); i++) {
+      for (long int j = 0; j < kers.H_NS.cols(); j++) {
+         max = std::max(max, std::fabs(kers.H_plus_12_v1(i, j) - kers.H_plus_12_v2(i, j)));
+      }
+   }
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Hplus12 max diff: {:.16e}", max));
 
    Honeycomb::Discretization discr(grid);
    Eigen::VectorXd fj = discr(T_test);
