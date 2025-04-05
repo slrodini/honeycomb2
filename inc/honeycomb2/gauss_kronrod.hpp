@@ -42,7 +42,7 @@ struct GaussKronrod {
 
    // Note: here I do not return the information on the error outside.
    static double integrate(std::function<double(double)> const &fnc, double const &a, double const &b,
-                           double eps_rel = 1.0e-10, double eps_abs = 1.0e-14);
+                           double eps_rel = 1.0e-14, double eps_abs = 1.0e-15);
 
 private:
    static std::tuple<double, double, double> gauss_kronrod_recursive_step(std::function<double(double)> const &fnc,

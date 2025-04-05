@@ -45,7 +45,7 @@ ThreadPool::~ThreadPool()
    _notifier.notify_all();
 
    for (std::thread &thread : _threads) {
-      thread.join();
+      if (thread.joinable()) thread.join();
    }
 }
 

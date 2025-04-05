@@ -2,6 +2,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/access.hpp>
 #include <cereal/types/memory.hpp>
+#include <cereal/details/traits.hpp>
 
 #include <sstream>
 #include <fstream>
@@ -11,6 +12,8 @@
 
 namespace Honeycomb
 {
+
+// template <typename T, class Archive, typename = std::enable_if_t<cereal::traits::is_output_archive<Archive>::value>>
 
 template <typename T, class Archive>
 void SaveChecksumArchive(const T &data, const std::string &file_name)
@@ -54,6 +57,8 @@ void SaveArchive(const T &data, const std::string &file_name)
    file.write(serialized.c_str(), serialized.size());
    file.close();
 }
+
+// template <typename T, class Archive, typename = std::enable_if_t<cereal::traits::is_input_archive<Archive>::value>>
 
 template <typename T, class Archive>
 bool LoadAndVerify(const std::string &file_name, T &data)
