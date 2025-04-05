@@ -38,12 +38,9 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
 
          size_t c_aP = g.c_get_flatten_index(c_jP, c_iP);
          double res  = 0;
-         // if (c_a == c_aP) {
-         //    res = Hhat12::subtracted_integrate(c_a, aP, g);
-         // } else {
-         //    res = Hhat12::integrate(c_a, aP, g);
-         // }
-         res = Hplus12::integrate(c_a, aP, g);
+
+         res = Hhat12::subtracted_integrate(c_a, aP, g);
+         // res = Hplus12::integrate(c_a, aP, g);
 #pragma omp critical
          {
             H_NS(c_a, c_aP) += res;
