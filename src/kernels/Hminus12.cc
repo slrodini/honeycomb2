@@ -7,7 +7,7 @@ using integrator = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::
 
 namespace Honeycomb
 {
-double Hplus12::integrate(size_t c_a, size_t aP, const Grid2D &g)
+double Hminus12::integrate(size_t c_a, size_t aP, const Grid2D &g)
 {
    // Here we are guaranteed to not be on the diagonal
 
@@ -22,9 +22,8 @@ double Hplus12::integrate(size_t c_a, size_t aP, const Grid2D &g)
    // x3 is fixed => if outside the support just return 0
    if (x3 < x3min || x3 > x3max) return 0;
 
-   // vmin = max ( x1-x1max, x2min - x2 )
-   const double vmin = std::max(x1 - x1max, x2min - x2);
-   const double vmax = std::min(x1 - x1min, x2max - x2);
+   const double vmin = std::max(x1 - x2max, x1min - x2);
+   const double vmax = std::min(x1 - x2min, x1max - x2);
 
    // If support is inverted, then we are outside of it, return 0
    if (vmin >= vmax) return 0;
@@ -32,8 +31,8 @@ double Hplus12::integrate(size_t c_a, size_t aP, const Grid2D &g)
    if (std::fabs(x3) < 1.0e-14) {
 
       auto th_x1_mv_integral = [&](double v) -> double {
-         const double w   = g._w[aP](RnC::from_x123_to_rhophi(x1 - v, -x1 + v, 0.0));
-         const double res = w * v * (v - 2 * x1) / (2.0 * cu(x1 - v));
+         const double w   = g._w[aP](RnC::from_x123_to_rhophi(x2 + v, -x2 - v, 0.0));
+         const double res = w * sq(v) / (2.0 * cu(x1 - v));
 
          return res;
       };
@@ -54,15 +53,15 @@ double Hplus12::integrate(size_t c_a, size_t aP, const Grid2D &g)
 
       // Now we can define the lambdas for the kernel
       auto th_x1_mv_integral = [&](double v) -> double {
-         const double w   = g._w[aP](RnC::from_x123_to_rhophi(x1 - v, x2 + v, x3));
-         const double res = w * x1 * (x2 - x3) / (2 * (x1 - v) * sq(x3));
+         const double w   = g._w[aP](RnC::from_x123_to_rhophi(x2 + v, x1 - v, x3));
+         const double res = w * x1 * (2.0 * x2 * (x1 - v) - x1 * (x2 + v)) / (2 * sq(x1 - v) * sq(x3));
 
          return res;
       };
 
       auto th_x2_pv_integral = [&](double v) -> double {
-         const double w = g._w[aP](RnC::from_x123_to_rhophi(x1 - v, x2 + v, x3));
-         return w * sq(x2) * (x2 - x3 + v) / (2 * sq(x2 + v) * sq(x3));
+         const double w = g._w[aP](RnC::from_x123_to_rhophi(x2 + v, x1 - v, x3));
+         return w * sq(x2) / (2 * (x2 + v) * sq(x3));
       };
 
       double result = 0;

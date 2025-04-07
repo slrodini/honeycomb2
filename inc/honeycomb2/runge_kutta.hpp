@@ -84,12 +84,12 @@ public:
       //     k4T = -as(t+dt)(dt/2)H.(f+k3T)
       //  k1T = -as(t)(dt/2)H.f
 
-      _k1       = (_prefactor * _dth * _As_t(_t)) * (_kernel * _solution);
-      _k2       = (_prefactor * _dth * _As_t(_t + _dth)) * (_kernel * (_k1 + _solution));
-      _k3       = (_prefactor * _dt * _As_t(_t + _dth)) * (_kernel * (_k2 + _solution));
-      _k4       = (_prefactor * _dth * _As_t(_t + _dt)) * (_kernel * (_k3 + _solution));
-      _solution = _solution + (_k1 + 2.0 * _k2 + _k3 + _k4) / 3.0;
-      _t += _dt;
+      _k1        = (_prefactor * _dth * _As_t(_t)) * (_kernel * _solution);
+      _k2        = (_prefactor * _dth * _As_t(_t + _dth)) * (_kernel * (_k1 + _solution));
+      _k3        = (_prefactor * _dt * _As_t(_t + _dth)) * (_kernel * (_k2 + _solution));
+      _k4        = (_prefactor * _dth * _As_t(_t + _dt)) * (_kernel * (_k3 + _solution));
+      _solution  = _solution + (_k1 + 2.0 * _k2 + _k3 + _k4) / 3.0;
+      _t        += _dt;
       _callback(_t, _kernel, _solution);
    };
 
@@ -132,6 +132,8 @@ requires RungeKuttaCompatible<Kernel, Solution>
 class GenericRungeKutta
 {
 public:
+   // Templetized over arguments for Solution constructor
+   template <typename... Args>
    GenericRungeKutta(
        Kernel const &K, Solution const &S, GenericRungeKuttaTableaux<Order> const &tab,
        std::function<double(double)> as =
@@ -146,10 +148,16 @@ public:
               (void)K;
               (void)S;
               return;
-           })
-       : _t(t), _dt(dt), _prefactor(pref), _ki{}, _callback(std::move(c)), _As_t(std::move(as)), _solution(S),
-         _temp_step(S), _kernel(K), _ai(tab._ai), _bi(tab._bi), _ci(tab._ci), callback_each_step(true) {};
+           },
+       Args &&...args)
+       : _t(t), _dt(dt), _prefactor(pref), _callback(std::move(c)), _As_t(std::move(as)), _solution(S), _temp_step(S),
+         _kernel(K), _ai(tab._ai), _bi(tab._bi), _ci(tab._ci), callback_each_step(true)
+   {
+      for (auto &ki : _ki)
+         ki = Solution(std::forward<Args>(args)...);
+   };
 
+   // Suggestion: overload operator= and operator += in solution to avoid memory re-allocation every time
    void operator()()
    {
 
@@ -189,6 +197,13 @@ public:
          _t = tf; // Set exactly equal to threshold
          _callback(tf, _kernel, _solution);
       }
+   }
+
+   void reset(Solution const &S, double t)
+   {
+      _t                 = t;
+      callback_each_step = true;
+      _solution          = S;
    }
 
    Solution GetSolution() const

@@ -59,6 +59,8 @@ add_library(Honeycomb2 SHARED ${source_files})
 
 target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/lib/llvm-19/lib/clang/19/include")
+
 # Define libraries to be linked
 target_link_libraries(Honeycomb2)
 
@@ -74,17 +76,6 @@ endif()
 
 # Find PkgConfig
 find_package(PkgConfig REQUIRED)
-
-pkg_search_module(EIGEN3 eigen3)
-
-if(NOT EIGEN3_FOUND)
-  message(FATAL_ERROR "Could not find Eigen3, aborting...")
-else()
-  message(STATUS "Found Eigen in ${EIGEN3_INCLUDE_DIRS}")
-
-  # a bit of an hack. The EIGEN3_INCLUDE_DIRS contains the path to Eigen, I need the path to eigen3/ (which contains Eigen/)
-  target_include_directories(Honeycomb2 PUBLIC "${EIGEN3_INCLUDE_DIRS}/..")
-endif()
 
 set(USER_INCLUDE_DIR "" CACHE PATH "Path to search for cereal library (Should be path to parent folder of cereal/)")
 

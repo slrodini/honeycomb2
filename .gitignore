@@ -17,3 +17,4 @@ CMakeUserPresets.json
 /Mathematica/
 /src/ignored
 /tests/ignored/
+/.cache/

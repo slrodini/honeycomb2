@@ -393,7 +393,7 @@ double Discretization::interpolate_as_weights_v3(const RnC::Pair &rhophi, const 
    if (_fj.size() != _grid.c_size_li) {
       logger(
           Logger::ERROR,
-          std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
+          std::format("[interpolate_as_weights_v3] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
                       _fj.size(), _grid.c_size_li));
    }
    const Grid &radius = _grid.grid_radius;

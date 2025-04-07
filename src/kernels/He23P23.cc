@@ -7,7 +7,8 @@ using integrator = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::
 
 namespace Honeycomb
 {
-double Hplus12::integrate(size_t c_a, size_t aP, const Grid2D &g)
+
+double He23P23::integrate(size_t c_a, size_t aP, const Grid2D &g)
 {
    // Here we are guaranteed to not be on the diagonal
 
@@ -19,79 +20,39 @@ double Hplus12::integrate(size_t c_a, size_t aP, const Grid2D &g)
    const auto &[x1min, x2min, x3min] = x123_min.v;
    const auto &[x1max, x2max, x3max] = x123_max.v;
 
-   // x3 is fixed => if outside the support just return 0
-   if (x3 < x3min || x3 > x3max) return 0;
+   // x1 is fixed => if outside the support just return 0
+   if (x1 < x1min || x1 > x1max) return 0;
 
    // vmin = max ( x1-x1max, x2min - x2 )
-   const double vmin = std::max(x1 - x1max, x2min - x2);
-   const double vmax = std::min(x1 - x1min, x2max - x2);
+   const double vmin = std::max(x3 - x2max, x3min - x2);
+   const double vmax = std::min(x3 - x2min, x3max - x2);
 
    // If support is inverted, then we are outside of it, return 0
    if (vmin >= vmax) return 0;
 
-   if (std::fabs(x3) < 1.0e-14) {
+   if (std::fabs(x3) < 1.0e-14) return g._w[aP](RnC::from_x123_to_rhophi(x1, 0.0, x2));
 
-      auto th_x1_mv_integral = [&](double v) -> double {
-         const double w   = g._w[aP](RnC::from_x123_to_rhophi(x1 - v, -x1 + v, 0.0));
-         const double res = w * v * (v - 2 * x1) / (2.0 * cu(x1 - v));
+   // Now we can define the lambdas for the kernel
+   auto integral = [&](double v) -> double {
+      const double w   = g._w[aP](RnC::from_x123_to_rhophi(x1, x3 - v, x2 + v));
+      const double res = w * x3 / sq(x3 - v);
 
-         return res;
-      };
+      return res;
+   };
 
-      double result = 0;
+   double result = 0;
 
-      if (x1 > 0 && vmin <= 0) {
-         double upper  = std::min(0.0, vmax);
-         result       += integrator::integrate(th_x1_mv_integral, vmin, upper);
-      } else if (x1 < 0 && vmax >= 0) {
-         double lower  = std::max(vmin, 0.0);
-         result       -= integrator::integrate(th_x1_mv_integral, lower, vmax);
-      }
+   if (x3 > 0 && vmin < 0) {
+      const double upper = std::min(0.0, vmax);
 
-      return result;
+      result += integrator::integrate(integral, vmin, upper);
+   } else if (x3 < 0 && vmax > 0) {
+      const double lower = std::max(0.0, vmin);
 
-   } else {
-
-      // Now we can define the lambdas for the kernel
-      auto th_x1_mv_integral = [&](double v) -> double {
-         const double w   = g._w[aP](RnC::from_x123_to_rhophi(x1 - v, x2 + v, x3));
-         const double res = w * x1 * (x2 - x3) / (2 * (x1 - v) * sq(x3));
-
-         return res;
-      };
-
-      auto th_x2_pv_integral = [&](double v) -> double {
-         const double w = g._w[aP](RnC::from_x123_to_rhophi(x1 - v, x2 + v, x3));
-         return w * sq(x2) * (x2 - x3 + v) / (2 * sq(x2 + v) * sq(x3));
-      };
-
-      double result = 0;
-
-      // Now, region by region:
-      // First, Theta(x1, -v) = [ x1>=0 && v<=0 ] - [ x1<=0 && v>=0 ]
-      // Kernel vanishes for x1=0, so loose inequalities suffice
-      if (x1 > 0 && vmin < 0) {
-         const double upper = std::min(0.0, vmax);
-
-         result += integrator::integrate(th_x1_mv_integral, vmin, upper);
-      } else if (x1 < 0 && vmax > 0) {
-         const double lower = std::max(0.0, vmin);
-
-         result -= integrator::integrate(th_x1_mv_integral, lower, vmax); // ! note the - from the Theta
-      }
-
-      if (x2 > 0 && vmax > 0) {
-         const double lower = std::max(0.0, vmin);
-
-         result += integrator::integrate(th_x2_pv_integral, lower, vmax);
-      } else if (x2 < 0 && vmin < 0) {
-         const double upper = std::min(0.0, vmax);
-
-         result -= integrator::integrate(th_x2_pv_integral, vmin, upper); // ! note the - from the Theta
-      }
-
-      return result;
+      result -= integrator::integrate(integral, lower, vmax); // ! note the - from the Theta
    }
+
+   return result;
 }
 
 // // This is just to check that the two approaches are equivalent for kernels without subtraction.

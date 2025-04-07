@@ -3,7 +3,7 @@
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 namespace Honeycomb
 {

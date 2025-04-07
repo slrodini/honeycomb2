@@ -3,7 +3,7 @@
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/kernel_functions.hpp>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 namespace Honeycomb
 {
@@ -83,9 +83,13 @@ struct Kernels {
    const double CA;
    const double CF;
 
-   Eigen::MatrixXd H_NS, H_CO, H_d13, H_gg_p, H_gg_m, H_qg_p, H_qg_m, H_gq_p, H_gq_m;
+   Eigen::MatrixXd H_NS, H_d13, H_gg_p, H_gg_m, H_qg_p, H_qg_m, H_gq_p, H_gq_m;
 
    Eigen::MatrixXd H_plus_12_v1, H_plus_12_v2;
 };
+
+// The Chiral-Odd case is special, no need to keep track of anything but the kernel matrix itself
+// So, I have specialized function to compute it
+Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc);
 
 } // namespace Honeycomb

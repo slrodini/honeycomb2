@@ -13,29 +13,36 @@ struct Hhat12 {
 };
 
 struct Hhat13 {
+   static double subtracted_integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Hhat23 {
+   static double subtracted_integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Hplus12 {
    static double integrate(size_t c_a, size_t aP, const Grid2D &g);
-   static double integrate_v2(size_t c_a, size_t c_aP, const Grid2D &g);
+   // static double integrate_v2(size_t c_a, size_t c_aP, const Grid2D &g);
 };
 
 struct Hplus13 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Hplus23 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
-struct He123P23 {
+struct He23P23 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Hminus12 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Hminus23 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Hd13 {

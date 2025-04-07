@@ -7,6 +7,83 @@
 namespace Honeycomb
 {
 
+Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc)
+{
+   const double CF = (_Nc * _Nc - 1.0) / (2.0 * _Nc);
+
+   Eigen::MatrixXd H_CO = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
+
+   ThreadPool th_pool(10);
+   std::mutex th_mutex;
+   std::condition_variable th_done;
+
+   size_t tot_task = g.c_size + g.c_size;
+   size_t num_done = 0;
+
+   for (size_t c_a = 0; c_a < g.c_size; c_a++) {
+      // Unsubtracted integrals
+      th_pool.add_task([&, c_a](void) -> void {
+         std::unique_lock<std::mutex> lock(th_mutex, std::defer_lock);
+
+         for (size_t aP = 0; aP < g.size; aP++) {
+            auto [jP, iP] = g.get_double_index(aP);
+            size_t c_iP   = g.grid_angle._from_iw_to_ic[iP];
+            size_t c_jP   = g.grid_radius._from_iw_to_ic[jP];
+            size_t c_aP   = g.c_get_flatten_index(c_jP, c_iP);
+
+            double res_plus_12 = Hplus12::integrate(c_a, aP, g);
+            double res_plus_23 = Hplus23::integrate(c_a, aP, g);
+
+            double res_minus_12 = Hminus12::integrate(c_a, aP, g);
+            double res_minus_23 = Hminus23::integrate(c_a, aP, g);
+
+            lock.lock();
+
+            H_CO(c_a, c_aP) -= _Nc * 2.0 * (res_plus_12 + res_plus_23);
+            H_CO(c_a, c_aP) -= (2.0 / _Nc) * (res_minus_12 + res_minus_23);
+
+            lock.unlock();
+         }
+         lock.lock();
+         num_done++;
+         lock.unlock();
+         th_done.notify_one();
+      });
+
+      // Subtracted integrals
+      th_pool.add_task([&, c_a](void) -> void {
+         std::unique_lock<std::mutex> lock(th_mutex, std::defer_lock);
+         for (size_t c_aP = 0; c_aP < g.c_size; c_aP++) {
+            double res_hat_12 = Hhat12::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_23 = Hhat23::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_13 = Hhat13::subtracted_integrate(c_a, c_aP, g);
+
+            lock.lock();
+
+            H_CO(c_a, c_aP) += _Nc * (res_hat_12 + res_hat_23);
+            H_CO(c_a, c_aP) += (1.0 / _Nc) * (-res_hat_13);
+            lock.unlock();
+         }
+         lock.lock();
+         num_done++;
+         lock.unlock();
+         th_done.notify_one();
+      });
+   }
+
+   std::unique_lock<std::mutex> lock_done(th_mutex);
+   th_done.wait(lock_done, [&num_done, &tot_task](void) {
+      return num_done >= tot_task;
+   });
+
+   // Field anomalous dimensions, nf independent
+   for (size_t c_a = 0; c_a < g.c_size; c_a++) {
+      H_CO(c_a, c_a) -= 3.0 * CF;
+   }
+
+   return H_CO;
+}
+
 Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_Nc * _Nc - 1) / (2.0 * _Nc))
 {
 
@@ -15,7 +92,6 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
    std::condition_variable th_done;
 
    H_NS   = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
-   H_CO   = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_d13  = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_gg_p = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_gg_m = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
@@ -24,8 +100,12 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
    H_gq_p = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_gq_m = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
 
-   H_plus_12_v1 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
-   H_plus_12_v2 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
+   // Summary:
+   // H_NS = NC ( Hhat12 + Hhat23 - 2 Hplus12 ) + (1/NC) ( -Hhat13 + Hplus13 + He23P23 - 2 Hminus12 ) - 3CF
+   //             ------   ------   ---------              -------    -------            ----------
+
+   // H_plus_12_v1 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
+   // H_plus_12_v2 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
 
    // H_{aa'} = H_{[c_i c_j],[c_i' c_j']} where c_i over angles and c_j over radii
    // Then c_. can be obtained from weight index via mapping,
@@ -50,11 +130,16 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
             size_t c_jP   = g.grid_radius._from_iw_to_ic[jP];
             size_t c_aP   = g.c_get_flatten_index(c_jP, c_iP);
 
-            double res = Hplus12::integrate(c_a, aP, g);
+            double res_plus_12 = Hplus12::integrate(c_a, aP, g);
+            double res_plus_13 = Hplus13::integrate(c_a, aP, g);
+
+            double res_minus_12 = Hminus12::integrate(c_a, aP, g);
+
+            double res_he23p23 = He23P23::integrate(c_a, aP, g);
 
             lock.lock();
-            H_plus_12_v1(c_a, c_aP) += res;
-            H_NS(c_a, c_aP)         += res;
+            H_NS(c_a, c_aP) += _Nc * 2.0 * (-res_plus_12);
+            H_NS(c_a, c_aP) += (1.0 / _Nc) * (res_plus_13 - 2.0 * res_minus_12 + res_he23p23);
 
             lock.unlock();
          }
@@ -68,12 +153,14 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
       th_pool.add_task([&, c_a](void) -> void {
          std::unique_lock<std::mutex> lock(th_mutex, std::defer_lock);
          for (size_t c_aP = 0; c_aP < g.c_size; c_aP++) {
-            double res  = Hhat12::subtracted_integrate(c_a, c_aP, g);
-            double res2 = Hplus12::integrate_v2(c_a, c_aP, g);
+            double res_hat_12 = Hhat12::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_23 = Hhat23::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_13 = Hhat13::subtracted_integrate(c_a, c_aP, g);
 
             lock.lock();
-            H_plus_12_v2(c_a, c_aP) += res2;
-            H_NS(c_a, c_aP)         += res;
+            H_NS(c_a, c_aP) += _Nc * (res_hat_12 + res_hat_23);
+            H_NS(c_a, c_aP) += (1.0 / _Nc) * (-res_hat_13);
+
             lock.unlock();
          }
          lock.lock();
@@ -88,8 +175,47 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
       return num_done >= tot_task;
    });
 
-   // Here compute Integrate H(x123_[c_i c_j], v) \times w_{ij}(\rho, \phi)
-   // transformation of w_{ij} is done in constructor.
-}; // namespace Honeycomb
+   // Field anomalous dimensions, nf independent
+   for (size_t c_a = 0; c_a < g.c_size; c_a++) {
+      H_NS(c_a, c_a) -= 3.0 * CF;
+   }
+};
 
 } // namespace Honeycomb
+
+/*
+template<class Archive>
+    void serialize(Archive& archive) {
+        int rows = A.rows();
+        int cols = A.cols();
+        int size_x = x.size();
+        int size_y = y.size();
+
+        // Save/load dimensions
+        archive(rows, cols, size_x, size_y);
+
+        // Resize everything on load
+        if (Archive::is_loading::value) {
+            A.resize(rows, cols);
+            B.resize(rows, cols);
+            C.resize(rows, cols);
+            x.resize(size_x);
+            y.resize(size_y);
+        }
+
+        // Explicitly archive matrix elements
+        for (int i = 0; i < rows; ++i)
+            for (int j = 0; j < cols; ++j) {
+                archive(A(i, j));
+                archive(B(i, j));
+                archive(C(i, j));
+            }
+
+        // Explicitly archive vectors
+        for (int i = 0; i < size_x; ++i)
+            archive(x(i));
+
+        for (int i = 0; i < size_y; ++i)
+            archive(y(i));
+    }
+*/
