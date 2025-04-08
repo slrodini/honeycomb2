@@ -17,6 +17,8 @@ void evolve_chiral_odd();
 int main()
 {
 
+   evolve_chiral_odd();
+
    const double Nc = 3; // NC = 1 for tests
 
    const size_t n         = 6;

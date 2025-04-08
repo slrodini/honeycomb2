@@ -3,7 +3,7 @@
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/kernel_functions.hpp>
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 namespace Honeycomb
 {
