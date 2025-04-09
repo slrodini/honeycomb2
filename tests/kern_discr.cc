@@ -17,7 +17,7 @@ void evolve_chiral_odd();
 int main()
 {
 
-   evolve_chiral_odd();
+   // evolve_chiral_odd();
 
    const double Nc = 3; // NC = 1 for tests
 
@@ -31,6 +31,7 @@ int main()
 
    double fnc_elapsed = 0;
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total x123 size: {:d}x{:d}", grid.c_size, grid.c_size));
 
    Honeycomb::timer::mark begin = Honeycomb::timer::now();
    Honeycomb::Kernels kers(grid, Nc);
@@ -39,25 +40,56 @@ int main()
 
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
 
-   for (long int i = 0; i < kers.H_NS.rows(); i++) {
-      for (long int j = 0; j < kers.H_NS.cols(); j++) {
-         if (std::isnan(kers.H_NS(i, j)) || std::isinf(kers.H_NS(i, j)))
+   // const auto &KK = kers.H_NS;
+   const auto &KK = kers.H_test_1;
+
+   for (long int i = 0; i < KK.rows(); i++) {
+      for (long int j = 0; j < KK.cols(); j++) {
+         if (std::isnan(KK(i, j)) || std::isinf(KK(i, j)))
             Honeycomb::logger(Honeycomb::Logger::WARNING, std::format("NAN or INF in kernels! {:d}, {:d}", i, j));
       }
    }
+
+   const auto &KK2 = kers.H_test_2;
+   // Eigen::MatrixXd Diff = KK2 - KK;
+
+   // for (long int i = 0; i < KK.rows(); i++) {
+   //    for (long int j = 0; j < KK.cols(); j++) {
+   //       if (std::fabs(Diff(i, j)) > 1.0e-6)
+   //          std::cout << std::format("{:d}\t{:d}\t{:.10e}\t{:.10e}\t{:.10e}\t{:.10e}\t{:.10e}", i, j,
+   //                                   grid._x123[i].v[0], grid._x123[i].v[1], grid._x123[i].v[2], KK(i, j), KK2(i, j))
+   //                    << std::endl;
+   //    }
+   // }
 
    Honeycomb::Discretization discr(grid);
    Eigen::VectorXd fj    = discr(T_test);
    Eigen::VectorXd fj_Hu = discr(T_test_Hu);
 
-   Eigen::VectorXd fj2 = kers.H_NS * fj;
+   Eigen::VectorXd fj2 = KK * fj;
+   Eigen::VectorXd fj3 = KK2 * fj;
 
    std::FILE *fp = std::fopen("ConvCheck.dat", "w");
    for (long int i = 0; i < grid.c_size_li; i++) {
-      std::fprintf(fp, "%.16e\t%.16e\t%.16e\t%.16e\t%.16e\n", grid._x123[i].v[0], grid._x123[i].v[1],
-                   grid._x123[i].v[2], fj(i), fj2(i));
+      std::fprintf(fp, "%.16e\t%.16e\t%.16e\t%.16e\t%.16e\t%.16e\n", grid._x123[i].v[0], grid._x123[i].v[1],
+                   grid._x123[i].v[2], fj(i), fj2(i), fj3(i));
    }
    std::fclose(fp);
+
+   double m1 = 0, m2 = 0;
+
+   for (long int i = 0; i < grid.c_size_li; i++) {
+      // x132
+      auto rhophi = Honeycomb::RnC::from_x123_to_rhophi(
+          Honeycomb::RnC::Triplet(-grid._x123[i].v[0], -grid._x123[i].v[1], -grid._x123[i].v[2]));
+
+      const double diff_1 = fj(i) - discr.interpolate_as_weights_v3(rhophi, fj);
+      const double diff_2 = fj2(i) + discr.interpolate_as_weights_v3(rhophi, fj2);
+
+      m1 = std::max(m1, std::fabs(diff_1));
+      m2 = std::max(m2, std::fabs(diff_2));
+   }
+   std::fprintf(stderr, "%.16e\t%.16e\n", m1, m2);
 
    return 0;
 }

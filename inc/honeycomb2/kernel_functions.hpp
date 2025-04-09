@@ -46,49 +46,76 @@ struct Hminus23 {
 };
 
 struct Hd13 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 // G G kernels
 
 struct Hhat12GG {
-};
-
-struct Hhat31GG {
+   static double subtracted_integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Hhat23GG {
+   static double subtracted_integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
-struct Hplus12GG {
+struct Hhat31GG {
+   static double subtracted_integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
-struct Hplus13GG {
+// This is already sum of -4 H^+_{12} - 2 \tilde{H}^+_{12}
+struct HplusSum12GG {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
-struct Htildeplus12GG {
+// This is already sum of -4 H^+_{13} - 2 \tilde{H}^+_{13}
+struct HplusSum13GG {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
-struct Htildeplus13GG {
-};
-
+// These have alreay the factor 6 inside!
 struct Hminus12GG {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
+// These have alreay the factor 6 inside!
 struct Hminus13GG {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
+
+// QG and GQ mixing
 
 struct Vplus13 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
+   static double subtracted_integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Vminus13 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Wplus13 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct Wminus13 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
 
 struct DeltaW {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
 };
+
+struct Wplus13P23 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
+};
+
+struct Wminus13P23 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
+};
+
+struct DeltaWP23 {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
+};
+
 } // namespace Honeycomb
