@@ -1,5 +1,8 @@
+#pragma once
+
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/utility.hpp>
 #include <cereal/access.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/details/traits.hpp>
@@ -13,11 +16,12 @@
 namespace Honeycomb
 {
 
-// template <typename T, class Archive, typename = std::enable_if_t<cereal::traits::is_output_archive<Archive>::value>>
-
 template <typename T, class Archive>
 void SaveChecksumArchive(const T &data, const std::string &file_name)
 {
+   if constexpr (!std::is_base_of<cereal::detail::OutputArchiveBase, Archive>::value) {
+      logger(Logger::ERROR, "Trying to use `SaveChecksumArchive` with an archive that is not an output archive.");
+   }
    std::ostringstream buffer;
    uint64_t checksum;
    {
@@ -45,24 +49,11 @@ void SaveChecksumArchive(const T &data, const std::string &file_name)
 }
 
 template <typename T, class Archive>
-void SaveArchive(const T &data, const std::string &file_name)
-{
-   std::ostringstream buffer;
-   {
-      Archive ar(buffer);
-      ar(data);
-   }
-   std::string serialized = buffer.str();
-   std::ofstream file(file_name, std::ios::binary);
-   file.write(serialized.c_str(), serialized.size());
-   file.close();
-}
-
-// template <typename T, class Archive, typename = std::enable_if_t<cereal::traits::is_input_archive<Archive>::value>>
-
-template <typename T, class Archive>
 bool LoadAndVerify(const std::string &file_name, T &data)
 {
+   if constexpr (!std::is_base_of<cereal::detail::InputArchiveBase, Archive>::value) {
+      logger(Logger::ERROR, "Trying to use `LoadAndVerify` with an archive that is not an input archive.");
+   }
    // std::ifstream file(file_name, std::ios::binary | std::ios::ate);
    std::FILE *file = std::fopen(file_name.c_str(), "rb");
 
@@ -97,8 +88,28 @@ bool LoadAndVerify(const std::string &file_name, T &data)
 }
 
 template <typename T, class Archive>
+void SaveArchive(const T &data, const std::string &file_name)
+{
+   if constexpr (!std::is_base_of<cereal::detail::OutputArchiveBase, Archive>::value) {
+      logger(Logger::ERROR, "Trying to use `SaveArchive` with an archive that is not an output archive.");
+   }
+   std::ostringstream buffer;
+   {
+      Archive ar(buffer);
+      ar(data);
+   }
+   std::string serialized = buffer.str();
+   std::ofstream file(file_name, std::ios::binary);
+   file.write(serialized.c_str(), serialized.size());
+   file.close();
+}
+
+template <typename T, class Archive>
 bool LoadArchive(const std::string &file_name, T &data)
 {
+   if constexpr (!std::is_base_of<cereal::detail::InputArchiveBase, Archive>::value) {
+      logger(Logger::ERROR, "Trying to use `LoadArchive` with an archive that is not an input archive.");
+   }
    // std::ifstream file(file_name, std::ios::binary | std::ios::ate);
    std::FILE *file = std::fopen(file_name.c_str(), "rb");
 

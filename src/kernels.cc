@@ -84,13 +84,11 @@ Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc)
    return H_CO;
 }
 
-Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_Nc * _Nc - 1) / (2.0 * _Nc))
+Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
+    : grid(g), Nc(_Nc), CA(_Nc), CF((_Nc * _Nc - 1) / (2.0 * _Nc))
 {
 
-   ThreadPool th_pool(10);
-   std::mutex th_mutex;
-   std::condition_variable th_done;
-
+   // NOTE: The field anomalous dimensions ARE NOT included in the kernels.
    H_NS   = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_d13  = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_gg_p = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
@@ -103,21 +101,11 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
    H_test_1 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_test_2 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
 
-   // Summary:
-   // H_NS = NC ( Hhat12 + Hhat23 - 2 Hplus12 ) + (1/NC) ( -Hhat13 + Hplus13 + He23P23 - 2 Hminus12 ) - 3CF
-   //             ------   ------   ---------              -------    -------            ----------
+   if (!to_compute) return;
 
-   // H_plus_12_v1 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
-   // H_plus_12_v2 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
-
-   // H_{aa'} = H_{[c_i c_j],[c_i' c_j']} where c_i over angles and c_j over radii
-   // Then c_. can be obtained from weight index via mapping,
-   // So, I loop over weight index to have simple expressions for integrals
-
-   // Timings: for the grid in twodim_check the following code takes about 28 seconds.
-   // Maybe I can improve it using the thread_pool.
-   // With thread_pool in inner loop around 44 seconds
-   // With thread_pool on outer loop (i.e. all inner loop in one task), around 26 seconds
+   ThreadPool th_pool(10);
+   std::mutex th_mutex;
+   std::condition_variable th_done;
 
    size_t tot_task = g.c_size + g.c_size;
    size_t num_done = 0;
@@ -152,7 +140,8 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
 
             // QG
             double res_v_minus = Vminus13::integrate(c_a, aP, g);
-            double res_v_plus  = Vplus13::integrate(c_a, aP, g);
+
+            double res_v_plus = Vplus13::integrate(c_a, aP, g); // For testing purposes, to be removed
 
             // GQ
             double res_w_plus     = Wplus13::integrate(c_a, aP, g);
@@ -197,14 +186,14 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
          for (size_t c_aP = 0; c_aP < g.c_size; c_aP++) {
 
             // NS
-            double res_hat_12 = 0; // Hhat12::subtracted_integrate(c_a, c_aP, g);
-            double res_hat_23 = 0; // Hhat23::subtracted_integrate(c_a, c_aP, g);
-            double res_hat_13 = 0; // Hhat13::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_12 = Hhat12::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_23 = Hhat23::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_13 = Hhat13::subtracted_integrate(c_a, c_aP, g);
 
             // GG
-            double res_hat_12_gg = 0; // Hhat12GG::subtracted_integrate(c_a, c_aP, g);
-            double res_hat_23_gg = 0; // Hhat23GG::subtracted_integrate(c_a, c_aP, g);
-            double res_hat_31_gg = 0; // Hhat31GG::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_12_gg = Hhat12GG::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_23_gg = Hhat23GG::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_31_gg = Hhat31GG::subtracted_integrate(c_a, c_aP, g);
 
             // QG
             double res_v_plus = Vplus13::subtracted_integrate(c_a, c_aP, g);
@@ -234,13 +223,6 @@ Kernels::Kernels(const Grid2D &g, double _Nc) : grid(g), Nc(_Nc), CA(_Nc), CF((_
    th_done.wait(lock_done, [&num_done, &tot_task](void) {
       return num_done >= tot_task;
    });
-
-   // Field anomalous dimensions, nf independent
-   for (size_t c_a = 0; c_a < g.c_size; c_a++) {
-      H_NS(c_a, c_a) -= 3.0 * CF;
-   }
-
-   // No field anomalous dimensions in gg!
 };
 
 } // namespace Honeycomb

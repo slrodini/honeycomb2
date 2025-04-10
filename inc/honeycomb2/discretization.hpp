@@ -34,6 +34,21 @@ public:
 // For either radius or angle
 struct SingleDiscretizationInfo {
 public:
+   // Empty default constructor
+   SingleDiscretizationInfo()
+       : is_periodic(false), to_inter_space(std::function<double(double)>([](double x) {
+            return x;
+         })),
+         to_inter_space_der(std::function<double(double)>([](double x) {
+            return x;
+         })),
+         to_phys_space(std::function<double(double)>([](double x) {
+            return x;
+         })),
+         to_phys_space_der(std::function<double(double)>([](double x) {
+            return x;
+         })) {};
+
    SingleDiscretizationInfo(
        std::vector<double> inter, std::vector<size_t> g_size, bool is_per = false,
        std::function<double(double)> to_i_space =
@@ -102,6 +117,9 @@ struct Grid {
    enum W_CASE { N = 1, D = 2, S = 3 };
 
    Grid(const SingleDiscretizationInfo &d_info);
+
+   // Empty default constructor
+   Grid() {};
 
    double get_der_matrix(size_t a, size_t j, size_t b, size_t k) const;
 
@@ -179,7 +197,19 @@ struct Triplet {
       assert(i >= 0 && i <= 2);
       return v[i];
    }
+
+   double distance(const Triplet &other) const
+   {
+      return sq(v[0] - other.v[0]) + sq(v[1] - other.v[1]) + sq(v[2] - other.v[2]);
+   }
+
    std::array<double, 3> v;
+
+   template <class Archive>
+   void serialize(Archive &archive)
+   {
+      archive(v[0], v[1], v[2]);
+   }
 };
 
 Triplet from_rhophi_to_x123(double rho, double phi);
@@ -193,6 +223,9 @@ std::pair<Triplet, Triplet> dx123_drhophi(Pair rhophi);
 struct Grid2D {
 
    Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi);
+
+   // Empty default constructor
+   Grid2D() {};
 
    std::function<double(const RnC::Pair &rhophi)> get_dw_dx3_fixed_x1(size_t index) const;
 
@@ -246,6 +279,14 @@ struct Grid2D {
    // size weights derivatives
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _w;
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
+
+   template <class Archive>
+   void serialize(Archive &archive)
+   {
+      archive(size, c_size);
+      archive(_x123);
+      archive(_x123_minmax);
+   }
 };
 
 struct Discretization {

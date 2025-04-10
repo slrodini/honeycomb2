@@ -12,22 +12,96 @@ double T_test_Hu(double x1, double x2, double x3)
    return sin(x2 * M_PI) * (1 - x1 * x1) * (1 - x2 * x2) * (1 - x3 * x3) / (sqrt(r));
 }
 
+void test_save_and_laod();
+void test_convolution();
 void evolve_chiral_odd();
 
 int main()
 {
 
    // evolve_chiral_odd();
+   // test_convolution();
 
-   const double Nc = 3; // NC = 1 for tests
+   test_save_and_laod();
+
+   return 0;
+}
+
+void test_save_and_laod()
+{
+   const double Nc = 3;
 
    const size_t n         = 6;
    const double rmin      = 0.01;
    Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
 
-   // const size_t n         = 13;
+   double fnc_elapsed = 0;
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total x123 size: {:d}x{:d}", grid.c_size, grid.c_size));
+
+   // Discretize the kernels
+   Honeycomb::timer::mark begin = Honeycomb::timer::now();
+   Honeycomb::Kernels kers(grid, Nc);
+   Honeycomb::timer::mark end = Honeycomb::timer::now();
+   fnc_elapsed                = Honeycomb::timer::elapsed_ns(end, begin);
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
+
+   // Save the discretized kernels
+   begin = Honeycomb::timer::now();
+   Honeycomb::save_kernels<cereal::PortableBinaryOutputArchive>(kers, "check.cereal");
+   end         = Honeycomb::timer::now();
+   fnc_elapsed = Honeycomb::timer::elapsed_ns(end, begin);
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Saving time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
+
+   // Load the kernels
+   begin = Honeycomb::timer::now();
+   Honeycomb::Kernels kers_loaded =
+       Honeycomb::load_kernels<cereal::PortableBinaryInputArchive>("check.cereal", grid, Nc);
+   end         = Honeycomb::timer::now();
+   fnc_elapsed = Honeycomb::timer::elapsed_ns(end, begin);
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Loading time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
+
+   for (long int i = 0; i < kers.H_NS.rows(); i++) {
+      for (long int j = 0; j < kers.H_NS.cols(); j++) {
+         if (std::fabs(kers.H_NS(i, j) - kers_loaded.H_NS(i, j)) > 2.0e-16) {
+            Honeycomb::logger(Honeycomb::Logger::ERROR, "H_NS is not save/loaded correctly.");
+         }
+         if (std::fabs(kers.H_d13(i, j) - kers_loaded.H_d13(i, j)) > 2.0e-16) {
+            Honeycomb::logger(Honeycomb::Logger::ERROR, "H_d13 is not save/loaded correctly.");
+         }
+         if (std::fabs(kers.H_gg_p(i, j) - kers_loaded.H_gg_p(i, j)) > 2.0e-16) {
+            Honeycomb::logger(Honeycomb::Logger::ERROR, "H_gg_p is not save/loaded correctly.");
+         }
+         if (std::fabs(kers.H_gg_m(i, j) - kers_loaded.H_gg_m(i, j)) > 2.0e-16) {
+            Honeycomb::logger(Honeycomb::Logger::ERROR, "H_gg_m is not save/loaded correctly.");
+         }
+         if (std::fabs(kers.H_qg_p(i, j) - kers_loaded.H_qg_p(i, j)) > 2.0e-16) {
+            Honeycomb::logger(Honeycomb::Logger::ERROR, "H_qg_p is not save/loaded correctly.");
+         }
+         if (std::fabs(kers.H_qg_m(i, j) - kers_loaded.H_qg_m(i, j)) > 2.0e-16) {
+            Honeycomb::logger(Honeycomb::Logger::ERROR, "H_qg_m is not save/loaded correctly.");
+         }
+         if (std::fabs(kers.H_gq_p(i, j) - kers_loaded.H_gq_p(i, j)) > 2.0e-16) {
+            Honeycomb::logger(Honeycomb::Logger::ERROR, "H_gq_p is not save/loaded correctly.");
+         }
+         if (std::fabs(kers.H_gq_m(i, j) - kers_loaded.H_gq_m(i, j)) > 2.0e-16) {
+            Honeycomb::logger(Honeycomb::Logger::ERROR, "H_gq_m is not save/loaded correctly.");
+         }
+      }
+   }
+}
+
+void test_convolution()
+{
+   const double Nc = 3; // NC = 1 for tests
+
+   // const size_t n         = 6;
    // const double rmin      = 0.01;
-   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
+   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+
+   const size_t n         = 13;
+   const double rmin      = 0.01;
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
 
    double fnc_elapsed = 0;
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
@@ -90,8 +164,6 @@ int main()
       m2 = std::max(m2, std::fabs(diff_2));
    }
    std::fprintf(stderr, "%.16e\t%.16e\n", m1, m2);
-
-   return 0;
 }
 
 void evolve_chiral_odd()

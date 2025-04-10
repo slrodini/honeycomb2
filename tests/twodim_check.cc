@@ -95,9 +95,9 @@ double fnc_elapsed     = 0;
 double fnc_der_elapsed = 0;
 size_t fnc_count       = 0;
 
-std::pair<double, double> check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretization &F,
-                                      const Eigen::VectorXd &fj, model_fnc_t test_fnc, model_fnc_t test_fnc_der,
-                                      std::FILE *fp)
+std::vector<double> check_point(const Honeycomb::RnC::Pair &rhophi, const Honeycomb::Discretization &F,
+                                const Eigen::VectorXd &fj, model_fnc_t test_fnc, model_fnc_t test_fnc_der,
+                                std::FILE *fp)
 {
    const Honeycomb::RnC::Triplet x123 = Honeycomb::RnC::from_rhophi_to_x123(rhophi);
 
@@ -112,11 +112,12 @@ std::pair<double, double> check_point(const Honeycomb::RnC::Pair &rhophi, const 
    fnc_elapsed                  += Honeycomb::timer::elapsed_ns(end, begin);
 
    const double dx = 1.0e-7;
+   // test_fnc_der(x123(0), x123(1), x123(2))
+   const double num_der = (test_fnc(x123(0), -x123(0) - x123(2) - dx, x123(2) + dx) -
+                           test_fnc(x123(0), -x123(0) - x123(2) + dx, x123(2) - dx)) /
+                          (2.0 * dx);
 
-   const double num_der = (test_fnc_der != nullptr) ? test_fnc_der(x123(0), x123(1), x123(2))
-                                                    : (test_fnc(x123(0), -x123(0) - x123(2) - dx, x123(2) + dx) -
-                                                       test_fnc(x123(0), -x123(0) - x123(2) + dx, x123(2) - dx)) /
-                                                          (2.0 * dx);
+   const double exact_der = (test_fnc_der != nullptr) ? test_fnc_der(x123(0), x123(1), x123(2)) : num_der;
 
    begin                   = Honeycomb::timer::now();
    const double inter_der  = F.interpolate_df_dx3_fixed_x1(rhophi, fj);
@@ -124,26 +125,25 @@ std::pair<double, double> check_point(const Honeycomb::RnC::Pair &rhophi, const 
    fnc_der_elapsed        += Honeycomb::timer::elapsed_ns(end, begin);
    fnc_count++;
 
-   // const double err = std::abs(exact) > 1.0e-10 ? std::abs(1 - approx / exact) : std::abs(approx - exact);
-   // const double err_der =
-   //     std::abs(num_der) > 1.0e-10 ? std::abs(1 - inter_der / num_der) : std::abs(inter_der - num_der);
-
-   const double err     = std::abs(approx - exact);
-   const double err_der = std::abs(inter_der - num_der);
+   const double err     = std::fabs(approx - exact);
+   const double err_der = std::fabs(inter_der - num_der);
+   const double err_ex_der =
+       std::fabs(exact_der) < 1.0e-10 ? std::fabs(inter_der - exact_der) : std::fabs(1.0 - inter_der / exact_der);
 
    if (nullptr != fp) {
-      fprintf(fp, "%+.16e\t%+.16e\t%+.16e\t%+.16e\n", rhophi(0), rhophi(1), err, err_der);
+      fprintf(fp, "%+.16e\t%+.16e\t%+.16e\t%+.16e\t%+.16e\n", rhophi(0), rhophi(1), err, err_der, err_ex_der);
    } else {
-      Honeycomb::logger(Honeycomb::Logger::INFO, std::format("{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}",
-                                                             x123(0), x123(1), x123(2), err, err_der));
+      Honeycomb::logger(Honeycomb::Logger::INFO,
+                        std::format("{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}\t{:+.16e}", x123(0), x123(1),
+                                    x123(2), err, err_der, err_ex_der));
    }
-   return {err, err_der};
+   return {err, err_der, err_ex_der};
 }
 
 int main()
 {
-   model_fnc_t test     = T_test_6;
-   model_fnc_t test_der = T_test_6_der;
+   model_fnc_t test     = T_test;
+   model_fnc_t test_der = T_test_der;
 
    const size_t n    = 13;
    const double rmin = 0.01;
@@ -192,18 +192,32 @@ int main()
                                  x3, exact, approx));
    double ave            = 0;
    double ave_der        = 0;
+   double ave_ex_der     = 0;
    const size_t nSamples = 1000;
    std::FILE *fp         = fopen("interpolation_checks.dat", "w");
+
+   const double rmax = 0.8;
+
    for (size_t i = 0; i < nSamples; i++) {
-      auto [err, err_der] =
-          check_point({Honeycomb::Random::random_uniform(rmin, 1), Honeycomb::Random::random_uniform(0, 6)}, discr, fj,
-                      test, test_der, fp);
-      ave     += err;
-      ave_der += err_der;
+      Honeycomb::RnC::Pair rhophi = {Honeycomb::Random::random_uniform(rmin, rmax),
+                                     Honeycomb::Random::random_uniform(0, 6)};
+
+      std::vector<double> cp  = check_point(rhophi, discr, fj, test, test_der, fp);
+      const double err        = cp[0];
+      const double err_der    = cp[1];
+      const double err_ex_der = cp[2];
+
+      const Honeycomb::RnC::Triplet x123 = Honeycomb::RnC::from_rhophi_to_x123(rhophi);
+
+      ave        += err;
+      ave_der    += err_der;
+      ave_ex_der += err_ex_der;
    }
    Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("Average relative error [F, D]: [{:+4e}, {:+.4e}]",
-                                 ave / static_cast<double>(nSamples), ave_der / static_cast<double>(nSamples)));
+                     std::format("Average relative error [F, D]: [{:+4e}, {:+.4e}, {:+.4e}]",
+                                 ave / static_cast<double>(nSamples), ave_der / static_cast<double>(nSamples),
+                                 ave_ex_der / static_cast<double>(nSamples),
+                                 ave_ex_der / static_cast<double>(nSamples)));
    fclose(fp);
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Average interpolation time:            {:+.6e} ns.",
                                                           fnc_elapsed / static_cast<double>(fnc_count)));
