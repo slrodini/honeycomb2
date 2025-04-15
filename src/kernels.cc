@@ -61,16 +61,12 @@ Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc)
    Eigen::MatrixXd H_CO = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
 
    ThreadPool th_pool(10);
-   std::mutex th_mutex;
-   std::condition_variable th_done;
-
-   size_t tot_task = g.c_size + g.c_size;
-   size_t num_done = 0;
+   // std::mutex th_mutex;
 
    for (size_t c_a = 0; c_a < g.c_size; c_a++) {
       // Unsubtracted integrals
-      th_pool.add_task([&, c_a](void) -> void {
-         std::unique_lock<std::mutex> lock(th_mutex, std::defer_lock);
+      th_pool.AddTask([&, c_a](void) -> void {
+         std::unique_lock<std::mutex> lock(th_pool.task_mutex, std::defer_lock);
 
          for (size_t aP = 0; aP < g.size; aP++) {
             auto [jP, iP] = g.get_double_index(aP);
@@ -91,15 +87,11 @@ Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc)
 
             lock.unlock();
          }
-         lock.lock();
-         num_done++;
-         lock.unlock();
-         th_done.notify_one();
       });
 
       // Subtracted integrals
-      th_pool.add_task([&, c_a](void) -> void {
-         std::unique_lock<std::mutex> lock(th_mutex, std::defer_lock);
+      th_pool.AddTask([&, c_a](void) -> void {
+         std::unique_lock<std::mutex> lock(th_pool.task_mutex, std::defer_lock);
          for (size_t c_aP = 0; c_aP < g.c_size; c_aP++) {
             double res_hat_12 = Hhat12::subtracted_integrate(c_a, c_aP, g);
             double res_hat_23 = Hhat23::subtracted_integrate(c_a, c_aP, g);
@@ -111,17 +103,10 @@ Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc)
             H_CO(c_a, c_aP) += (1.0 / _Nc) * (-res_hat_13);
             lock.unlock();
          }
-         lock.lock();
-         num_done++;
-         lock.unlock();
-         th_done.notify_one();
       });
    }
 
-   std::unique_lock<std::mutex> lock_done(th_mutex);
-   th_done.wait(lock_done, [&num_done, &tot_task](void) {
-      return num_done >= tot_task;
-   });
+   th_pool.WaitOnJobs();
 
    // Field anomalous dimensions, nf independent
    for (size_t c_a = 0; c_a < g.c_size; c_a++) {
@@ -151,16 +136,12 @@ Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
    if (!to_compute) return;
 
    ThreadPool th_pool(10);
-   std::mutex th_mutex;
-   std::condition_variable th_done;
-
-   size_t tot_task = g.c_size + g.c_size;
-   size_t num_done = 0;
+   // std::mutex th_mutex;
 
    for (size_t c_a = 0; c_a < g.c_size; c_a++) {
       // Unsubtracted integrals
-      th_pool.add_task([&, c_a](void) -> void {
-         std::unique_lock<std::mutex> lock(th_mutex, std::defer_lock);
+      th_pool.AddTask([&, c_a](void) -> void {
+         std::unique_lock<std::mutex> lock(th_pool.task_mutex, std::defer_lock);
 
          for (size_t aP = 0; aP < g.size; aP++) {
             auto [jP, iP] = g.get_double_index(aP);
@@ -221,15 +202,11 @@ Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
 
             lock.unlock();
          }
-         lock.lock();
-         num_done++;
-         lock.unlock();
-         th_done.notify_one();
       });
 
       // Subtracted integrals
-      th_pool.add_task([&, c_a](void) -> void {
-         std::unique_lock<std::mutex> lock(th_mutex, std::defer_lock);
+      th_pool.AddTask([&, c_a](void) -> void {
+         std::unique_lock<std::mutex> lock(th_pool.task_mutex, std::defer_lock);
          for (size_t c_aP = 0; c_aP < g.c_size; c_aP++) {
 
             // NS
@@ -259,17 +236,10 @@ Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
 
             lock.unlock();
          }
-         lock.lock();
-         num_done++;
-         lock.unlock();
-         th_done.notify_one();
       });
    }
 
-   std::unique_lock<std::mutex> lock_done(th_mutex);
-   th_done.wait(lock_done, [&num_done, &tot_task](void) {
-      return num_done >= tot_task;
-   });
+   th_pool.WaitOnJobs();
 };
 
 } // namespace Honeycomb

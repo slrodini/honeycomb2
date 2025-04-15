@@ -136,17 +136,14 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
    const double der_dx = 1.0e-4;
    const double der_pr = 1.0 / (2.0 * der_dx);
 
-   size_t finished    = 0;
-   size_t total_tasks = 0;
    std::mutex done_mutex;
-   std::condition_variable notifier_done;
+
    std::unique_lock<std::mutex> lock_done(done_mutex, std::defer_lock);
 
    //  Sector 0, only first integral
    for (size_t k = grid.grid_angle._delim_indexes[0]; k < grid.grid_angle._delim_indexes[1]; k++) {
       for (size_t j = 0; j < grid.grid_radius.size; j++) {
-         total_tasks++;
-         th.add_task([&, j, k](void) -> void {
+         th.AddTask([&, j, k](void) -> void {
             auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
             const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
             const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
@@ -164,9 +161,7 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weight_results[index] += tmp;
-            finished++;
             lock.unlock();
-            notifier_done.notify_one();
          });
       }
    }
@@ -175,8 +170,7 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
    for (size_t k = grid.grid_angle._delim_indexes[3]; k < grid.grid_angle._delim_indexes[4]; k++) {
       for (size_t j = 0; j < grid.grid_radius.size; j++) {
 
-         total_tasks++;
-         th.add_task([&, j, k](void) -> void {
+         th.AddTask([&, j, k](void) -> void {
             auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
             const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
             const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
@@ -195,9 +189,7 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weight_results[index] += tmp;
-            finished++;
             lock.unlock();
-            notifier_done.notify_one();
          });
       }
    }
@@ -205,8 +197,7 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
    // Sector 4, second and third integrals, written as integrals over t
    for (size_t k = grid.grid_angle._delim_indexes[4]; k < grid.grid_angle._delim_indexes[5]; k++) {
       for (size_t j = 0; j < grid.grid_radius.size; j++) {
-         total_tasks++;
-         th.add_task([&, j, k](void) -> void {
+         th.AddTask([&, j, k](void) -> void {
             auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
             const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
             const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
@@ -226,9 +217,7 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weight_results[index] += tmp;
-            finished++;
             lock.unlock();
-            notifier_done.notify_one();
          });
       }
    }
@@ -236,8 +225,7 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
    // Sector 5, both first and second integrals
    for (size_t k = grid.grid_angle._delim_indexes[5]; k < grid.grid_angle._delim_indexes[6]; k++) {
       for (size_t j = 0; j < grid.grid_radius.size; j++) {
-         total_tasks++;
-         th.add_task([&, j, k](void) -> void {
+         th.AddTask([&, j, k](void) -> void {
             auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
             const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
             const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
@@ -262,17 +250,12 @@ std::map<size_t, double> compute_g2_weights(const double &xBj, const Honeycomb::
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weight_results[index] += tmp;
-            finished++;
             lock.unlock();
-            notifier_done.notify_one();
          });
       }
    }
 
-   lock_done.lock();
-   notifier_done.wait(lock_done, [&finished, &total_tasks](void) -> bool {
-      return finished >= total_tasks;
-   });
+   th.WaitOnJobs();
 
    return weight_results;
 }

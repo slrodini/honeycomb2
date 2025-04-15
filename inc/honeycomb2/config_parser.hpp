@@ -1,5 +1,5 @@
-#ifndef CONFIG_PARSER
-#define CONFIG_PARSER
+#ifndef CONFIG_PARSER_HPP
+#define CONFIG_PARSER_HPP
 
 #include <honeycomb2/default.hpp>
 
@@ -137,4 +137,4 @@ private:
 };
 
 } // namespace Honeycomb
-#endif // CONFIG_PARSER
+#endif // CONFIG_PARSER_HPP

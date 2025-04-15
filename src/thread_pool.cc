@@ -3,7 +3,7 @@
 
 namespace Honeycomb
 {
-ThreadPool::ThreadPool(size_t num_threads)
+ThreadPool::ThreadPool(size_t num_threads) : _remaining(0)
 {
    for (size_t i = 0; i < num_threads; i++) {
       _threads.emplace_back([this] {
@@ -30,6 +30,11 @@ ThreadPool::ThreadPool(size_t num_threads)
             lock.unlock();
 
             task();
+            {
+               std::unique_lock<std::mutex> lock(_wait_mutex);
+               _remaining--;
+            }
+            _done.notify_one();
          }
       });
    }
@@ -49,14 +54,25 @@ ThreadPool::~ThreadPool()
    }
 }
 
-void ThreadPool::add_task(std::function<void()> task)
+void ThreadPool::AddTask(std::function<void()> task)
 {
 
    std::unique_lock<std::mutex> lock(_q_mutex);
    _tasks.emplace_back(std::move(task));
+   std::unique_lock<std::mutex> lock_done(_wait_mutex);
+   _remaining++;
    lock.unlock();
+   lock_done.unlock();
 
    _notifier.notify_one();
+}
+
+void ThreadPool::WaitOnJobs()
+{
+   std::unique_lock<std::mutex> lock(_wait_mutex);
+   _done.wait(lock, [this](void) {
+      return _remaining == 0;
+   });
 }
 
 }; // namespace Honeycomb

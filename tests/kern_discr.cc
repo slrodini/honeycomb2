@@ -22,7 +22,7 @@ int main()
 {
    static_assert(Honeycomb::runge_kutta::RungeKuttaCompatible_2<Honeycomb::Kernels, Honeycomb::Solution>);
    // evolve_chiral_odd();
-   // test_convolution();
+   test_convolution();
    // test_save_and_laod();
 
    return 0;
@@ -32,13 +32,13 @@ void test_save_and_laod()
 {
    const double Nc = 3;
 
-   // const size_t n         = 6;
-   // const double rmin      = 0.01;
-   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
-
-   const size_t n         = 2;
+   const size_t n         = 6;
    const double rmin      = 0.01;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {2, 2, 2});
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+
+   // const size_t n         = 2;
+   // const double rmin      = 0.01;
+   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {2, 2, 2});
 
    double fnc_elapsed = 0;
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
@@ -102,13 +102,13 @@ void test_convolution()
 {
    const double Nc = 3; // NC = 1 for tests
 
-   // const size_t n         = 6;
-   // const double rmin      = 0.01;
-   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
-
-   const size_t n         = 13;
+   const size_t n         = 6;
    const double rmin      = 0.01;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+
+   // const size_t n         = 13;
+   // const double rmin      = 0.01;
+   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
 
    double fnc_elapsed = 0;
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
@@ -116,13 +116,14 @@ void test_convolution()
 
    Honeycomb::timer::mark begin = Honeycomb::timer::now();
    Honeycomb::Kernels kers(grid, Nc);
+   Eigen::MatrixXd H_CO        = Honeycomb::get_CO_kernel(grid, Nc);
    Honeycomb::timer::mark end  = Honeycomb::timer::now();
    fnc_elapsed                += Honeycomb::timer::elapsed_ns(end, begin);
 
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
 
-   // const auto &KK = kers.H_NS;
-   const auto &KK = kers.H_test_1;
+   const auto &KK = kers.H_NS;
+   // const auto &KK = kers.H_test_1;
 
    for (long int i = 0; i < KK.rows(); i++) {
       for (long int j = 0; j < KK.cols(); j++) {
@@ -147,7 +148,8 @@ void test_convolution()
    Eigen::VectorXd fj    = discr(T_test);
    Eigen::VectorXd fj_Hu = discr(T_test_Hu);
 
-   Eigen::VectorXd fj2 = KK * fj;
+   // Eigen::VectorXd fj2 = KK * fj;
+   Eigen::VectorXd fj2 = H_CO * fj;
    Eigen::VectorXd fj3 = KK2 * fj;
 
    std::FILE *fp = std::fopen("ConvCheck.dat", "w");
@@ -160,12 +162,17 @@ void test_convolution()
    double m1 = 0, m2 = 0;
 
    for (long int i = 0; i < grid.c_size_li; i++) {
-      // x132
+      // -x123
+      // auto rhophi = Honeycomb::RnC::from_x123_to_rhophi(
+      //     Honeycomb::RnC::Triplet(-grid._x123[i].v[0], -grid._x123[i].v[1], -grid._x123[i].v[2]));
+
+      // const double diff_1 = fj(i) - discr.interpolate_as_weights_v3(rhophi, fj);
+      // const double diff_2 = fj2(i) + discr.interpolate_as_weights_v3(rhophi, fj2);
       auto rhophi = Honeycomb::RnC::from_x123_to_rhophi(
-          Honeycomb::RnC::Triplet(-grid._x123[i].v[0], -grid._x123[i].v[1], -grid._x123[i].v[2]));
+          Honeycomb::RnC::Triplet(-grid._x123[i].v[2], -grid._x123[i].v[1], -grid._x123[i].v[0]));
 
       const double diff_1 = fj(i) - discr.interpolate_as_weights_v3(rhophi, fj);
-      const double diff_2 = fj2(i) + discr.interpolate_as_weights_v3(rhophi, fj2);
+      const double diff_2 = fj2(i) - discr.interpolate_as_weights_v3(rhophi, fj2);
 
       m1 = std::max(m1, std::fabs(diff_1));
       m2 = std::max(m2, std::fabs(diff_2));

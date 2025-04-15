@@ -13,9 +13,16 @@ struct ThreadPool {
 
    ThreadPool(size_t num_threads = 1);
    ~ThreadPool();
-   void add_task(std::function<void()> task);
+   void AddTask(std::function<void()> task);
+   void WaitOnJobs();
+
+   std::mutex task_mutex;
 
 private:
+   long int _remaining;
+   std::mutex _wait_mutex;
+   std::condition_variable _done;
+
    std::vector<std::thread> _threads;
    std::vector<std::function<void()>> _tasks;
    std::mutex _q_mutex;
