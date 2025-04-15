@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CERAL_EXTENSION_HPP
+#define CERAL_EXTENSION_HPP
 
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/types/vector.hpp>
@@ -137,3 +138,5 @@ bool LoadArchive(const std::string &file_name, T &data)
 }
 
 } // namespace Honeycomb
+
+#endif // CERAL_EXTENSION_HPP

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef UTILITIES_HPP
+#define UTILITIES_HPP
 
 #include <honeycomb2/default.hpp>
 
@@ -84,3 +85,5 @@ inline bool is_near(double a, double b, double eps = 1.0e-15)
    return std::fabs(a - b) < eps;
 }
 } // namespace Honeycomb
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RUNGE_KUTTA_HPP
+#define RUNGE_KUTTA_HPP
 
 #include <functional>
 #include <concepts>
@@ -6,10 +7,11 @@
 #include <cmath>
 
 #include <iostream>
-#include <format>
 #include <vector>
 #include <array>
 
+namespace Honeycomb
+{
 namespace runge_kutta
 {
 // To ensure that Kernel and Solution have all the required operations correctly defined
@@ -30,89 +32,52 @@ concept SolutionScalarMultiplicable = std::is_arithmetic_v<T> && requires(S s, T
    { d *s } -> std::convertible_to<S>;
 };
 
-// Solution + Solution
+// Solution += Solution
 template <typename S>
-concept SolutionAddable = requires(S s1, S s2) {
-   { s1 + s2 } -> std::convertible_to<S>;
+concept SolutionAddAssign = requires(S s1, S s2) {
+   { s1 += s2 } -> std::convertible_to<S &>;
 };
 
 // Combined concept, a bit long but list the fundamental types accepted
 template <typename K, typename S>
-concept RungeKuttaCompatible =
+concept RungeKuttaCompatible_1 =
     KernelSolutionMultiplicable<K, S> &&
     (SolutionScalarMultiplicable<S, int> && SolutionScalarMultiplicable<S, float> &&
      SolutionScalarMultiplicable<S, double> && SolutionScalarMultiplicable<S, long double>) &&
-    SolutionAddable<S>;
+    SolutionAddAssign<S>;
 
-template <typename Kernel, typename Solution>
-requires RungeKuttaCompatible<Kernel, Solution>
-class RungeKutta
-{
-public:
-   RungeKutta(
-       Kernel const &K, Solution const &S,
-       std::function<double(double)> as =
-           [](double t) {
-              (void)t;
-              return 1;
-           },
-       double pref = 1, double t = 0, double dt = 0.01,
-       std::function<void(double, Kernel &, Solution &)> c =
-           [](double t, Kernel &K, Solution &S) {
-              (void)t;
-              (void)K;
-              (void)S;
-              return;
-           })
-       : _t(t), _dt(dt), _prefactor(pref), _callback(std::move(c)), _As_t(std::move(as)), _solution(S), _kernel(K)
-   {
-      _k1  = Solution();
-      _k2  = Solution();
-      _k3  = Solution();
-      _k4  = Solution();
-      _dth = 0.5 * _dt;
-   };
+template <typename K, typename S>
+concept RungeKuttaCompatible_2 = requires {
+   // Exact match for: void _copy(const S&)
+   { static_cast<void (S::*)(const S &)>(&S::_copy) };
 
-   void operator()()
-   {
-      //  f += dt/6 (k1 + 2k2 + 2k3 + k4)
-      // equivalent to f += (k1T + 2k2T + k3T + k4T)/3
-      // with k1T = (dt/2)k1, k2T = (dt/2)k2, k3T = (dt)k3, k4T = (dt/2)k4
-      // and k1T = -as(t)(dt/2)H.f
-      //     k2T = -as(t+dt/2)(dt/2)H.(f+k1T)
-      //     k3T = -as(t+dt/2)(dt)H.(f+k2T)
-      //     k4T = -as(t+dt)(dt/2)H.(f+k3T)
-      //  k1T = -as(t)(dt/2)H.f
+   // Exact match for: void _plus_eq(double, const S&)
+   { static_cast<void (S::*)(double, const S &)>(&S::_plus_eq) };
 
-      _k1        = (_prefactor * _dth * _As_t(_t)) * (_kernel * _solution);
-      _k2        = (_prefactor * _dth * _As_t(_t + _dth)) * (_kernel * (_k1 + _solution));
-      _k3        = (_prefactor * _dt * _As_t(_t + _dth)) * (_kernel * (_k2 + _solution));
-      _k4        = (_prefactor * _dth * _As_t(_t + _dt)) * (_kernel * (_k3 + _solution));
-      _solution  = _solution + (_k1 + 2.0 * _k2 + _k3 + _k4) / 3.0;
-      _t        += _dt;
-      _callback(_t, _kernel, _solution);
-   };
-
-   Solution GetSolution() const
-   {
-      return _solution;
-   }
-   Kernel GetKernel() const
-   {
-      return _kernel;
-   }
-
-private:
-   double _t, _dt, _dth; // time, time-step and time-step / 2
-   double _prefactor;    // eventual prefactor to as(t) * K * S (e.g. 2 or -1 or color factor, depending on definitions)
-   Solution _k1, _k2, _k3, _k4; // intermediate variables
-   std::function<void(double, Kernel &, Solution &)>
-       _callback;                       // Callback function for each step, initlialzed to the 'do-nothing' function
-   std::function<double(double)> _As_t; // Function to compute as(t) = \alpha_s / 4\pi at given t = \log(\mu^2)
-
-   Solution _solution;
-   Kernel _kernel;
+   // Exact match for: void _ker_mul(double, const K&)
+   { static_cast<void (S::*)(double, const K &)>(&S::_ker_mul) };
 };
+
+// template <typename K, typename S>
+// concept RungeKuttaCompatible_2 = requires(S a, const S &b, double x, const K &k) {
+//    // This should implement a = b
+//    { a._copy(b) } -> std::same_as<void>;
+
+//    // This shloud implement a += x * b
+//    // { a._plus_eq(x, b) } -> std::same_as<void>;
+//    requires requires {
+//       { std::declval<S>()._plus_eq(std::declval<double>(), std::declval<const S &>()) } -> std::same_as<void>;
+//    };
+
+//    // This should implement a = x * (k * a)
+//    // { a._ker_mul(x, k) } -> std::same_as<void>;
+//    requires requires {
+//       { std::declval<S>()._ker_mul(std::declval<double>(), std::declval<const K &>()) } -> std::same_as<void>;
+//    };
+// };
+
+template <typename K, typename S>
+concept RungeKuttaCompatible = RungeKuttaCompatible_1<K, S> || RungeKuttaCompatible_2<K, S>;
 
 template <int Order>
 struct GenericRungeKuttaTableaux {
@@ -160,23 +125,43 @@ public:
    // Suggestion: overload operator= and operator += in solution to avoid memory re-allocation every time
    void operator()()
    {
+      if constexpr (RungeKuttaCompatible_1<Kernel, Solution>) {
+         _temp_step = _solution;
 
-      _temp_step = _solution;
+         for (int i = 0; i < Order; i++) {
 
-      for (int i = 0; i < Order; i++) {
+            _ki[i] = _solution;
 
-         _ki[i] = _solution;
+            for (int j = 0; j < i; j++)
+               _ki[i] += _ai[i][j] * _ki[j];
 
-         for (int j = 0; j < i; j++)
-            _ki[i] += _ai[i][j] * _ki[j];
+            const double pref = _prefactor * _dt * _As_t(_t + _dt * _ci[i]);
+            _ki[i]            = pref * (_kernel * _ki[i]);
 
-         const double pref = _prefactor * _dt * _As_t(_t + _dt * _ci[i]);
-         _ki[i]            = pref * (_kernel * _ki[i]);
+            _temp_step += _bi[i] * _ki[i];
+         }
 
-         _temp_step += _bi[i] * _ki[i];
+         _solution = _temp_step;
+      } else {
+
+         _temp_step._copy(_solution);
+
+         for (int i = 0; i < Order; i++) {
+
+            _ki[i]._copy(_solution);
+
+            for (int j = 0; j < i; j++)
+               _ki[i]._plus_eq(_ai[i][j], _ki[j]);
+
+            const double pref = _prefactor * _dt * _As_t(_t + _dt * _ci[i]);
+
+            _ki[i]._ker_mul(pref, _kernel);
+
+            _temp_step._plus_eq(_bi[i], _ki[i]);
+         }
+
+         _solution._copy(_temp_step);
       }
-
-      _solution = _temp_step;
 
       _t += _dt;
       if (callback_each_step) _callback(_t, _kernel, _solution);
@@ -301,3 +286,6 @@ constexpr GenericRungeKuttaTableaux<13> DOPRI8(
 );
 
 } // namespace runge_kutta
+} // namespace Honeycomb
+
+#endif // RUNGE_KUTTA_HPP

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef KERNELS_HPP
+#define KERNELS_HPP
 
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/kernel_functions.hpp>
@@ -12,66 +13,32 @@ namespace Honeycomb
 template <typename T>
 concept Arithmetic = std::is_arithmetic_v<T>;
 
-// NOTE: Temporary struct, for laying down the structure of the program.
-// TODO: Update to correct solution
-struct Solution {
+inline double zero_function(double a, double b, double c)
+{
+   return 0;
+}
 
-   const Discretization *discretization;
-   size_t nf;
-   std::map<int, Eigen::VectorXd> _distr;
+struct InputModel {
 
-   Solution(const Discretization *_discr, std::map<int, std::function<double(double, double, double)>> models,
-            size_t nf)
-       : discretization(_discr), nf(nf)
-   {
-      _distr[0] = _discr->discretize(models.at(0));
-   };
+   enum FNC { T_UP, T_DN, T_ST, T_CH, T_BM, T_TP, DT_UP, DT_DN, DT_ST, DT_CH, DT_BM, DT_TP, T_P_GL, T_M_GL };
+   void SetModel(FNC f, std::function<double(double, double, double)> model);
 
-   void PushNewFlavor()
-   {
-   }
+   std::function<double(double, double, double)> T_up = zero_function;
+   std::function<double(double, double, double)> T_dn = zero_function;
+   std::function<double(double, double, double)> T_st = zero_function;
+   std::function<double(double, double, double)> T_ch = zero_function;
+   std::function<double(double, double, double)> T_bm = zero_function;
+   std::function<double(double, double, double)> T_tp = zero_function;
 
-   // Right-hand multiplication (Solution * scalar)
-   template <Arithmetic T>
-   Solution operator*(T scalar) const
-   {
-      Solution result(*this);
-      // result._distr._fj = scalar * _distr._fj;
-      return result;
-   }
+   std::function<double(double, double, double)> DT_up = zero_function;
+   std::function<double(double, double, double)> DT_dn = zero_function;
+   std::function<double(double, double, double)> DT_st = zero_function;
+   std::function<double(double, double, double)> DT_ch = zero_function;
+   std::function<double(double, double, double)> DT_bm = zero_function;
+   std::function<double(double, double, double)> DT_tp = zero_function;
 
-   // Right-hand division (Solution / scalar)
-   template <Arithmetic T>
-   Solution operator/(T scalar) const
-   {
-      Solution result(*this);
-      // result._distr._fj = _distr._fj / scalar;
-      return result;
-   }
-
-   // Left-hand multiplication (scalar * Solution)
-   template <Arithmetic T>
-   friend Solution operator*(T scalar, const Solution &obj)
-   {
-      Solution result(obj);
-      // result._distr._fj = scalar * obj._distr._fj;
-      return result;
-   }
-
-   // First, define the addition operator
-   Solution operator+(const Solution &other) const
-   {
-      Solution result(*this);
-      // result._distr._fj = other._distr._fj + _distr._fj;
-      return result;
-   }
-
-   // Then, define the compound assignment operator
-   Solution &operator+=(const Solution &other)
-   {
-      // _distr._fj += other._distr._fj;
-      return *this;
-   }
+   std::function<double(double, double, double)> T_p_gl = zero_function;
+   std::function<double(double, double, double)> T_m_gl = zero_function;
 };
 
 struct Kernels {
@@ -164,6 +131,40 @@ struct Kernels {
    }
 };
 
+struct Solution {
+
+   const Discretization *_discretization;
+   size_t nf;
+
+   // Gluon, Singlet, NS_1, NS_2, ...
+   std::vector<Eigen::VectorXd> _distr_p;
+   std::vector<Eigen::VectorXd> _distr_m;
+
+   Solution(const Discretization *discretization, std::vector<std::function<double(double, double, double)>> models,
+            size_t nf)
+       : _discretization(discretization), nf(nf) {
+            // _distr[0] = _discr->discretize(models.at(0));
+         };
+
+   void PushNewFlavor()
+   {
+   }
+
+   // Runge-Kutta methods
+   void _copy(const Solution &other)
+   {
+      // TODO: copy solutions
+   }
+   void _plus_eq(double x, const Solution &other)
+   {
+      // TODO: implement S += x*other
+   }
+   void _ker_mul(double pref, const Kernels &ker)
+   {
+      // TODO: implement S = pref * (ker * S);
+   }
+};
+
 // The Chiral-Odd case is special, no need to keep track of anything but the kernel matrix itself
 // So, I have specialized function to compute it
 Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc);
@@ -185,3 +186,5 @@ Kernels load_kernels(const std::string &file_name, const Grid2D &g, double _Nc)
 }
 
 } // namespace Honeycomb
+
+#endif // KERNELS_HPP

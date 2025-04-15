@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DEFAULT_HPP
+#define DEFAULT_HPP
 
 // Input/output
 #include <cstdio>
@@ -41,3 +42,5 @@ inline double cu(double x) noexcept
 {
    return x * x * x;
 };
+
+#endif // DEFAULT_HPP

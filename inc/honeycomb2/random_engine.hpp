@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RANDOM_ENGINE_HPP
+#define RANDOM_ENGINE_HPP
 
 #include <honeycomb2/default.hpp>
 
@@ -11,7 +12,7 @@ using RandomEngine = std::ranlux48;
 std::shared_ptr<RandomEngine> get_random_engine(uint32_t seed = 12345);
 
 // If a seeded engine is need this function must be called AT THE BEGINNING of the main.
-void seed_random_engine(uint32_t seed)
+inline void seed_random_engine(uint32_t seed)
 {
    (void)get_random_engine(seed);
 }
@@ -23,3 +24,5 @@ std::vector<double> random_normal(size_t n);
 
 } // namespace Random
 } // namespace Honeycomb
+
+#endif // RANDOM_ENGINE_HPP

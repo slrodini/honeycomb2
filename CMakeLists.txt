@@ -59,20 +59,20 @@ add_library(Honeycomb2 SHARED ${source_files})
 
 target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/lib/llvm-19/lib/clang/19/include")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/lib/llvm-19/lib/clang/19/include")
 
 # Define libraries to be linked
 target_link_libraries(Honeycomb2)
 
-find_package(OpenMP)
+# find_package(OpenMP)
 
-if(OpenMP_CXX_FOUND)
-  message(STATUS "OpenMP found, enabling OpenMP support.")
-  target_link_libraries(Honeycomb2 OpenMP::OpenMP_CXX)
-  target_compile_definitions(Honeycomb2 PRIVATE USE_OPENMP)
-else()
-  message(STATUS "OpenMP not found, building without OpenMP support.")
-endif()
+# if(OpenMP_CXX_FOUND)
+# message(STATUS "OpenMP found, enabling OpenMP support.")
+# target_link_libraries(Honeycomb2 OpenMP::OpenMP_CXX)
+# target_compile_definitions(Honeycomb2 PRIVATE USE_OPENMP)
+# else()
+# message(STATUS "OpenMP not found, building without OpenMP support.")
+# endif()
 
 # Find PkgConfig
 find_package(PkgConfig REQUIRED)

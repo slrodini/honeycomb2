@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TIMER_HPP
+#define TIMER_HPP
 
 #include <chrono>
 #include <string>
@@ -32,3 +33,5 @@ double elapsed_ms(const mark &end, const mark &begin)
 
 } // namespace timer
 } // namespace Honeycomb
+
+#endif // TIMER_HPP

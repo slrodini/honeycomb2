@@ -1,4 +1,5 @@
-#pragma once
+#ifndef THREAD_POOL_HPP
+#define THREAD_POOL_HPP
 
 #include <honeycomb2/default.hpp>
 #include <mutex>
@@ -22,3 +23,5 @@ private:
    bool _to_stop = false;
 };
 } // namespace Honeycomb
+
+#endif // THREAD_POOL_HPP

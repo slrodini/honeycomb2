@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GAUSS_KRONROD_HPP
+#define GAUSS_KRONROD_HPP
 
 #include <honeycomb2/default.hpp>
 
@@ -54,3 +55,5 @@ private:
 
 } // namespace Integration
 } // namespace Honeycomb
+
+#endif // GAUSS_KRONROD_HPP

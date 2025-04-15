@@ -1,4 +1,5 @@
-#pragma once
+#ifndef HONEYCOMB2_HPP
+#define HONEYCOMB2_HPP
 
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
@@ -14,3 +15,7 @@
 #include <honeycomb2/thread_pool.hpp>
 
 #include <honeycomb2/kernels.hpp>
+
+#include <honeycomb2/config_parser.hpp>
+
+#endif // HONEYCOMB2_HPP

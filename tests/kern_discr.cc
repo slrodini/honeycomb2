@@ -1,5 +1,7 @@
 #include <honeycomb2/honeycomb2.hpp>
+#include "honeycomb2/runge_kutta.hpp"
 #include "honeycomb_120_25_grid_points.hpp"
+#include <cereal/archives/json.hpp>
 
 double T_test(double x1, double x2, double x3)
 {
@@ -18,11 +20,10 @@ void evolve_chiral_odd();
 
 int main()
 {
-
+   static_assert(Honeycomb::runge_kutta::RungeKuttaCompatible_2<Honeycomb::Kernels, Honeycomb::Solution>);
    // evolve_chiral_odd();
    // test_convolution();
-
-   test_save_and_laod();
+   // test_save_and_laod();
 
    return 0;
 }
@@ -31,9 +32,13 @@ void test_save_and_laod()
 {
    const double Nc = 3;
 
-   const size_t n         = 6;
+   // const size_t n         = 6;
+   // const double rmin      = 0.01;
+   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+
+   const size_t n         = 2;
    const double rmin      = 0.01;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {2, 2, 2});
 
    double fnc_elapsed = 0;
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
@@ -49,6 +54,7 @@ void test_save_and_laod()
    // Save the discretized kernels
    begin = Honeycomb::timer::now();
    Honeycomb::save_kernels<cereal::PortableBinaryOutputArchive>(kers, "check.cereal");
+
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ns(end, begin);
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Saving time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
@@ -57,6 +63,7 @@ void test_save_and_laod()
    begin = Honeycomb::timer::now();
    Honeycomb::Kernels kers_loaded =
        Honeycomb::load_kernels<cereal::PortableBinaryInputArchive>("check.cereal", grid, Nc);
+
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ns(end, begin);
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Loading time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
@@ -202,8 +209,8 @@ void evolve_chiral_odd()
 
    const double pref = -1.0; // Evolution Equations are df/dt = - as Hxf
 
-   runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_CO(
-       H_CO, fj, runge_kutta::DOPRI8,
+   Honeycomb::runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_CO(
+       H_CO, fj, Honeycomb::runge_kutta::DOPRI8,
        [](double t) {
           return 1.0 / (11.0 * (t + 3.0));
        },

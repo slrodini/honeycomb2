@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DISCRETIZATION_HPP
+#define DISCRETIZATION_HPP
 
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
@@ -436,3 +437,4 @@ public:
 };
 
 } // namespace Honeycomb
+#endif // DISCRETIZATION_HPP
