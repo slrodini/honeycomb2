@@ -11,37 +11,37 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 add_compile_options(
-  -Wall -Wextra
-  -fPIC
-  -O3
-  -mtune=native
-  -march=native
-  -funroll-loops
-  -Wno-unused-parameter -Wno-unused-variable # To be removed later
+   -Wall -Wextra
+   -fPIC
+   -O3
+   -mtune=native
+   -march=native
+   -funroll-loops
+   -Wno-unused-parameter -Wno-unused-variable # To be removed later
 )
 
 # # -flto causes problems with YAML-CPP
 
 # Check the processor architecture
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
-  # x86-specific compiler flags
-  add_compile_options(-mfpmath=sse -msse2)
-  message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
+   # x86-specific compiler flags
+   add_compile_options(-mfpmath=sse -msse2)
+   message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
-  # ARM-specific compiler flags
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
+   # ARM-specific compiler flags
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
 
-  message(STATUS "CPU architecture is one of: arm64|aarch64")
+   message(STATUS "CPU architecture is one of: arm64|aarch64")
 else()
-  message(WARNING "Unrecognized CPU architecture")
+   message(WARNING "Unrecognized CPU architecture")
 endif()
 
 if(NOT DEFINED CMAKE_MACOSX_RPATH)
-  set(CMAKE_MACOSX_RPATH 0)
+   set(CMAKE_MACOSX_RPATH 0)
 endif()
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27.0")
-  cmake_policy(SET CMP0148 OLD)
+   cmake_policy(SET CMP0148 OLD)
 endif()
 
 # ============================
@@ -49,8 +49,8 @@ endif()
 # ============================
 # Generate list of source files
 file(GLOB source_files
-  src/*.cc
-  src/kernels/*.cc
+   src/*.cc
+   src/kernels/*.cc
 )
 
 # Define target library
@@ -64,42 +64,7 @@ target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc)
 # Define libraries to be linked
 target_link_libraries(Honeycomb2)
 
-# find_package(OpenMP)
-
-# if(OpenMP_CXX_FOUND)
-# message(STATUS "OpenMP found, enabling OpenMP support.")
-# target_link_libraries(Honeycomb2 OpenMP::OpenMP_CXX)
-# target_compile_definitions(Honeycomb2 PRIVATE USE_OPENMP)
-# else()
-# message(STATUS "OpenMP not found, building without OpenMP support.")
-# endif()
-
-# Find PkgConfig
-find_package(PkgConfig REQUIRED)
-
 set(USER_INCLUDE_DIR "" CACHE PATH "Path to search for cereal library (Should be path to parent folder of cereal/)")
-
-find_path(CEREAL_DIR
-  NAMES "cereal/cereal.hpp"
-  PATHS ${USER_INCLUDE_DIR}
-)
-
-if(CEREAL_DIR)
-  message(STATUS "Found cereal in: ${CEREAL_DIR}")
-  target_include_directories(Honeycomb2 PUBLIC ${CEREAL_DIR})
-else()
-  message(FATAL_ERROR "Could not find cereal.")
-endif()
-
-# Find yaml-cpp
-pkg_search_module(YAML_CPP QUIET yaml-cpp)
-
-if(YAML_CPP_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${YAML_CPP_CFLAGS}")
-  target_link_libraries(Honeycomb2 ${YAML_CPP_LINK_LIBRARIES})
-else(YAML_CPP_FOUND)
-  message(FATAL_ERROR "yaml-cpp not found!")
-endif(YAML_CPP_FOUND)
 
 enable_testing()
 add_subdirectory(tests)

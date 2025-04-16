@@ -1,7 +1,9 @@
 #include <honeycomb2/honeycomb2.hpp>
-#include "honeycomb2/runge_kutta.hpp"
+#include "honeycomb2/solution.hpp"
 #include "honeycomb_120_25_grid_points.hpp"
 #include <cereal/archives/json.hpp>
+
+#include "original_model_functions.hpp"
 
 double T_test(double x1, double x2, double x3)
 {
@@ -17,15 +19,146 @@ double T_test_Hu(double x1, double x2, double x3)
 void test_save_and_laod();
 void test_convolution();
 void evolve_chiral_odd();
+void evolve_chiral_even();
+void test_solution_rotations();
 
 int main()
 {
    static_assert(Honeycomb::runge_kutta::RungeKuttaCompatible_2<Honeycomb::Kernels, Honeycomb::Solution>);
+
    // evolve_chiral_odd();
-   test_convolution();
+   // test_convolution();
    // test_save_and_laod();
+   evolve_chiral_even();
+   // test_solution_rotations();
 
    return 0;
+}
+
+void test_solution_rotations()
+{
+   const double Nc = 3; // NC = 1 for tests
+
+   const size_t n         = 6;
+   const double rmin      = 0.01;
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+
+   Honeycomb::Discretization discr(grid);
+
+   Honeycomb::InputModel model;
+
+   model.SetModel(Honeycomb::InputModel::T_UP, orignal_models::Tu_test);
+   model.SetModel(Honeycomb::InputModel::DT_UP, orignal_models::DTu_test);
+
+   model.SetModel(Honeycomb::InputModel::T_DN, orignal_models::Td_test);
+   model.SetModel(Honeycomb::InputModel::DT_DN, orignal_models::DTd_test);
+
+   model.SetModel(Honeycomb::InputModel::T_ST, orignal_models::Ts_test);
+   model.SetModel(Honeycomb::InputModel::DT_ST, orignal_models::DTs_test);
+
+   model.SetModel(Honeycomb::InputModel::T_P_GL, orignal_models::TFp_test);
+   model.SetModel(Honeycomb::InputModel::T_M_GL, orignal_models::TFm_test);
+
+   for (size_t nf = 1; nf <= 6; nf++) {
+      Honeycomb::Solution sol0(&discr, model, nf);
+      Honeycomb::Solution sol1(&discr, model, nf);
+      sol1.RotateToPhysicalBasis();
+      sol1.RotateToEvolutionBasis();
+
+      double m = 0;
+      for (size_t i = 0; i < sol1._distr_p.size(); i++) {
+         for (long int k = 0; k < sol1._distr_p[i].size(); k++) {
+            m = std::max(m, fabs(sol0._distr_p[i](k) - sol1._distr_p[i](k)));
+            m = std::max(m, fabs(sol0._distr_m[i](k) - sol1._distr_m[i](k)));
+         }
+      }
+      std::cout << std::format("{:.16e}\n", m);
+   }
+}
+
+void evolve_chiral_even()
+{
+
+   double fnc_elapsed           = 0;
+   Honeycomb::timer::mark begin = Honeycomb::timer::now();
+   Honeycomb::timer::mark end   = Honeycomb::timer::now();
+
+   // fnc_elapsed                = Honeycomb::timer::elapsed_ns(end, begin);
+
+   const double Nc = 3; // NC = 1 for tests
+
+   const size_t n         = 6;
+   const double rmin      = 0.01;
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Kernel Discretization"));
+   begin = Honeycomb::timer::now();
+   Honeycomb::Kernels kers(grid, Nc);
+   end = Honeycomb::timer::now();
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+
+   Honeycomb::Discretization discr(grid);
+
+   Honeycomb::InputModel model;
+
+   model.SetModel(Honeycomb::InputModel::T_UP, orignal_models::Tu_test);
+   model.SetModel(Honeycomb::InputModel::DT_UP, orignal_models::DTu_test);
+
+   model.SetModel(Honeycomb::InputModel::T_DN, orignal_models::Td_test);
+   model.SetModel(Honeycomb::InputModel::DT_DN, orignal_models::DTd_test);
+
+   model.SetModel(Honeycomb::InputModel::T_ST, orignal_models::Ts_test);
+   model.SetModel(Honeycomb::InputModel::DT_ST, orignal_models::DTs_test);
+
+   model.SetModel(Honeycomb::InputModel::T_P_GL, orignal_models::TFp_test);
+   model.SetModel(Honeycomb::InputModel::T_M_GL, orignal_models::TFm_test);
+
+   auto as = [](double t) -> double {
+      return 1.0 / (11.0 * (t + 3.0));
+   };
+   const double pref = -1.0;
+
+   const double Q02 = 1.0;
+   const double Qf2 = 10000.0;
+
+   const double t0 = log(Q02);
+
+   auto [inter_scale, sol1]
+       = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.6129, 17.4724, 1.0e+6}, &discr, model);
+
+   auto callback = [&inter_scale](double t, Honeycomb::Kernels &, Honeycomb::Solution &S) {
+      if (t == inter_scale.back()) return;
+      S.PushFlavor();
+      return;
+   };
+
+   const double dt = 0.01;
+
+   Honeycomb::runge_kutta::GenericRungeKutta<Honeycomb::Kernels, Honeycomb::Solution, 13> evolver(
+       kers, sol1, Honeycomb::runge_kutta::DOPRI8, as, pref, t0, dt, callback, sol1);
+
+   const double dt_2 = 0.01; // ! Unused !
+
+   fnc_elapsed = 0;
+   begin       = Honeycomb::timer::now();
+   evolver(inter_scale, 20);
+   end         = Honeycomb::timer::now();
+   fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
+
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("  Elapsed: {:.4e} (ms)", fnc_elapsed));
+
+   auto sol_fin = evolver.GetSolution();
+
+   std::FILE *fp_2 = std::fopen("CE_evo_check.dat", "w");
+
+   for (Honeycomb::RnC::Triplet &x123 : honeycomb_points) {
+      Honeycomb::RnC::Pair rhophi = Honeycomb::RnC::from_x123_to_rhophi(x123);
+      std::fprintf(fp_2, "%.16e\t%.16e\t%.16e\t%.16e\t%.16e\n", x123.v[0], x123.v[1], x123.v[2],
+                   discr.interpolate_as_weights_v3(rhophi, sol_fin._distr_p[0]),
+                   discr.interpolate_as_weights_v3(rhophi, sol_fin._distr_m[0]));
+   }
+   std::fclose(fp_2);
 }
 
 void test_save_and_laod()
@@ -41,15 +174,18 @@ void test_save_and_laod()
    // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {2, 2, 2});
 
    double fnc_elapsed = 0;
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total x123 size: {:d}x{:d}", grid.c_size, grid.c_size));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Total x123 size: {:d}x{:d}", grid.c_size, grid.c_size));
 
    // Discretize the kernels
    Honeycomb::timer::mark begin = Honeycomb::timer::now();
    Honeycomb::Kernels kers(grid, Nc);
    Honeycomb::timer::mark end = Honeycomb::timer::now();
    fnc_elapsed                = Honeycomb::timer::elapsed_ns(end, begin);
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
 
    // Save the discretized kernels
    begin = Honeycomb::timer::now();
@@ -61,8 +197,8 @@ void test_save_and_laod()
 
    // Load the kernels
    begin = Honeycomb::timer::now();
-   Honeycomb::Kernels kers_loaded =
-       Honeycomb::load_kernels<cereal::PortableBinaryInputArchive>("check.cereal", grid, Nc);
+   Honeycomb::Kernels kers_loaded
+       = Honeycomb::load_kernels<cereal::PortableBinaryInputArchive>("check.cereal", grid, Nc);
 
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ns(end, begin);
@@ -111,8 +247,10 @@ void test_convolution()
    // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
 
    double fnc_elapsed = 0;
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total x123 size: {:d}x{:d}", grid.c_size, grid.c_size));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Total x123 size: {:d}x{:d}", grid.c_size, grid.c_size));
 
    Honeycomb::timer::mark begin = Honeycomb::timer::now();
    Honeycomb::Kernels kers(grid, Nc);
@@ -120,7 +258,8 @@ void test_convolution()
    Honeycomb::timer::mark end  = Honeycomb::timer::now();
    fnc_elapsed                += Honeycomb::timer::elapsed_ns(end, begin);
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
 
    const auto &KK = kers.H_NS;
    // const auto &KK = kers.H_test_1;
@@ -128,7 +267,8 @@ void test_convolution()
    for (long int i = 0; i < KK.rows(); i++) {
       for (long int j = 0; j < KK.cols(); j++) {
          if (std::isnan(KK(i, j)) || std::isinf(KK(i, j)))
-            Honeycomb::logger(Honeycomb::Logger::WARNING, std::format("NAN or INF in kernels! {:d}, {:d}", i, j));
+            Honeycomb::logger(Honeycomb::Logger::WARNING,
+                              std::format("NAN or INF in kernels! {:d}, {:d}", i, j));
       }
    }
 
@@ -139,7 +279,8 @@ void test_convolution()
    //    for (long int j = 0; j < KK.cols(); j++) {
    //       if (std::fabs(Diff(i, j)) > 1.0e-6)
    //          std::cout << std::format("{:d}\t{:d}\t{:.10e}\t{:.10e}\t{:.10e}\t{:.10e}\t{:.10e}", i, j,
-   //                                   grid._x123[i].v[0], grid._x123[i].v[1], grid._x123[i].v[2], KK(i, j), KK2(i, j))
+   //                                   grid._x123[i].v[0], grid._x123[i].v[1], grid._x123[i].v[2], KK(i, j),
+   //                                   KK2(i, j))
    //                    << std::endl;
    //    }
    // }
@@ -193,14 +334,16 @@ void evolve_chiral_odd()
    // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
 
    double fnc_elapsed = 0;
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
 
    Honeycomb::timer::mark begin  = Honeycomb::timer::now();
    Eigen::MatrixXd H_CO          = Honeycomb::get_CO_kernel(grid, Nc);
    Honeycomb::timer::mark end    = Honeycomb::timer::now();
    fnc_elapsed                  += Honeycomb::timer::elapsed_ns(end, begin);
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Discretization time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
 
    Honeycomb::Discretization discr(grid);
    Eigen::VectorXd fj    = discr(T_test);
@@ -238,7 +381,8 @@ void evolve_chiral_odd()
 
    auto fj_fin = evolver_CO.GetSolution();
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Evolution time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Evolution time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
 
    fnc_elapsed = 0;
    begin       = Honeycomb::timer::now();
@@ -247,7 +391,8 @@ void evolve_chiral_odd()
    end          = Honeycomb::timer::now();
    fnc_elapsed += Honeycomb::timer::elapsed_ns(end, begin);
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Evolution time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Evolution time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
 
    auto fj_Hu_fin = evolver_CO.GetSolution();
 
@@ -255,9 +400,10 @@ void evolve_chiral_odd()
 
    for (Honeycomb::RnC::Triplet &x123 : honeycomb_points) {
       Honeycomb::RnC::Pair rhophi = Honeycomb::RnC::from_x123_to_rhophi(x123);
-      std::fprintf(fp_2, "%.16e\t%.16e\t%.16e\t%.16e\t%.16e\t%.16e\t%.16e\n", x123.v[0], x123.v[1], x123.v[2],
-                   discr.interpolate_as_weights_v3(rhophi, fj), discr.interpolate_as_weights_v3(rhophi, fj_fin),
-                   discr.interpolate_as_weights_v3(rhophi, fj_Hu), discr.interpolate_as_weights_v3(rhophi, fj_Hu_fin));
+      std::fprintf(
+          fp_2, "%.16e\t%.16e\t%.16e\t%.16e\t%.16e\t%.16e\t%.16e\n", x123.v[0], x123.v[1], x123.v[2],
+          discr.interpolate_as_weights_v3(rhophi, fj), discr.interpolate_as_weights_v3(rhophi, fj_fin),
+          discr.interpolate_as_weights_v3(rhophi, fj_Hu), discr.interpolate_as_weights_v3(rhophi, fj_Hu_fin));
    }
    std::fclose(fp_2);
 }

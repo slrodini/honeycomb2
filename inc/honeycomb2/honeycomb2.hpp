@@ -15,6 +15,7 @@
 #include <honeycomb2/thread_pool.hpp>
 
 #include <honeycomb2/kernels.hpp>
+#include <honeycomb2/solution.hpp>
 
 #include <honeycomb2/config_parser.hpp>
 

@@ -4,56 +4,6 @@
 namespace Honeycomb
 {
 
-void InputModel::SetModel(FNC f, std::function<double(double, double, double)> model)
-{
-   switch (f) {
-   case T_UP:
-      T_up = model;
-      break;
-   case T_DN:
-      T_dn = model;
-      break;
-   case T_ST:
-      T_st = model;
-      break;
-   case T_CH:
-      T_ch = model;
-      break;
-   case T_BM:
-      T_bm = model;
-      break;
-   case T_TP:
-      T_tp = model;
-      break;
-   case DT_UP:
-      DT_up = model;
-      break;
-   case DT_DN:
-      DT_dn = model;
-      break;
-   case DT_ST:
-      DT_st = model;
-      break;
-   case DT_CH:
-      DT_ch = model;
-      break;
-   case DT_BM:
-      DT_bm = model;
-      break;
-   case DT_TP:
-      DT_tp = model;
-      break;
-   case T_P_GL:
-      T_p_gl = model;
-      break;
-   case T_M_GL:
-      T_m_gl = model;
-      break;
-   default:
-      break;
-   }
-}
-
 Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc)
 {
    const double CF = (_Nc * _Nc - 1.0) / (2.0 * _Nc);

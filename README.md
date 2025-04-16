@@ -1,9 +1,6 @@
 # Honeycomb V2
 
-### To Do:
-- [ ] 
-- [ ] At the moment Discretization has mixed convention for radius-angle ordering (specifically the flatten vector has the slower loop over the angle.) Probably must be uniformed. Everything else works with radius, angle as order for arguments/returned types.
+## Unsupported feature
 
-### Notes:
-
-1. **30.03.25** At the moment, the `Discretization` struct is just a wrapper for the various interpolation strategies and a container to store a reference to the `Grid2D` object. The discretized values of the various functions are obtainable by calling the `operator()` of the `Discretization` instance. I.e., one should have one global `Grid2D` object, one global `Discretization` object and a number of `Eigen::VectorXd` variables. The latter will be eventually wrapped in the `Solution` struct, which will take care of a number of tasks. Primarily, it will store the solution of the evolution problem and provide all the necessary operations to be able to pass it to Runge-Kutta along with the kernels. The `Solution` I think will store a pointer to the `Discretization` object, so that we may initialize the models and, depending on what I decide to do, handle directly the interpolation of the solution.
+1. It is not possible yet to perform backward evolution with flavor matching (fixed flavor is trivially possible)
+2. It is not yet possible to obtain from the Solution struct the discretized values as vectors on the grid for $T, \Delta T, T_F^\pm$. It is only possible to rotate between evolution basis (gluon, singlet, NSi) to physical basis in terms of $\mathfrak{S}^\pm_f, \mathfrak{F}^\pm$ (the latter two for the gluon are the same between evolution and physical) 
