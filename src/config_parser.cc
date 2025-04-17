@@ -19,9 +19,10 @@ std::string read_file_to_str(const std::string &file_path)
 
    size_t n_char = std::fread(content.data(), 1, file_size, fp);
    if (n_char != (size_t)file_size)
-      logger(Logger::ERROR,
-             std::format("ConfigParser::_read_entire_file Read {:d} character where size of file <{:s}> is {:d}",
-                         n_char, file_path, file_size));
+      logger(
+          Logger::ERROR,
+          std::format("ConfigParser::_read_entire_file Read {:d} character where size of file <{:s}> is {:d}",
+                      n_char, file_path, file_size));
    std::fclose(fp);
 
    return content;
@@ -280,13 +281,4 @@ int8_t ConfigParser::_check_skip_line(std::string &str)
    return 1;
 }
 
-template <>
-std::string ConfigParser::GetValue(const std::string &key, size_t entry)
-{
-   if (_key_does_not_exist(key)) {
-      logger(Logger::ERROR, "ConfigParser::GetValue Key " + key + " does not exists.");
-      return "";
-   }
-   return _options[key][entry];
-}
 } // namespace Honeycomb

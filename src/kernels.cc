@@ -80,75 +80,74 @@ Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
    H_gq_p = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_gq_m = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
 
-   H_test_1 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
-   H_test_2 = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
+   if (to_compute) ComputeKernels();
+};
 
-   if (!to_compute) return;
+void Kernels::ComputeKernels()
+{
 
    ThreadPool th_pool(10);
    // std::mutex th_mutex;
 
-   for (size_t c_a = 0; c_a < g.c_size; c_a++) {
+   for (size_t c_a = 0; c_a < grid.c_size; c_a++) {
       // Unsubtracted integrals
       th_pool.AddTask([&, c_a](void) -> void {
          std::unique_lock<std::mutex> lock(th_pool.task_mutex, std::defer_lock);
 
-         for (size_t aP = 0; aP < g.size; aP++) {
-            auto [jP, iP] = g.get_double_index(aP);
-            size_t c_iP   = g.grid_angle._from_iw_to_ic[iP];
-            size_t c_jP   = g.grid_radius._from_iw_to_ic[jP];
-            size_t c_aP   = g.c_get_flatten_index(c_jP, c_iP);
+         for (size_t aP = 0; aP < grid.size; aP++) {
+            auto [jP, iP] = grid.get_double_index(aP);
+            size_t c_iP   = grid.grid_angle._from_iw_to_ic[iP];
+            size_t c_jP   = grid.grid_radius._from_iw_to_ic[jP];
+            size_t c_aP   = grid.c_get_flatten_index(c_jP, c_iP);
 
             // // NS
-            double res_plus_12  = Hplus12::integrate(c_a, aP, g);
-            double res_plus_13  = Hplus13::integrate(c_a, aP, g);
-            double res_minus_12 = Hminus12::integrate(c_a, aP, g);
-            double res_he23p23  = He23P23::integrate(c_a, aP, g);
+            double res_plus_12  = Hplus12::integrate(c_a, aP, grid);
+            double res_plus_13  = Hplus13::integrate(c_a, aP, grid);
+            double res_minus_12 = Hminus12::integrate(c_a, aP, grid);
+            double res_he23p23  = He23P23::integrate(c_a, aP, grid);
 
             // qq S => NO nf here, multipliead in the evolution
-            double res_d_13 = 4.0 * Hd13::integrate(c_a, aP, g);
+            double res_d_13 = 4.0 * Hd13::integrate(c_a, aP, grid);
 
             // GG
             // This is -4H^+ -2\tilde{H}^+
-            double res_plus_12_gg = HplusSum12GG::integrate(c_a, aP, g);
-            double res_plus_13_gg = HplusSum13GG::integrate(c_a, aP, g);
+            double res_plus_12_gg = HplusSum12GG::integrate(c_a, aP, grid);
+            double res_plus_13_gg = HplusSum13GG::integrate(c_a, aP, grid);
 
-            double res_minus_12_gg = Hminus12GG::integrate(c_a, aP, g);
-            double res_minus_13_gg = Hminus13GG::integrate(c_a, aP, g);
+            double res_minus_12_gg = Hminus12GG::integrate(c_a, aP, grid);
+            double res_minus_13_gg = Hminus13GG::integrate(c_a, aP, grid);
 
             // QG
-            double res_v_minus = Vminus13::integrate(c_a, aP, g);
-
-            double res_v_plus = Vplus13::integrate(c_a, aP, g); // For testing purposes, to be removed
+            double res_v_minus = Vminus13::integrate(c_a, aP, grid);
 
             // GQ
-            double res_w_plus     = Wplus13::integrate(c_a, aP, g);
-            double res_w_plus_p23 = Wplus13P23::integrate(c_a, aP, g);
+            double res_w_plus     = Wplus13::integrate(c_a, aP, grid);
+            double res_w_plus_p23 = Wplus13P23::integrate(c_a, aP, grid);
 
-            double res_w_minus     = Wminus13::integrate(c_a, aP, g);
-            double res_w_minus_p23 = Wminus13P23::integrate(c_a, aP, g);
+            double res_w_minus     = Wminus13::integrate(c_a, aP, grid);
+            double res_w_minus_p23 = Wminus13P23::integrate(c_a, aP, grid);
 
-            double res_dw     = DeltaW::integrate(c_a, aP, g);
-            double res_dw_p23 = DeltaWP23::integrate(c_a, aP, g);
+            double res_dw     = DeltaW::integrate(c_a, aP, grid);
+            double res_dw_p23 = DeltaWP23::integrate(c_a, aP, grid);
 
             lock.lock();
-            H_NS(c_a, c_aP) += _Nc * 2.0 * (-res_plus_12);
-            H_NS(c_a, c_aP) += (1.0 / _Nc) * (res_plus_13 - 2.0 * res_minus_12 + res_he23p23);
+            H_NS(c_a, c_aP) += Nc * 2.0 * (-res_plus_12);
+            H_NS(c_a, c_aP) += (1.0 / Nc) * (res_plus_13 - 2.0 * res_minus_12 + res_he23p23);
 
             H_d13(c_a, c_aP) += res_d_13;
 
-            H_gg_p(c_a, c_aP) += _Nc * (res_plus_12_gg + res_plus_13_gg + res_minus_12_gg + res_minus_13_gg);
-            H_gg_m(c_a, c_aP) += _Nc * (res_plus_12_gg + res_plus_13_gg - res_minus_12_gg - res_minus_13_gg);
+            H_gg_p(c_a, c_aP) += Nc * (res_plus_12_gg + res_plus_13_gg + res_minus_12_gg + res_minus_13_gg);
+            H_gg_m(c_a, c_aP) += Nc * (res_plus_12_gg + res_plus_13_gg - res_minus_12_gg - res_minus_13_gg);
 
             // Note: NO nf here, multiplied in the evolution
             H_qg_p(c_a, c_aP) += -res_v_minus;
             H_qg_m(c_a, c_aP) += +res_v_minus;
 
-            H_test_2(c_a, c_aP) += res_v_plus;
-
-            H_gq_p(c_a, c_aP) +=
-                _Nc * (res_w_plus - res_w_plus_p23 + res_w_minus - res_w_minus_p23 - 2 * res_dw + 2 * res_dw_p23);
-            H_gq_m(c_a, c_aP) += -(_Nc - 4.0 / _Nc) * (res_w_plus + res_w_plus_p23 + res_w_minus + res_w_minus_p23);
+            H_gq_p(c_a, c_aP) += Nc
+                               * (res_w_plus - res_w_plus_p23 + res_w_minus - res_w_minus_p23 - 2 * res_dw
+                                  + 2 * res_dw_p23);
+            H_gq_m(c_a, c_aP)
+                += -(Nc - 4.0 / Nc) * (res_w_plus + res_w_plus_p23 + res_w_minus + res_w_minus_p23);
 
             lock.unlock();
          }
@@ -157,32 +156,30 @@ Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
       // Subtracted integrals
       th_pool.AddTask([&, c_a](void) -> void {
          std::unique_lock<std::mutex> lock(th_pool.task_mutex, std::defer_lock);
-         for (size_t c_aP = 0; c_aP < g.c_size; c_aP++) {
+         for (size_t c_aP = 0; c_aP < grid.c_size; c_aP++) {
 
             // NS
-            double res_hat_12 = Hhat12::subtracted_integrate(c_a, c_aP, g);
-            double res_hat_23 = Hhat23::subtracted_integrate(c_a, c_aP, g);
-            double res_hat_13 = Hhat13::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_12 = Hhat12::subtracted_integrate(c_a, c_aP, grid);
+            double res_hat_23 = Hhat23::subtracted_integrate(c_a, c_aP, grid);
+            double res_hat_13 = Hhat13::subtracted_integrate(c_a, c_aP, grid);
 
             // GG
-            double res_hat_12_gg = Hhat12GG::subtracted_integrate(c_a, c_aP, g);
-            double res_hat_23_gg = Hhat23GG::subtracted_integrate(c_a, c_aP, g);
-            double res_hat_31_gg = Hhat31GG::subtracted_integrate(c_a, c_aP, g);
+            double res_hat_12_gg = Hhat12GG::subtracted_integrate(c_a, c_aP, grid);
+            double res_hat_23_gg = Hhat23GG::subtracted_integrate(c_a, c_aP, grid);
+            double res_hat_31_gg = Hhat31GG::subtracted_integrate(c_a, c_aP, grid);
 
             // QG
-            double res_v_plus = Vplus13::subtracted_integrate(c_a, c_aP, g);
+            double res_v_plus = Vplus13::subtracted_integrate(c_a, c_aP, grid);
 
             lock.lock();
-            H_NS(c_a, c_aP) += _Nc * (res_hat_12 + res_hat_23);
-            H_NS(c_a, c_aP) += (1.0 / _Nc) * (-res_hat_13);
+            H_NS(c_a, c_aP) += Nc * (res_hat_12 + res_hat_23);
+            H_NS(c_a, c_aP) += (1.0 / Nc) * (-res_hat_13);
 
-            H_gg_p(c_a, c_aP) += _Nc * (res_hat_12_gg + res_hat_23_gg + res_hat_31_gg);
-            H_gg_m(c_a, c_aP) += _Nc * (res_hat_12_gg + res_hat_23_gg + res_hat_31_gg);
+            H_gg_p(c_a, c_aP) += Nc * (res_hat_12_gg + res_hat_23_gg + res_hat_31_gg);
+            H_gg_m(c_a, c_aP) += Nc * (res_hat_12_gg + res_hat_23_gg + res_hat_31_gg);
 
             H_qg_p(c_a, c_aP) += res_v_plus;
             H_qg_m(c_a, c_aP) += res_v_plus;
-
-            H_test_1(c_a, c_aP) += res_v_plus;
 
             lock.unlock();
          }
@@ -190,6 +187,6 @@ Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
    }
 
    th_pool.WaitOnJobs();
-};
+}
 
 } // namespace Honeycomb

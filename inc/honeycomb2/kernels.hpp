@@ -1,6 +1,7 @@
 #ifndef KERNELS_HPP
 #define KERNELS_HPP
 
+#include "cereal/archives/portable_binary.hpp"
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/kernel_functions.hpp>
 #include <honeycomb2/cereal_extension.hpp>
@@ -16,6 +17,7 @@ concept Arithmetic = std::is_arithmetic_v<T>;
 struct Kernels {
 
    Kernels(const Grid2D &g, double _Nc, bool to_compute = true);
+   void ComputeKernels();
 
    const Grid2D &grid;
 
@@ -25,7 +27,6 @@ struct Kernels {
 
    // Note: H_qg and H_d13 do not have nf, must be multiplied outside
    Eigen::MatrixXd H_NS, H_d13, H_gg_p, H_gg_m, H_qg_p, H_qg_m, H_gq_p, H_gq_m;
-   Eigen::MatrixXd H_test_1, H_test_2;
 
    template <class Archive>
    void save(Archive &archive) const
@@ -110,18 +111,18 @@ struct Kernels {
 // So, I have specialized function to compute it
 Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc);
 
-template <class Archive>
-void save_kernels(const Kernels &k, const std::string &file_name)
+inline void save_kernels(const Kernels &k, const std::string &file_name)
 {
-   SaveChecksumArchive<Kernels, Archive>(k, file_name);
+   SaveChecksumArchive<Kernels, cereal::PortableBinaryOutputArchive>(k, file_name);
 }
 
-template <class Archive>
-Kernels load_kernels(const std::string &file_name, const Grid2D &g, double _Nc)
+inline Kernels load_kernels(const std::string &file_name, const Grid2D &g, double _Nc)
 {
    Kernels ker(g, _Nc, false);
-   if (!LoadAndVerify<Kernels, Archive>(file_name, ker)) {
-      logger(Logger::ERROR, "I was not able to correctly load the cereal archive.");
+   if (!LoadAndVerify<Kernels, cereal::PortableBinaryInputArchive>(file_name, ker)) {
+      logger(Logger::WARNING, "I was not able to correctly load the cereal archive. Compute and overwrite");
+      ker.ComputeKernels();
+      save_kernels(ker, file_name);
    }
    return ker;
 }

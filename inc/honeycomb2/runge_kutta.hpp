@@ -100,29 +100,21 @@ requires RungeKuttaCompatible<Kernel, Solution>
 class GenericRungeKutta
 {
 public:
-   // Templetized over arguments for Solution constructor
-   template <typename... Args>
    GenericRungeKutta(
-       Kernel const &K, Solution const &S, GenericRungeKuttaTableaux<Order> const &tab,
+       const Kernel &K, const Solution &S, const GenericRungeKuttaTableaux<Order> &tab,
        std::function<double(double)> as =
-           [](double t) {
-              (void)t;
+           [](double) {
               return 1;
            },
        double pref = 1, double t = 0, double dt = 0.01,
-       std::function<void(double, Kernel &, Solution &)> c =
-           [](double t, Kernel &K, Solution &S) {
-              (void)t;
-              (void)K;
-              (void)S;
+       std::function<void(double, const Kernel &, Solution &)> c =
+           [](double, const Kernel &, Solution &) {
               return;
-           },
-       Args &&...args)
+           })
        : _t(t), _dt(dt), _prefactor(pref), _callback(std::move(c)), _As_t(std::move(as)), _solution(S),
          _temp_step(S), _kernel(K), _ai(tab._ai), _bi(tab._bi), _ci(tab._ci), callback_each_step(true)
    {
-      for (auto &ki : _ki)
-         ki = Solution(std::forward<Args>(args)...);
+      _ki.fill(S);
    };
 
    // Suggestion: overload operator= and operator += in solution to avoid memory re-allocation every time
@@ -215,18 +207,24 @@ public:
    }
 
 private:
-   double _t, _dt;    // time, time-step and time-step / 2
-   double _prefactor; // eventual prefactor to as(t) * K * S (e.g. 2 or -1 or color factor, depending on
-                      // definitions)
-   std::array<Solution, Order> _ki; // intermediate variables
-   std::function<void(double, Kernel &, Solution &)>
-       _callback; // Callback function for each step, initlialzed to the 'do-nothing' function
-   std::function<double(double)>
-       _As_t; // Function to compute as(t) = \alpha_s / 4\pi at given t = \log(\mu^2)
+   // time, time-step and time-step / 2
+   double _t, _dt;
+
+   // eventual prefactor to as(t) * K * S (e.g. 2 or -1 or color factor, depending on definitions)
+   double _prefactor;
+
+   // intermediate variables
+   std::array<Solution, Order> _ki;
+
+   // Callback function for each step, initlialzed to the 'do-nothing' function
+   std::function<void(double, const Kernel &, Solution &)> _callback;
+
+   // Function to compute as(t) = \alpha_s / 4\pi at given t = \log(\mu^2)
+   std::function<double(double)> _As_t;
 
    Solution _solution;
    Solution _temp_step;
-   Kernel _kernel;
+   const Kernel &_kernel;
 
    std::array<std::array<double, Order>, Order> _ai;
    std::array<double, Order> _bi;

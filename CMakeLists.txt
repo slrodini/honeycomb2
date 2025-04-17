@@ -3,37 +3,77 @@ cmake_minimum_required(VERSION 3.20)
 # ============================
 # SETUP
 # ============================
+set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
+
 project(Honeycomb2 CXX)
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+   message(STATUS "No build type specified. Defaulting to Release.")
+   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+endif()
+
 set(Honeycomb2_Version 0.0.1)
 
-set(CMAKE_BUILD_TYPE Release)
+# set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
-add_compile_options(
-   -Wall -Wextra
-   -fPIC
-   -O3
-   -mtune=native
-   -march=native
-   -funroll-loops
-   -Wno-unused-parameter -Wno-unused-variable # To be removed later
-)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+   add_compile_options(
+      -Wall -Wextra -Werror
+      -fPIC
+      -O3
+      -mtune=native
+      -march=native
+      -funroll-loops
+   )
+
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+   add_compile_options(
+      -Wall -Wextra -Wpedantic -Werror
+      -fPIC
+      -O2
+      -g
+      -mtune=native
+      -march=native
+      -funroll-loops
+   )
+   set(SANITIZER_FLAGS "-fsanitize=address,undefined,alignment,bounds,null,vptr")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
+   link_libraries(${SANITIZER_FLAGS})
+
+else()
+   add_compile_options(
+      -Wall -Wextra -Werror -Wpedantic
+      -fPIC
+      -O0
+      -g
+      -mtune=native
+      -march=native
+      -funroll-loops
+   )
+   set(SANITIZER_FLAGS "-fsanitize=address,undefined,alignment,bounds,null,vptr")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
+   link_libraries(${SANITIZER_FLAGS})
+endif()
 
 # # -flto causes problems with YAML-CPP
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+   if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
+      # x86-specific compiler flags
+      add_compile_options(-mfpmath=sse -msse2)
+      message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
+   elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+      # ARM-specific compiler flags
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
 
-# Check the processor architecture
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
-   # x86-specific compiler flags
-   add_compile_options(-mfpmath=sse -msse2)
-   message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
-   # ARM-specific compiler flags
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
-
-   message(STATUS "CPU architecture is one of: arm64|aarch64")
-else()
-   message(WARNING "Unrecognized CPU architecture")
+      message(STATUS "CPU architecture is one of: arm64|aarch64")
+   else()
+      message(WARNING "Unrecognized CPU architecture")
+   endif()
 endif()
 
 if(NOT DEFINED CMAKE_MACOSX_RPATH)
@@ -43,6 +83,9 @@ endif()
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27.0")
    cmake_policy(SET CMP0148 OLD)
 endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Build type specific CXX Flags: ${CMAKE_CXX_FLAGS}")
 
 # ============================
 # MAIN

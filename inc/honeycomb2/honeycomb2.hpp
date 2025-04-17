@@ -19,4 +19,6 @@
 
 #include <honeycomb2/config_parser.hpp>
 
+#include <honeycomb2/g2_weights.hpp>
+
 #endif // HONEYCOMB2_HPP

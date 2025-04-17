@@ -39,7 +39,7 @@ double Hd13::integrate(size_t c_a, size_t aP, const Grid2D &g)
    };
 
    const double res = integrator::integrate(th_x1_mv_integral, vmin, vmax);
-   return m_theta * x1 * x3 * res / sq(x2);
+   return m_theta * x1 * x3 * res / cu(x2);
 }
 
 } // namespace Honeycomb

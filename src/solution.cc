@@ -27,10 +27,10 @@ void InputModel::SetModel(FNC f, std::function<double(double, double, double)> m
       T[5] = model;
       break;
    case DT_DN:
-      DT[1] = model;
+      DT[0] = model;
       break;
    case DT_UP:
-      DT[0] = model;
+      DT[1] = model;
       break;
    case DT_ST:
       DT[2] = model;
@@ -72,11 +72,6 @@ Solution::Solution(const Discretization *discretization, const InputModel &model
    _distr_p.emplace_back(_discretization->discretize(Fplus));
    _distr_m.emplace_back(_discretization->discretize(Fminus));
 
-   long int dim = _distr_p.back().size();
-   // push back the empty singlets
-   _distr_p.emplace_back(Eigen::VectorXd::Zero(dim));
-   _distr_m.emplace_back(Eigen::VectorXd::Zero(dim));
-
    for (size_t i = 0; i < nf; i++) {
       auto Splus = [&models, i](double x1, double x2, double x3) -> double {
          return models.T[i](x1, x2, x3) - models.DT[i](x1, x2, x3) + models.T[i](x3, x2, x1)
@@ -86,22 +81,18 @@ Solution::Solution(const Discretization *discretization, const InputModel &model
          return models.T[i](x1, x2, x3) - models.DT[i](x1, x2, x3) - models.T[i](x3, x2, x1)
               - models.DT[i](x3, x2, x1);
       };
-      v_Splus.push_back(_discretization->discretize(Splus));
-      v_Sminus.push_back(_discretization->discretize(Sminus));
-      // accumulates the singlets
-      _distr_p[1] += v_Splus.back();
-      _distr_m[1] += v_Sminus.back();
+      _distr_p.push_back(_discretization->discretize(Splus));
+      _distr_m.push_back(_discretization->discretize(Sminus));
    }
 
-   // d-u; u-s; ...
-   for (size_t i = 0; i < nf - 1; i++) {
-      _distr_p.push_back(v_Splus[i] - v_Splus[i + 1]);
-      _distr_m.push_back(v_Sminus[i] - v_Sminus[i + 1]);
-   }
+   _curr_basis = PHYS;
+
+   RotateToEvolutionBasis();
 };
 
 void Solution::PushFlavor()
 {
+   logger(Logger::INFO, "Pushing new falvor");
    // Trivial case
    if (nf == 1) {
       _distr_p.push_back(_distr_p[1]);
@@ -126,8 +117,8 @@ void Solution::PushFlavor()
       h_p -= (i + 1) * _distr_p[2 + i];
       h_m -= (i + 1) * _distr_m[2 + i];
    }
-   _distr_p.push_back(h_p);
-   _distr_m.push_back(h_m);
+   _distr_p.push_back(h_p / norm);
+   _distr_m.push_back(h_m / norm);
 
    nf++;
 }
@@ -159,7 +150,7 @@ std::pair<Eigen::VectorXd, Eigen::VectorXd> Solution::PopFlavor()
 
    nf--;
 
-   return {h_p, h_m};
+   return {h_p / norm, h_m / norm};
 }
 
 // Runge-Kutta methods
@@ -215,7 +206,6 @@ std::pair<std::vector<double>, Solution> get_initial_solution(double Q02, double
                 "get_initial_solution: Thresholds are not increasing, backward evolution not supported yet.");
       }
    }
-   const double t0 = log(Q02);
    const double tf = log(Qf2);
 
    std::vector<double> intermediate_scales;
@@ -249,6 +239,9 @@ void Solution::RotateToPhysicalBasis()
    tmp_p.push_back(_distr_p[0]);
    tmp_m.push_back(_distr_m[0]);
 
+   if (nf != _distr_p.size() - 1) {
+      logger(Logger::ERROR, "Bug in push flavor, vector of solution has incorrect dimensions.");
+   }
    int nfi = static_cast<int>(nf);
 
    // Construct from lightest to heaviest
@@ -263,8 +256,8 @@ void Solution::RotateToPhysicalBasis()
          h_p -= (i + 1) * _distr_p[2 + i];
          h_m -= (i + 1) * _distr_m[2 + i];
       }
-      tmp_p.push_back(h_p / nf);
-      tmp_m.push_back(h_m / nf);
+      tmp_p.push_back(h_p / nfi);
+      tmp_m.push_back(h_m / nfi);
    }
    _distr_p    = tmp_p;
    _distr_m    = tmp_m;

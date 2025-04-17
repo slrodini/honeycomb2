@@ -2,6 +2,7 @@
 #define CONFIG_PARSER_HPP
 
 #include <honeycomb2/default.hpp>
+#include <honeycomb2/utilities.hpp>
 
 namespace Honeycomb
 {
@@ -12,8 +13,9 @@ namespace custom_concepts
 {
 
 template <typename T>
-concept arithmetic_vector = requires { typename T::value_type; } &&
-                            (std::integral<typename T::value_type> || std::floating_point<typename T::value_type>);
+concept arithmetic_vector = requires {
+   typename T::value_type;
+} && (std::integral<typename T::value_type> || std::floating_point<typename T::value_type>);
 
 } // namespace custom_concepts
 
@@ -78,8 +80,8 @@ public:
          std::cerr << "[ERROR]: Key " << key << "does not exist.";
          return static_cast<T>(NAN);
       }
-      if (_check_number_nonsense(_options[key][entry], EXPONENTIAL) == 0 ||
-          _check_number_nonsense(_options[key][entry], FLOAT) == 0) {
+      if (_check_number_nonsense(_options[key][entry], EXPONENTIAL) == 0
+          || _check_number_nonsense(_options[key][entry], FLOAT) == 0) {
          T res    = 0;
          auto tmp = std::from_chars(_options[key][entry].data(),
                                     _options[key][entry].data() + _options[key][entry].size(), res);
@@ -95,7 +97,7 @@ public:
    }
 
    template <custom_concepts::arithmetic_vector V>
-   V GetValue(const std::string &key, size_t entry = 0)
+   V GetValue(const std::string &key)
    {
 
       using T = typename V::value_type;
@@ -111,8 +113,14 @@ public:
       return res;
    }
 
-   template <>
-   std::string GetValue<std::string>(const std::string &key, size_t entry);
+   std::string GetValue(const std::string &key, size_t entry = 0)
+   {
+      if (_key_does_not_exist(key)) {
+         logger(Logger::ERROR, "ConfigParser::GetValue Key " + key + " does not exists.");
+         return "";
+      }
+      return _options[key][entry];
+   }
 
    // template <typename T>
    // T GetValue(const std::string &key, size_t entry = 0)

@@ -37,6 +37,6 @@ void setup_logging(std::string outpath, std::string outname, bool to_stderr, siz
          std::filesystem::create_directories(outpath);
       }
    }
-   logger.init(outpath + "/" + outname + "_logger.txt", 0, false);
+   logger.init(outpath + "/" + outname + "_logger.txt", min_log_level, false);
 }
 } // namespace Honeycomb

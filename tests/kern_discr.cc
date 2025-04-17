@@ -37,7 +37,6 @@ int main()
 
 void test_solution_rotations()
 {
-   const double Nc = 3; // NC = 1 for tests
 
    const size_t n         = 6;
    const double rmin      = 0.01;
@@ -93,7 +92,10 @@ void evolve_chiral_even()
 
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Kernel Discretization"));
    begin = Honeycomb::timer::now();
-   Honeycomb::Kernels kers(grid, Nc);
+   // Honeycomb::Kernels kers(grid, Nc);
+   // Honeycomb::save_kernels<cereal::PortableBinaryOutputArchive>(kers, "n6Ker.cereal");
+   Honeycomb::Kernels kers = Honeycomb::load_kernels("n6Ker.cereal", grid, Nc);
+
    end = Honeycomb::timer::now();
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
@@ -120,14 +122,32 @@ void evolve_chiral_even()
    const double pref = -1.0;
 
    const double Q02 = 1.0;
-   const double Qf2 = 10000.0;
+   const double Qf2 = 1.0e+4;
 
    const double t0 = log(Q02);
 
    auto [inter_scale, sol1]
        = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.6129, 17.4724, 1.0e+6}, &discr, model);
+   // auto [inter_scale, sol1]
+   //     = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.0e+5, 2.0e+5, 1.0e+6}, &discr, model);
 
-   auto callback = [&inter_scale](double t, Honeycomb::Kernels &, Honeycomb::Solution &S) {
+   {
+      std::FILE *fp_1 = std::fopen("CE_evo_check_evo_basis_initial.dat", "w");
+
+      for (Honeycomb::RnC::Triplet &x123 : honeycomb_points) {
+         Honeycomb::RnC::Pair rhophi = Honeycomb::RnC::from_x123_to_rhophi(x123);
+
+         std::fprintf(fp_1, "%.16e\t%.16e\t%.16e\t", x123[0], x123[1], x123[2]);
+         for (size_t k = 0; k < sol1._distr_p.size(); k++) {
+            std::fprintf(fp_1, "%.16e\t%.16e\t", discr.interpolate_as_weights_v3(rhophi, sol1._distr_p[k]),
+                         discr.interpolate_as_weights_v3(rhophi, sol1._distr_m[k]));
+         }
+         std::fprintf(fp_1, "\n");
+      }
+      std::fclose(fp_1);
+   }
+
+   auto callback = [&inter_scale](double t, const Honeycomb::Kernels &, Honeycomb::Solution &S) {
       if (t == inter_scale.back()) return;
       S.PushFlavor();
       return;
@@ -136,9 +156,13 @@ void evolve_chiral_even()
    const double dt = 0.01;
 
    Honeycomb::runge_kutta::GenericRungeKutta<Honeycomb::Kernels, Honeycomb::Solution, 13> evolver(
-       kers, sol1, Honeycomb::runge_kutta::DOPRI8, as, pref, t0, dt, callback, sol1);
+       kers, sol1, Honeycomb::runge_kutta::DOPRI8, as, pref, t0, dt, callback);
 
-   const double dt_2 = 0.01; // ! Unused !
+   std::vector<double> back_scales;
+   for (size_t i = inter_scale.size() - 2; i < inter_scale.size(); i--) {
+      back_scales.push_back(inter_scale[i]);
+   }
+   back_scales.push_back(t0);
 
    fnc_elapsed = 0;
    begin       = Honeycomb::timer::now();
@@ -150,15 +174,84 @@ void evolve_chiral_even()
 
    auto sol_fin = evolver.GetSolution();
 
+   // auto callback_rev = [&back_scales](double t, const Honeycomb::Kernels &, Honeycomb::Solution &S) {
+   //    if (t == back_scales.back()) return;
+   //    S.PopFlavor();
+   //    return;
+   // };
+
+   // Honeycomb::runge_kutta::GenericRungeKutta<Honeycomb::Kernels, Honeycomb::Solution, 13> evolver_back(
+   //     kers, sol_fin, Honeycomb::runge_kutta::DOPRI8, as, pref, log(Qf2), dt, callback_rev);
+   // evolver_back(back_scales, 20);
+
+   // auto sol_bnf = evolver_back.GetSolution();
+
+   Honeycomb::RnC::Pair rhophi_1_check = Honeycomb::RnC::from_x123_to_rhophi(-0.27, +0.35, -0.35 + 0.27);
+   Honeycomb::RnC::Pair rhophi_2_check = Honeycomb::RnC::from_x123_to_rhophi(+0.27, -0.35, +0.35 - 0.27);
+
+   std::vector<Honeycomb::Solution *> sols{&sol1, &sol_fin};
+
+   for (auto s : sols) {
+      Honeycomb::logger(
+          Honeycomb::Logger::WARNING,
+          std::format("{:.16e}", discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_p[2])
+                                     - discr.interpolate_as_weights_v3(rhophi_2_check, s->_distr_p[2])));
+
+      Honeycomb::logger(
+          Honeycomb::Logger::WARNING,
+          std::format("{:.16e}", discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_p[0])
+                                     + discr.interpolate_as_weights_v3(rhophi_2_check, s->_distr_p[0])));
+
+      Honeycomb::logger(
+          Honeycomb::Logger::WARNING,
+          std::format("{:.16e}", discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_p[1])
+                                     - discr.interpolate_as_weights_v3(rhophi_2_check, s->_distr_p[1])));
+   }
+
+   std::FILE *fp_3 = std::fopen("CE_evo_check_evo_basis.dat", "w");
+
+   for (Honeycomb::RnC::Triplet &x123 : honeycomb_points) {
+      Honeycomb::RnC::Pair rhophi = Honeycomb::RnC::from_x123_to_rhophi(x123);
+
+      std::fprintf(fp_3, "%.16e\t%.16e\t%.16e\t", x123[0], x123[1], x123[2]);
+      for (size_t k = 0; k < sol_fin._distr_p.size(); k++) {
+         std::fprintf(fp_3, "%.16e\t%.16e\t", discr.interpolate_as_weights_v3(rhophi, sol_fin._distr_p[k]),
+                      discr.interpolate_as_weights_v3(rhophi, sol_fin._distr_m[k]));
+      }
+      std::fprintf(fp_3, "\n");
+   }
+   std::fclose(fp_3);
+
+   sol1.RotateToPhysicalBasis();
+   // sol_bnf.RotateToPhysicalBasis();
+   sol_fin.RotateToPhysicalBasis();
+
    std::FILE *fp_2 = std::fopen("CE_evo_check.dat", "w");
 
    for (Honeycomb::RnC::Triplet &x123 : honeycomb_points) {
       Honeycomb::RnC::Pair rhophi = Honeycomb::RnC::from_x123_to_rhophi(x123);
-      std::fprintf(fp_2, "%.16e\t%.16e\t%.16e\t%.16e\t%.16e\n", x123.v[0], x123.v[1], x123.v[2],
-                   discr.interpolate_as_weights_v3(rhophi, sol_fin._distr_p[0]),
-                   discr.interpolate_as_weights_v3(rhophi, sol_fin._distr_m[0]));
+
+      std::fprintf(fp_2, "%.16e\t%.16e\t%.16e\t", x123.v[0], x123.v[1], x123.v[2]);
+      for (size_t k = 0; k < sol_fin._distr_p.size(); k++) {
+         std::fprintf(fp_2, "%.16e\t%.16e\t", discr.interpolate_as_weights_v3(rhophi, sol_fin._distr_p[k]),
+                      discr.interpolate_as_weights_v3(rhophi, sol_fin._distr_m[k]));
+      }
+      std::fprintf(fp_2, "\n");
    }
    std::fclose(fp_2);
+
+   // double m_diff = 0;
+
+   // for (Honeycomb::RnC::Triplet &x123 : honeycomb_points) {
+   //    Honeycomb::RnC::Pair rhophi = Honeycomb::RnC::from_x123_to_rhophi(x123);
+   //    for (size_t k = 0; k < sol_bnf._distr_p.size(); k++) {
+   //       m_diff = std::max(m_diff, fabs(discr.interpolate_as_weights_v3(rhophi, sol_bnf._distr_p[k])
+   //                                      - discr.interpolate_as_weights_v3(rhophi, sol1._distr_p[k])));
+   //       m_diff = std::max(m_diff, fabs(discr.interpolate_as_weights_v3(rhophi, sol_bnf._distr_m[k])
+   //                                      - discr.interpolate_as_weights_v3(rhophi, sol1._distr_m[k])));
+   //    }
+   // }
+   // Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Max difference: {:.10e}", m_diff));
 }
 
 void test_save_and_laod()
@@ -189,16 +282,15 @@ void test_save_and_laod()
 
    // Save the discretized kernels
    begin = Honeycomb::timer::now();
-   Honeycomb::save_kernels<cereal::PortableBinaryOutputArchive>(kers, "check.cereal");
+   Honeycomb::save_kernels(kers, "check.cereal");
 
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ns(end, begin);
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Saving time: {:+.6e} ms.", fnc_elapsed * 1.0e-6));
 
    // Load the kernels
-   begin = Honeycomb::timer::now();
-   Honeycomb::Kernels kers_loaded
-       = Honeycomb::load_kernels<cereal::PortableBinaryInputArchive>("check.cereal", grid, Nc);
+   begin                          = Honeycomb::timer::now();
+   Honeycomb::Kernels kers_loaded = Honeycomb::load_kernels("check.cereal", grid, Nc);
 
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ns(end, begin);
@@ -272,31 +364,17 @@ void test_convolution()
       }
    }
 
-   const auto &KK2 = kers.H_test_2;
-   // Eigen::MatrixXd Diff = KK2 - KK;
-
-   // for (long int i = 0; i < KK.rows(); i++) {
-   //    for (long int j = 0; j < KK.cols(); j++) {
-   //       if (std::fabs(Diff(i, j)) > 1.0e-6)
-   //          std::cout << std::format("{:d}\t{:d}\t{:.10e}\t{:.10e}\t{:.10e}\t{:.10e}\t{:.10e}", i, j,
-   //                                   grid._x123[i].v[0], grid._x123[i].v[1], grid._x123[i].v[2], KK(i, j),
-   //                                   KK2(i, j))
-   //                    << std::endl;
-   //    }
-   // }
-
    Honeycomb::Discretization discr(grid);
    Eigen::VectorXd fj    = discr(T_test);
    Eigen::VectorXd fj_Hu = discr(T_test_Hu);
 
    // Eigen::VectorXd fj2 = KK * fj;
    Eigen::VectorXd fj2 = H_CO * fj;
-   Eigen::VectorXd fj3 = KK2 * fj;
 
    std::FILE *fp = std::fopen("ConvCheck.dat", "w");
    for (long int i = 0; i < grid.c_size_li; i++) {
-      std::fprintf(fp, "%.16e\t%.16e\t%.16e\t%.16e\t%.16e\t%.16e\n", grid._x123[i].v[0], grid._x123[i].v[1],
-                   grid._x123[i].v[2], fj(i), fj2(i), fj3(i));
+      std::fprintf(fp, "%.16e\t%.16e\t%.16e\t%.16e\t%.16e\n", grid._x123[i].v[0], grid._x123[i].v[1],
+                   grid._x123[i].v[2], fj(i), fj2(i));
    }
    std::fclose(fp);
 
@@ -364,18 +442,14 @@ void evolve_chiral_odd()
        [](double t) {
           return 1.0 / (11.0 * (t + 3.0));
        },
-       -1.0, t0, dt_2,
-       [](double t, Eigen::MatrixXd &K, Eigen::VectorXd &S) {
-          (void)t;
-          (void)K;
-          (void)S;
+       pref, t0, dt_2,
+       [](double, const Eigen::MatrixXd &, Eigen::VectorXd &) {
           return;
-       },
-       fj.size());
+       });
 
    fnc_elapsed = 0;
    begin       = Honeycomb::timer::now();
-   evolver_CO({log(10000)}, 40);
+   evolver_CO({tf}, 40);
    end          = Honeycomb::timer::now();
    fnc_elapsed += Honeycomb::timer::elapsed_ns(end, begin);
 

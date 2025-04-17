@@ -71,15 +71,14 @@ public:
               return 1;
            })
        : is_periodic(is_per), intervals(inter.size() - 1, {0, 0}), intervals_phys(inter.size() - 1, {0, 0}),
-         grid_sizes(g_size), to_inter_space(to_i_space), to_inter_space_der(to_i_space_der), to_phys_space(to_p_space),
-         to_phys_space_der(to_p_space_der)
+         grid_sizes(g_size), to_inter_space(to_i_space), to_inter_space_der(to_i_space_der),
+         to_phys_space(to_p_space), to_phys_space_der(to_p_space_der)
    {
       if (g_size.size() != (inter.size() - 1)) {
-         logger(Logger::ERROR,
-                std::format(
-                    "[SingleDiscretizationInfo] Incompatible sizes for number of subintervals ({:d}) andentries in the "
-                    "vector of number of points for each subinterval ({:d})",
-                    inter.size() - 1, g_size.size()));
+         logger(Logger::ERROR, std::format("[SingleDiscretizationInfo] Incompatible sizes for number of "
+                                           "subintervals ({:d}) andentries in the "
+                                           "vector of number of points for each subinterval ({:d})",
+                                           inter.size() - 1, g_size.size()));
       }
       for (size_t i = 0; i < inter.size() - 1; i++) {
          intervals[i]      = {to_i_space(inter[i]), to_i_space(inter[i + 1])};
@@ -226,7 +225,10 @@ struct Grid2D {
    Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi);
 
    // Empty default constructor
-   Grid2D() {};
+   Grid2D()
+   {
+      is_compliant = false;
+   };
 
    std::function<double(const RnC::Pair &rhophi)> get_dw_dx3_fixed_x1(size_t index) const;
 
@@ -280,6 +282,8 @@ struct Grid2D {
    // size weights derivatives
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _w;
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
+
+   bool is_compliant;
 
    template <class Archive>
    void serialize(Archive &archive)
@@ -403,19 +407,20 @@ struct OneOverSqrtXGrid {
 };
 
 // Utility function, ensures that the angular grid is generated with only 6
-// subintervals, corresponding to the 6 triangular regions. This is fundamental for the correct working of various
-// parts of the library, especially the routines to determine the support of the weights int the physical momentum
-// coordinates. Moreover, the radial grid is defaulted to the logarithmic grid.
-Grid2D generate_compliant_Grid2D(size_t n_pts_for_angle_sector, std::vector<double> radius_inter,
-                                 std::vector<size_t> radius_g_size,
-                                 std::function<double(double)> radius_to_i_space     = LogGrid::to_i_space,
-                                 std::function<double(double)> radius_to_i_space_der = LogGrid::to_i_space_der,
-                                 std::function<double(double)> radius_to_p_space     = LogGrid::to_p_space,
-                                 std::function<double(double)> radius_to_p_space_der = LogGrid::to_p_space_der,
-                                 std::function<double(double)> angle_to_i_space      = LinearGrid::to_i_space,
-                                 std::function<double(double)> angle_to_i_space_der  = LinearGrid::to_i_space_der,
-                                 std::function<double(double)> angle_to_p_space      = LinearGrid::to_p_space,
-                                 std::function<double(double)> angle_to_p_space_der  = LinearGrid::to_p_space_der);
+// subintervals, corresponding to the 6 triangular regions. This is fundamental for the correct working of
+// various parts of the library, especially the routines to determine the support of the weights int the
+// physical momentum coordinates. Moreover, the radial grid is defaulted to the logarithmic grid.
+Grid2D
+generate_compliant_Grid2D(size_t n_pts_for_angle_sector, std::vector<double> radius_inter,
+                          std::vector<size_t> radius_g_size,
+                          std::function<double(double)> radius_to_i_space     = LogGrid::to_i_space,
+                          std::function<double(double)> radius_to_i_space_der = LogGrid::to_i_space_der,
+                          std::function<double(double)> radius_to_p_space     = LogGrid::to_p_space,
+                          std::function<double(double)> radius_to_p_space_der = LogGrid::to_p_space_der,
+                          std::function<double(double)> angle_to_i_space      = LinearGrid::to_i_space,
+                          std::function<double(double)> angle_to_i_space_der  = LinearGrid::to_i_space_der,
+                          std::function<double(double)> angle_to_p_space      = LinearGrid::to_p_space,
+                          std::function<double(double)> angle_to_p_space_der  = LinearGrid::to_p_space_der);
 
 // TODO: Legacy stuff, will be removed later.
 struct Discretization1D {

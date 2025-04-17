@@ -8,7 +8,7 @@ int main()
    Honeycomb::ConfigParser parser(content);
 
    double q          = parser.GetValue<double>("Foo");
-   std::string check = parser.GetValue<std::string>("key");
+   std::string check = parser.GetValue("key");
    std::cout << "|" << check << "|" << std::endl;
 
    std::cout << q << std::endl;

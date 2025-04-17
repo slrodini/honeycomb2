@@ -9,7 +9,7 @@
 namespace Honeycomb
 {
 
-inline double zero_function(double a, double b, double c)
+inline double zero_function(double, double, double)
 {
    return 0;
 }

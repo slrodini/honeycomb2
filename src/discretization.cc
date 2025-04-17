@@ -56,11 +56,9 @@ StandardGrid::StandardGrid(size_t N)
 double StandardGrid::interpolate(double t, Eigen::VectorXd &fj, long int start, long int end) const
 {
    if (t < -1 || t > 1 || (end - start) != static_cast<long int>(_N)) {
-      logger(
-          Logger::ERROR,
-          std::format(
-              "[StandardGrid::interpolate]: t={:+.16e} \\notin [-1, +1] OR view into fj of wrong size: [{:+d}, {:+d}]",
-              t, start, end));
+      logger(Logger::ERROR, std::format("[StandardGrid::interpolate]: t={:+.16e} \\notin [-1, +1] OR view "
+                                        "into fj of wrong size: [{:+d}, {:+d}]",
+                                        t, start, end));
    }
    double sum = 0;
    size_t j   = 0;
@@ -160,8 +158,8 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
          // NOTE: _coord stores only the UNIQUES coordinates
 
          if (j != d_info.grid_sizes[a] || (!d_info.is_periodic && a == d_info.intervals.size() - 1))
-            _coord[index_coord] =
-                d_info.to_phys_space(from_m1p1_to_ab(sg.tj(j), d_info.intervals[a].first, d_info.intervals[a].second));
+            _coord[index_coord] = d_info.to_phys_space(
+                from_m1p1_to_ab(sg.tj(j), d_info.intervals[a].first, d_info.intervals[a].second));
 
          _from_iw_to_ic[index] = index_coord;
          if (j != d_info.grid_sizes[a]) index_coord++;
@@ -212,19 +210,21 @@ double Grid::weight_aj(double u, size_t a, size_t j)
    StandardGrid &sg = stored_grids.at(_d_info.grid_sizes[a]);
    double res       = 0;
 
-   bool condition_x =
-       a == _d_info.intervals.size() - 1 ? u <= _d_info.intervals[a].second : u < _d_info.intervals[a].second;
+   bool condition_x = a == _d_info.intervals.size() - 1 ? u <= _d_info.intervals[a].second
+                                                        : u < _d_info.intervals[a].second;
 
    if (u >= _d_info.intervals[a].first && condition_x) {
       if constexpr (w_case == D) {
          const double dl_dx = from_ab_to_m1p1_der(_d_info.intervals[a].first, _d_info.intervals[a].second);
-         const double dw_dl =
-             sg.poli_weight_der(from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
+         const double dw_dl = sg.poli_weight_der(
+             from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
          res += dw_dl * dl_dx;
       } else if constexpr (w_case == N) {
-         res += sg.poli_weight(from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
+         res += sg.poli_weight(from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second),
+                               j);
       } else {
-         res += sg.poli_weight_sub(from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
+         res += sg.poli_weight_sub(
+             from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
       }
    }
 
@@ -274,11 +274,9 @@ Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretiz
                   size_t c_k = grid_angle._from_iw_to_ic[k];
                   size_t c_j = grid_radius._from_iw_to_ic[j];
 
-                  size_t index      = get_flatten_index(j, k);
-                  long int index_li = static_cast<long int>(index);
+                  size_t index = get_flatten_index(j, k);
 
-                  size_t f_index      = c_get_flatten_index(c_j, c_k);
-                  long int f_index_li = static_cast<long int>(f_index);
+                  size_t f_index = c_get_flatten_index(c_j, c_k);
 
                   RnC::Pair rf(grid_radius._coord[c_j], grid_angle._coord[c_k]);
                   _x123[f_index] = RnC::from_rhophi_to_x123(rf);
@@ -298,6 +296,18 @@ Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretiz
          }
          k++;
       }
+   }
+
+   auto is_near = [](double a, double b) -> bool {
+      return std::fabs(a - b) < 1.0e-15;
+   };
+
+   is_compliant = true;
+   for (size_t a = 0; a < grid_angle._d_info.intervals.size(); a++) {
+      is_compliant
+          = is_compliant && is_near(static_cast<double>(a), grid_angle._d_info.intervals_phys[a].first);
+      is_compliant
+          = is_compliant && is_near(static_cast<double>(a + 1), grid_angle._d_info.intervals_phys[a].second);
    }
 };
 
@@ -329,8 +339,8 @@ std::function<double(const RnC::Pair &rhophi)> Grid2D::get_dw_dx3_fixed_x1(size_
          logger(Logger::ERROR, "[interpolate_df_dx3_fixed_x1] Vanishing denominator, can this be possible?");
       }
 
-      const double num = (angle._weights[k](f) * radius._weights_der[j](r) * (dphi_df * dxi_dphi(0)) -
-                          radius._weights[j](r) * angle._weights_der[k](f) * (drho_dr * dxi_drho(0)));
+      const double num = (angle._weights[k](f) * radius._weights_der[j](r) * (dphi_df * dxi_dphi(0))
+                          - radius._weights[j](r) * angle._weights_der[k](f) * (drho_dr * dxi_drho(0)));
 
       return num / den;
    };
@@ -345,7 +355,8 @@ Discretization::Discretization(const Grid2D &grid) : _grid(grid)
 {
 }
 
-Eigen::VectorXd Discretization::operator()(std::function<double(double, double, double)> const &function) const
+Eigen::VectorXd
+Discretization::operator()(std::function<double(double, double, double)> const &function) const
 {
    Eigen::VectorXd _fj(_grid.c_size_li);
    for (long int i = 0; i < _grid.c_size_li; i++) {
@@ -357,10 +368,9 @@ Eigen::VectorXd Discretization::operator()(std::function<double(double, double, 
 double Discretization::interpolate_as_weights(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const
 {
    if (_fj.size() != _grid.c_size_li) {
-      logger(
-          Logger::ERROR,
-          std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
-                      _fj.size(), _grid.c_size_li));
+      logger(Logger::ERROR, std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match "
+                                        "size stored in the grid ({:d}).",
+                                        _fj.size(), _grid.c_size_li));
    }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
@@ -393,8 +403,9 @@ double Discretization::interpolate_as_weights_v3(const RnC::Pair &rhophi, const 
    if (_fj.size() != _grid.c_size_li) {
       logger(
           Logger::ERROR,
-          std::format("[interpolate_as_weights_v3] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
-                      _fj.size(), _grid.c_size_li));
+          std::format(
+              "[interpolate_as_weights_v3] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
+              _fj.size(), _grid.c_size_li));
    }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
@@ -427,10 +438,9 @@ double Discretization::interpolate_as_weights_v3(const RnC::Pair &rhophi, const 
 double Discretization::interpolate_as_weights_v2(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const
 {
    if (_fj.size() != _grid.c_size_li) {
-      logger(
-          Logger::ERROR,
-          std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
-                      _fj.size(), _grid.c_size_li));
+      logger(Logger::ERROR, std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match "
+                                        "size stored in the grid ({:d}).",
+                                        _fj.size(), _grid.c_size_li));
    }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
@@ -474,10 +484,9 @@ double Discretization::interpolate_df_dx3_fixed_x1(const RnC::Pair &rhophi, cons
 {
 
    if (_fj.size() != _grid.c_size_li) {
-      logger(
-          Logger::ERROR,
-          std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match size stored in the grid ({:d}).",
-                      _fj.size(), _grid.c_size_li));
+      logger(Logger::ERROR, std::format("[interpolate_df_dx3_fixed_x1] size of _fj ({:d}) does not match "
+                                        "size stored in the grid ({:d}).",
+                                        _fj.size(), _grid.c_size_li));
    }
    const Grid &radius = _grid.grid_radius;
    const Grid &angle  = _grid.grid_angle;
@@ -519,49 +528,57 @@ Grid2D generate_compliant_Grid2D(
       logger(Logger::ERROR, "[generate_complaiant_Grid2D] Empty radial interval.");
    } else if (radius_inter.size() == 1) {
       if (is_near(radius_inter[0], 1)) {
-         logger(Logger::ERROR, "[generate_complaiant_Grid2D] Radial interval with only one point, too near 1. Do "
-                               "not know what to do.");
+         logger(Logger::ERROR,
+                "[generate_complaiant_Grid2D] Radial interval with only one point, too near 1. Do "
+                "not know what to do.");
       } else if (radius_inter[0] > 1 || radius_inter[0] <= 0) {
-         logger(Logger::ERROR, "[generate_complaiant_Grid2D] Radial interval with only one point, outside the "
-                               "allowed range of (0,1).");
+         logger(Logger::ERROR,
+                "[generate_complaiant_Grid2D] Radial interval with only one point, outside the "
+                "allowed range of (0,1).");
       } else {
          if (radius_g_size.size() != 1) {
-            logger(Logger::ERROR,
-                   std::format("[generate_complaiant_Grid2D] Specified many points (or none) for sub-intervals "
-                               "(vector size = {:d}), but only one "
-                               "interval point is give. Do not know what to do.",
-                               radius_g_size.size()));
+            logger(
+                Logger::ERROR,
+                std::format("[generate_complaiant_Grid2D] Specified many points (or none) for sub-intervals "
+                            "(vector size = {:d}), but only one "
+                            "interval point is give. Do not know what to do.",
+                            radius_g_size.size()));
          } else {
-            logger(Logger::WARNING, std::format("[generate_complaiant_Grid2D] Radial interval with only one point, "
-                                                "extending it to be [{:+.10e}, 1].",
-                                                radius_inter[0]));
+            logger(Logger::WARNING,
+                   std::format("[generate_complaiant_Grid2D] Radial interval with only one point, "
+                               "extending it to be [{:+.10e}, 1].",
+                               radius_inter[0]));
             radius_inter.emplace_back(1);
          }
       }
    }
 
    if (radius_inter.size() - 1 != radius_g_size.size()) {
-      logger(Logger::ERROR,
-             std::format("[generate_complaiant_Grid2D] Incompatible sizes of interval subdivision and number of points "
-                         "for sub-interval: ({:d}, {:d}). The former should be exactly one more than the latter",
-                         radius_inter.size(), radius_g_size.size()));
+      logger(
+          Logger::ERROR,
+          std::format(
+              "[generate_complaiant_Grid2D] Incompatible sizes of interval subdivision and number of points "
+              "for sub-interval: ({:d}, {:d}). The former should be exactly one more than the latter",
+              radius_inter.size(), radius_g_size.size()));
    }
    if (radius_inter[0] <= 0) {
-      logger(Logger::ERROR, std::format("[generate_complaiant_Grid2D] Incorrect lower value for radius: {:+.16e}. It "
-                                        "should be a value strictly satisfying: 0 < r_min < 1.",
-                                        radius_inter[0]));
+      logger(Logger::ERROR,
+             std::format("[generate_complaiant_Grid2D] Incorrect lower value for radius: {:+.16e}. It "
+                         "should be a value strictly satisfying: 0 < r_min < 1.",
+                         radius_inter[0]));
    }
    if (radius_inter[radius_inter.size() - 1] > 1) {
-      logger(Logger::ERROR, std::format("[generate_complaiant_Grid2D] Incorrect upper value for radius: {:+.16e}. It "
-                                        "should be a exaclty 1",
-                                        radius_inter[radius_inter.size() - 1]));
+      logger(Logger::ERROR,
+             std::format("[generate_complaiant_Grid2D] Incorrect upper value for radius: {:+.16e}. It "
+                         "should be a exaclty 1",
+                         radius_inter[radius_inter.size() - 1]));
    }
    if (!is_near(radius_inter[radius_inter.size() - 1], 1.0)) {
       logger(Logger::WARNING,
-             std::format(
-                 "[generate_complaiant_Grid2D] Incorrect upper value for radius: {:+.16e}. It "
-                 "should be a exaclty 1. I will push the 1 and duplicate last entry in the number of points vector.",
-                 radius_inter[radius_inter.size() - 1]));
+             std::format("[generate_complaiant_Grid2D] Incorrect upper value for radius: {:+.16e}. It "
+                         "should be a exaclty 1. I will push the 1 and duplicate last entry in the number of "
+                         "points vector.",
+                         radius_inter[radius_inter.size() - 1]));
       radius_inter.push_back(1);
       size_t tmp = radius_g_size[radius_g_size.size() - 1];
       radius_g_size.emplace_back(tmp);
@@ -569,10 +586,11 @@ Grid2D generate_compliant_Grid2D(
 
    for (size_t i = 1; i < radius_inter.size(); i++) {
       if (radius_inter[i] <= radius_inter[i - 1]) {
-         logger(Logger::ERROR, std::format("[generate_complaiant_Grid2D] Incorrectly ordered vector of radial "
-                                           "subdivisions. First problematic entry is ({:d}, {:d}), for which r_{:d} = "
-                                           "{:+.10e} <= {:.10e} = r_{:d}",
-                                           i - 1, i, i, radius_inter[i], radius_inter[i - 1], i - 1));
+         logger(Logger::ERROR,
+                std::format("[generate_complaiant_Grid2D] Incorrectly ordered vector of radial "
+                            "subdivisions. First problematic entry is ({:d}, {:d}), for which r_{:d} = "
+                            "{:+.10e} <= {:.10e} = r_{:d}",
+                            i - 1, i, i, radius_inter[i], radius_inter[i - 1], i - 1));
       }
    }
 
@@ -581,15 +599,17 @@ Grid2D generate_compliant_Grid2D(
    const double r_check = 0.52;
    const double r_bnf   = radius_to_p_space(radius_to_i_space(r_check));
    if (!is_near(r_check, r_bnf)) {
-      logger(Logger::ERROR, std::format("The radial map is not correctly coded. From rho(r({:.2f})) I find: {:+.16e}",
-                                        r_check, r_bnf));
+      logger(Logger::ERROR,
+             std::format("The radial map is not correctly coded. From rho(r({:.2f})) I find: {:+.16e}",
+                         r_check, r_bnf));
    }
 
    const double f_check = 1.27;
    const double f_bnf   = angle_to_p_space(angle_to_i_space(f_check));
    if (!is_near(f_check, f_bnf)) {
       logger(Logger::ERROR,
-             std::format("The angular map is not correctly coded. From phi(f(:.2f)) I find: {:+.16e}", f_check, f_bnf));
+             std::format("The angular map is not correctly coded. From phi(f(:.2f)) I find: {:+.16e}",
+                         f_check, f_bnf));
    }
 
    // SUBSECTION: To inter space derivatives
@@ -597,16 +617,18 @@ Grid2D generate_compliant_Grid2D(
    const double r_der     = radius_to_i_space_der(r_check);
    const double r_num_der = (radius_to_i_space(r_check + dx) - radius_to_i_space(r_check - dx)) / (2.0 * dx);
    if (!is_near(r_der, r_num_der, dx)) {
-      logger(Logger::ERROR, std::format("The radial map derivative is not correctly coded. From r=({:.2f}) I find: "
-                                        "{:+.16e} instead of {:+.16e}",
-                                        r_check, r_der, r_num_der));
+      logger(Logger::ERROR,
+             std::format("The radial map derivative is not correctly coded. From r=({:.2f}) I find: "
+                         "{:+.16e} instead of {:+.16e}",
+                         r_check, r_der, r_num_der));
    }
    const double f_der     = angle_to_i_space_der(f_check);
    const double f_num_der = (angle_to_i_space(f_check + dx) - angle_to_i_space(f_check - dx)) / (2.0 * dx);
    if (!is_near(f_der, f_num_der, dx)) {
-      logger(Logger::ERROR, std::format("The angular map derivative is not correctly coded. From f=({:.2f}) I find: "
-                                        "{:+.16e} instead of {:+.16e}",
-                                        f_check, f_der, f_num_der));
+      logger(Logger::ERROR,
+             std::format("The angular map derivative is not correctly coded. From f=({:.2f}) I find: "
+                         "{:+.16e} instead of {:+.16e}",
+                         f_check, f_der, f_num_der));
    }
 
    // SUBSECTION: To phys space derivatives
@@ -614,27 +636,29 @@ Grid2D generate_compliant_Grid2D(
    const double rho_der     = radius_to_p_space_der(r_tmp);
    const double rho_num_der = (radius_to_p_space(r_tmp + dx) - radius_to_p_space(r_tmp - dx)) / (2.0 * dx);
    if (!is_near(rho_der, rho_num_der, dx)) {
-      logger(Logger::ERROR, std::format("The radial map derivative is not correctly coded. From rho'({:.2f}) I find: "
-                                        "{:+.16e} instead of {:+.16e}",
-                                        r_tmp, rho_der, rho_num_der));
+      logger(Logger::ERROR,
+             std::format("The radial map derivative is not correctly coded. From rho'({:.2f}) I find: "
+                         "{:+.16e} instead of {:+.16e}",
+                         r_tmp, rho_der, rho_num_der));
    }
    const double f_tmp       = angle_to_i_space_der(f_check);
    const double phi_der     = angle_to_p_space_der(f_check);
    const double phi_num_der = (angle_to_p_space(f_tmp + dx) - angle_to_p_space(f_tmp - dx)) / (2.0 * dx);
    if (!is_near(phi_der, phi_num_der, dx)) {
-      logger(Logger::ERROR, std::format("The angular map derivative is not correctly coded. From phi'({:.2f}) I find: "
-                                        "{:+.16e} instead of {:+.16e}",
-                                        f_tmp, phi_der, phi_num_der));
+      logger(Logger::ERROR,
+             std::format("The angular map derivative is not correctly coded. From phi'({:.2f}) I find: "
+                         "{:+.16e} instead of {:+.16e}",
+                         f_tmp, phi_der, phi_num_der));
    }
 
    // SECTION: Done with checks, can initialize and return
 
-   SingleDiscretizationInfo info_radius(radius_inter, radius_g_size, false, radius_to_i_space, radius_to_i_space_der,
-                                        radius_to_p_space, radius_to_p_space_der);
+   SingleDiscretizationInfo info_radius(radius_inter, radius_g_size, false, radius_to_i_space,
+                                        radius_to_i_space_der, radius_to_p_space, radius_to_p_space_der);
 
    const std::vector<size_t> is_a(6, n_pts_for_angle_sector);
-   SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, is_a, true, angle_to_i_space, angle_to_i_space_der,
-                                       angle_to_p_space, angle_to_p_space_der);
+   SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, is_a, true, angle_to_i_space,
+                                       angle_to_i_space_der, angle_to_p_space, angle_to_p_space_der);
 
    return Grid2D(info_radius, info_angle);
 }
@@ -663,8 +687,6 @@ double Discretization1D::interpolate_as_weights(double x) const
 {
 
    const double r = _grid._d_info.to_inter_space(x);
-
-   long int index_li = 0;
 
    double res = 0;
 
