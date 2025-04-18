@@ -86,9 +86,14 @@ void evolve_chiral_even()
 
    const double Nc = 3; // NC = 1 for tests
 
-   const size_t n         = 6;
+   const size_t n         = 8;
    const double rmin      = 0.01;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {9, 9, 7});
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Total x123 size: {:d}x{:d}", grid.c_size, grid.c_size));
 
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Kernel Discretization"));
    begin = Honeycomb::timer::now();
@@ -126,10 +131,10 @@ void evolve_chiral_even()
 
    const double t0 = log(Q02);
 
-   auto [inter_scale, sol1]
-       = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.6129, 17.4724, 1.0e+6}, &discr, model);
    // auto [inter_scale, sol1]
-   //     = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.0e+5, 2.0e+5, 1.0e+6}, &discr, model);
+   //     = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.6129, 17.4724, 1.0e+6}, &discr, model);
+   auto [inter_scale, sol1]
+       = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.0e+5, 2.0e+5, 1.0e+6}, &discr, model);
 
    {
       std::FILE *fp_1 = std::fopen("CE_evo_check_evo_basis_initial.dat", "w");
@@ -166,7 +171,8 @@ void evolve_chiral_even()
 
    fnc_elapsed = 0;
    begin       = Honeycomb::timer::now();
-   evolver(inter_scale, 20);
+   // evolver(inter_scale, {10, 10, 40});
+   evolver(inter_scale, std::vector<size_t>{40});
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
 
@@ -186,26 +192,36 @@ void evolve_chiral_even()
 
    // auto sol_bnf = evolver_back.GetSolution();
 
-   Honeycomb::RnC::Pair rhophi_1_check = Honeycomb::RnC::from_x123_to_rhophi(-0.27, +0.35, -0.35 + 0.27);
-   Honeycomb::RnC::Pair rhophi_2_check = Honeycomb::RnC::from_x123_to_rhophi(+0.27, -0.35, +0.35 - 0.27);
-
    std::vector<Honeycomb::Solution *> sols{&sol1, &sol_fin};
 
    for (auto s : sols) {
-      Honeycomb::logger(
-          Honeycomb::Logger::WARNING,
-          std::format("{:.16e}", discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_p[2])
-                                     - discr.interpolate_as_weights_v3(rhophi_2_check, s->_distr_p[2])));
+      double m_symm = 0;
 
-      Honeycomb::logger(
-          Honeycomb::Logger::WARNING,
-          std::format("{:.16e}", discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_p[0])
-                                     + discr.interpolate_as_weights_v3(rhophi_2_check, s->_distr_p[0])));
+      for (Honeycomb::RnC::Triplet &x123 : honeycomb_points) {
 
-      Honeycomb::logger(
-          Honeycomb::Logger::WARNING,
-          std::format("{:.16e}", discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_p[1])
-                                     - discr.interpolate_as_weights_v3(rhophi_2_check, s->_distr_p[1])));
+         Honeycomb::RnC::Pair rhophi_1_check = Honeycomb::RnC::from_x123_to_rhophi(x123);
+         Honeycomb::RnC::Pair rhophi_2_check
+             = Honeycomb::RnC::from_x123_to_rhophi(-x123[0], -x123[1], -x123[2]);
+
+         // m_symm = std::max(m_symm, discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_p[0])
+         //                               + discr.interpolate_as_weights_v3(rhophi_2_check, s->_distr_p[0]));
+
+         // for (size_t k = 2; k < s->_distr_p.size(); k++) {
+         //    m_symm = std::max(m_symm, discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_p[k])
+         //                                  - discr.interpolate_as_weights_v3(rhophi_2_check,
+         //                                  s->_distr_p[k]));
+         // }
+
+         // m_symm = std::max(m_symm, discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_m[0])
+         //                               - discr.interpolate_as_weights_v3(rhophi_2_check,
+         //                               s->_distr_m[0]));
+
+         for (size_t k = 2; k < s->_distr_p.size(); k++) {
+            m_symm = std::max(m_symm, discr.interpolate_as_weights_v3(rhophi_1_check, s->_distr_m[k])
+                                          + discr.interpolate_as_weights_v3(rhophi_2_check, s->_distr_m[k]));
+         }
+      }
+      Honeycomb::logger(Honeycomb::Logger::WARNING, std::format("Max symmetry violation: {:.16e}", m_symm));
    }
 
    std::FILE *fp_3 = std::fopen("CE_evo_check_evo_basis.dat", "w");
@@ -336,7 +352,8 @@ void test_convolution()
 
    // const size_t n         = 13;
    // const double rmin      = 0.01;
-   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
+   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13,
+   // 11});
 
    double fnc_elapsed = 0;
    Honeycomb::logger(Honeycomb::Logger::INFO,
@@ -409,7 +426,8 @@ void evolve_chiral_odd()
 
    // const size_t n         = 13;
    // const double rmin      = 0.01;
-   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13, 11});
+   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.15, 0.65, 1}, {13, 13,
+   // 11});
 
    double fnc_elapsed = 0;
    Honeycomb::logger(Honeycomb::Logger::INFO,

@@ -101,34 +101,34 @@ void Kernels::ComputeKernels()
             size_t c_aP   = grid.c_get_flatten_index(c_jP, c_iP);
 
             // // NS
-            double res_plus_12  = Hplus12::integrate(c_a, aP, grid);
-            double res_plus_13  = Hplus13::integrate(c_a, aP, grid);
-            double res_minus_12 = Hminus12::integrate(c_a, aP, grid);
-            double res_he23p23  = He23P23::integrate(c_a, aP, grid);
+            const double res_plus_12  = Hplus12::integrate(c_a, aP, grid);
+            const double res_plus_13  = Hplus13::integrate(c_a, aP, grid);
+            const double res_minus_12 = Hminus12::integrate(c_a, aP, grid);
+            const double res_he23p23  = He23P23::integrate(c_a, aP, grid);
 
             // qq S => NO nf here, multipliead in the evolution
-            double res_d_13 = 4.0 * Hd13::integrate(c_a, aP, grid);
+            const double res_d_13 = 4.0 * Hd13::integrate(c_a, aP, grid);
 
             // GG
             // This is -4H^+ -2\tilde{H}^+
-            double res_plus_12_gg = HplusSum12GG::integrate(c_a, aP, grid);
-            double res_plus_13_gg = HplusSum13GG::integrate(c_a, aP, grid);
+            const double res_plus_12_gg = HplusSum12GG::integrate(c_a, aP, grid);
+            const double res_plus_13_gg = HplusSum13GG::integrate(c_a, aP, grid);
 
-            double res_minus_12_gg = Hminus12GG::integrate(c_a, aP, grid);
-            double res_minus_13_gg = Hminus13GG::integrate(c_a, aP, grid);
+            const double res_minus_12_gg = Hminus12GG::integrate(c_a, aP, grid);
+            const double res_minus_13_gg = Hminus13GG::integrate(c_a, aP, grid);
 
             // QG
-            double res_v_minus = Vminus13::integrate(c_a, aP, grid);
+            const double res_v_minus = Vminus13::integrate(c_a, aP, grid);
 
             // GQ
-            double res_w_plus     = Wplus13::integrate(c_a, aP, grid);
-            double res_w_plus_p23 = Wplus13P23::integrate(c_a, aP, grid);
+            const double res_w_plus     = Wplus13::integrate(c_a, aP, grid);
+            const double res_w_plus_p23 = Wplus13P23::integrate(c_a, aP, grid);
 
-            double res_w_minus     = Wminus13::integrate(c_a, aP, grid);
-            double res_w_minus_p23 = Wminus13P23::integrate(c_a, aP, grid);
+            const double res_w_minus     = Wminus13::integrate(c_a, aP, grid);
+            const double res_w_minus_p23 = Wminus13P23::integrate(c_a, aP, grid);
 
-            double res_dw     = DeltaW::integrate(c_a, aP, grid);
-            double res_dw_p23 = DeltaWP23::integrate(c_a, aP, grid);
+            const double res_dw     = DeltaW::integrate(c_a, aP, grid);
+            const double res_dw_p23 = DeltaWP23::integrate(c_a, aP, grid);
 
             lock.lock();
             H_NS(c_a, c_aP) += Nc * 2.0 * (-res_plus_12);

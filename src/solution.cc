@@ -117,8 +117,8 @@ void Solution::PushFlavor()
       h_p -= (i + 1) * _distr_p[2 + i];
       h_m -= (i + 1) * _distr_m[2 + i];
    }
-   _distr_p.push_back(h_p / norm);
-   _distr_m.push_back(h_m / norm);
+   _distr_p.push_back(h_p * norm);
+   _distr_m.push_back(h_m * norm);
 
    nf++;
 }
@@ -150,7 +150,7 @@ std::pair<Eigen::VectorXd, Eigen::VectorXd> Solution::PopFlavor()
 
    nf--;
 
-   return {h_p / norm, h_m / norm};
+   return {h_p * norm, h_m * norm};
 }
 
 // Runge-Kutta methods

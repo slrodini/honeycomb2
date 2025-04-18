@@ -10,6 +10,8 @@
 #include <vector>
 #include <array>
 
+#include <honeycomb2/utilities.hpp>
+
 namespace Honeycomb
 {
 namespace runge_kutta
@@ -167,6 +169,28 @@ public:
       // Remove callback at each step
       callback_each_step = false;
       for (const double &tf : thresholds) {
+         _dt = (tf - _t) / static_cast<double>(n_step);
+         for (size_t i = 0; i < n_step; i++)
+            (*this)();
+         if (std::fabs(_t - tf) > 1.0e-14) {
+            std::cerr << "RungeKutta Error: not reached the correct scale. This is a bug. Aborting\n";
+            exit(-1);
+         }
+         _t = tf; // Set exactly equal to threshold
+         _callback(tf, _kernel, _solution);
+      }
+   }
+
+   void operator()(std::vector<double> const &thresholds, std::vector<size_t> n_steps)
+   {
+      if (thresholds.size() != n_steps.size())
+         logger(Logger::ERROR, "runge_kutta operator(): thresholds and step count sizes do not match.");
+      // Remove callback at each step
+      callback_each_step = false;
+      for (size_t k = 0; k < n_steps.size(); k++) {
+         size_t n_step   = n_steps[k];
+         const double tf = thresholds[k];
+
          _dt = (tf - _t) / static_cast<double>(n_step);
          for (size_t i = 0; i < n_step; i++)
             (*this)();
