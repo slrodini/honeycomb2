@@ -131,10 +131,10 @@ void evolve_chiral_even()
 
    const double t0 = log(Q02);
 
-   // auto [inter_scale, sol1]
-   //     = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.6129, 17.4724, 1.0e+6}, &discr, model);
    auto [inter_scale, sol1]
-       = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.0e+5, 2.0e+5, 1.0e+6}, &discr, model);
+       = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.6129, 17.4724, 1.0e+6}, &discr, model);
+   // auto [inter_scale, sol1]
+   //     = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.0e+5, 2.0e+5, 1.0e+6}, &discr, model);
 
    {
       std::FILE *fp_1 = std::fopen("CE_evo_check_evo_basis_initial.dat", "w");
@@ -171,8 +171,8 @@ void evolve_chiral_even()
 
    fnc_elapsed = 0;
    begin       = Honeycomb::timer::now();
-   // evolver(inter_scale, {10, 10, 40});
-   evolver(inter_scale, std::vector<size_t>{40});
+   evolver(inter_scale, {10, 10, 40});
+   // evolver(inter_scale, std::vector<size_t>{40});
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
 

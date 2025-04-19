@@ -2,6 +2,7 @@
 #define KERNEL_FUNCTIONS_HPP
 
 #include <honeycomb2/discretization.hpp>
+#include <honeycomb2/utilities.hpp>
 
 namespace Honeycomb
 {

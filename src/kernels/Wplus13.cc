@@ -39,7 +39,7 @@ double Wplus13::integrate(size_t c_a, size_t aP, const Grid2D &g)
 
    double result = 0;
 
-   if (x1 >= 0 && vmin < 0) {
+   if (x1 > 0 && vmin < 0) {
       const double upper = std::min(0.0, vmax);
 
       result += integrator::integrate(th_x1_mv_integral, vmin, upper);
@@ -49,7 +49,7 @@ double Wplus13::integrate(size_t c_a, size_t aP, const Grid2D &g)
       result -= integrator::integrate(th_x1_mv_integral, lower, vmax); // ! note the - from the Theta
    }
 
-   if (x3 >= 0 && vmax > 0) {
+   if (x3 > 0 && vmax > 0) {
       const double lower = std::max(0.0, vmin);
 
       result += integrator::integrate(th_x3_pv_integral, lower, vmax);
@@ -94,7 +94,7 @@ double Wplus13P23::integrate(size_t c_a, size_t aP, const Grid2D &g)
 
    double result = 0;
 
-   if (x1 >= 0 && vmin < 0) {
+   if (x1 > 0 && vmin < 0) {
       const double upper = std::min(0.0, vmax);
 
       result += integrator::integrate(th_x1_mv_integral, vmin, upper);
@@ -104,7 +104,7 @@ double Wplus13P23::integrate(size_t c_a, size_t aP, const Grid2D &g)
       result -= integrator::integrate(th_x1_mv_integral, lower, vmax); // ! note the - from the Theta
    }
 
-   if (x2 >= 0 && vmax > 0) {
+   if (x2 > 0 && vmax > 0) {
       const double lower = std::max(0.0, vmin);
 
       result += integrator::integrate(th_x2_pv_integral, lower, vmax);

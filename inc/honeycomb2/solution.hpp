@@ -51,6 +51,7 @@ struct Solution {
    void _copy(const Solution &other);
    void _plus_eq(double x, const Solution &other);
    void _ker_mul(double pref, const Kernels &ker);
+   void _ker_mul_debug(double pref, const Kernels &ker);
 
 public:
    const Discretization *_discretization;

@@ -46,11 +46,18 @@ double Vplus13::subtracted_integrate(size_t c_a, size_t c_aP, const Grid2D &g)
       }
    }
 
+   // if (x1 == 0.0) {
+   //    return -2.0 * subtr / x3;
+   // }
+   // if (x3 == 0.0) {
+   //    return 2.0 * subtr / x1;
+   // }
+
    if (x1 == 0.0) {
-      return -2.0 * subtr / x3;
+      return -1.0 * subtr / x3;
    }
    if (x3 == 0.0) {
-      return 2.0 * subtr / x1;
+      return 1.0 * subtr / x1;
    }
 
    // If support is inverted, then we are outside of it, return 0
@@ -113,43 +120,44 @@ double Vplus13::subtracted_integrate(size_t c_a, size_t c_aP, const Grid2D &g)
    // Now, region by region:
    // First, Theta(x1, -v) = [ x1>=0 && v<=0 ] - [ x1<=0 && v>=0 ]
    // Kernel vanishes for x1=0, so loose inequalities suffice
-   if (x1 >= 0 && vmin < 0) {
+   if (x1 > 0 && vmin < 0) {
 
       const double upper  = std::min(0.0, vmax);
       result             += integrator::integrate(th_x1_mv_integral, vmin, upper);
 
       if (std::fabs(subtr - 1.0) < 1.0e-12) {
-         result +=
-             ((upper - vmin) * (x1 + x3)) / ((upper - x1) * (vmin - x1)) - 2 * log(-upper + x1) + 2 * log(-vmin + x1);
+         result += ((upper - vmin) * (x1 + x3)) / ((upper - x1) * (vmin - x1)) - 2 * log(-upper + x1)
+                 + 2 * log(-vmin + x1);
       }
    } else if (x1 < 0 && vmax > 0) {
 
-      const double lower  = std::max(0.0, vmin);
-      result             -= integrator::integrate(th_x1_mv_integral, lower, vmax); // ! note the - from the Theta
+      const double lower = std::max(0.0, vmin);
+      result -= integrator::integrate(th_x1_mv_integral, lower, vmax); // ! note the - from the Theta
 
       if (std::fabs(subtr - 1.0) < 1.0e-12) {
-         result +=
-             -(((lower - vmax) * (x1 + x3)) / ((lower - x1) * (-vmax + x1))) - 2 * log(lower - x1) + 2 * log(vmax - x1);
+         result += -(((lower - vmax) * (x1 + x3)) / ((lower - x1) * (-vmax + x1))) - 2 * log(lower - x1)
+                 + 2 * log(vmax - x1);
       }
    }
 
-   if (x3 >= 0 && vmax > 0) {
+   if (x3 > 0 && vmax > 0) {
 
       const double lower  = std::max(0.0, vmin);
       result             += integrator::integrate(th_x3_pv_integral, lower, vmax);
 
       if (std::fabs(subtr - 1.0) < 1.0e-12) {
-         result +=
-             ((lower - vmax) * (x1 + x3)) / ((lower + x3) * (vmax + x3)) + 2 * log(lower + x3) - 2 * log(vmax + x3);
+         result += ((lower - vmax) * (x1 + x3)) / ((lower + x3) * (vmax + x3)) + 2 * log(lower + x3)
+                 - 2 * log(vmax + x3);
       }
 
    } else if (x3 < 0 && vmin < 0) {
 
-      const double upper  = std::min(0.0, vmax);
-      result             -= integrator::integrate(th_x3_pv_integral, vmin, upper); // ! note the - from the Theta
+      const double upper = std::min(0.0, vmax);
+      result -= integrator::integrate(th_x3_pv_integral, vmin, upper); // ! note the - from the Theta
 
       if (std::fabs(subtr - 1.0) < 1.0e-12) {
-         result += ((upper - vmin) * (x1 + x3)) / ((upper + x3) * (vmin + x3)) + 2 * log((upper + x3) / (vmin + x3));
+         result += ((upper - vmin) * (x1 + x3)) / ((upper + x3) * (vmin + x3))
+                 + 2 * log((upper + x3) / (vmin + x3));
       }
    }
 

@@ -82,18 +82,18 @@ double Hhat13::subtracted_integrate(size_t c_a, size_t c_aP, const Grid2D &g)
       result             += integrator::integrate(th_x1_mv_integral, vmin, upper);
       if (std::fabs(subtr - 1.0) < 1.0e-12) result += log(1.0 - x1 / vmin);
    } else if (x1 < 0 && vmax > 0) {
-      const double lower  = std::max(0.0, vmin);
-      result             -= integrator::integrate(th_x1_mv_integral, lower, vmax); // ! note the - from the Theta
-      if (std::fabs(subtr - 1.0) < 1.0e-12) result += log(1.0 - x1 / vmax);        // Yes, it should be +log
+      const double lower = std::max(0.0, vmin);
+      result -= integrator::integrate(th_x1_mv_integral, lower, vmax);      // ! note the - from the Theta
+      if (std::fabs(subtr - 1.0) < 1.0e-12) result += log(1.0 - x1 / vmax); // Yes, it should be +log
    }
 
-   if (x3 >= 0 && vmax > 0) {
+   if (x3 > 0 && vmax > 0) {
       const double lower = std::max(0.0, vmin);
 
       result += integrator::integrate(th_x3_pv_integral, lower, vmax);
       if (std::fabs(subtr - 1.0) < 1.0e-12) result += log(1 + x3 / vmax);
 
-   } else if (x3 <= 0 && vmin < 0) {
+   } else if (x3 < 0 && vmin < 0) {
       const double upper = std::min(0.0, vmax);
 
       result -= integrator::integrate(th_x3_pv_integral, vmin, upper); // ! note the - from the Theta

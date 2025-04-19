@@ -1,5 +1,5 @@
 #include <honeycomb2/discretization.hpp>
-
+#include <honeycomb2/utilities.hpp>
 namespace
 {
 std::map<size_t, Honeycomb::StandardGrid> stored_grids;
@@ -297,10 +297,6 @@ Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretiz
          k++;
       }
    }
-
-   auto is_near = [](double a, double b) -> bool {
-      return std::fabs(a - b) < 1.0e-15;
-   };
 
    is_compliant = true;
    for (size_t a = 0; a < grid_angle._d_info.intervals.size(); a++) {

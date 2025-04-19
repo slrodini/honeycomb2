@@ -194,6 +194,30 @@ void Solution::_ker_mul(double pref, const Kernels &ker)
    _distr_m[1] = pref * (ker.H_NS * tmp_s - 3 * ker.CF * tmp_s + nf * ker.H_qg_m * tmp_g);
 }
 
+void Solution::_ker_mul_debug(double pref, const Kernels &ker)
+{
+   // TODO: implement S = pref * (ker * S);
+   for (size_t i = 2; i < _distr_p.size(); i++) {
+      _distr_p[i] = pref * (ker.H_NS * _distr_p[i] - 3 * ker.CF * _distr_p[i]);
+      _distr_m[i] = pref * (ker.H_NS * _distr_m[i] - 3 * ker.CF * _distr_m[i]);
+   }
+
+   const double beta0 = (11.0 * ker.Nc - 2.0 * nf) / 3.0;
+
+   Eigen::VectorXd tmp_g = _distr_p[0];
+   Eigen::VectorXd tmp_s = _distr_p[1];
+
+   _distr_p[0] = pref * (ker.H_gg_p * tmp_g - beta0 * tmp_g + ker.H_gq_p * tmp_s);
+   _distr_p[1] = pref * (nf * ker.H_qg_p * tmp_g);
+
+   tmp_g = _distr_m[0];
+   tmp_s = _distr_m[1];
+
+   _distr_m[0] = pref * (ker.H_gg_m * tmp_g - beta0 * tmp_g + ker.H_gq_m * tmp_s);
+   _distr_m[1] = pref * (nf * ker.H_qg_m * tmp_g);
+   // _distr_m[1] = pref * (ker.H_NS * tmp_s - 3 * ker.CF * tmp_s);
+}
+
 std::pair<std::vector<double>, Solution> get_initial_solution(double Q02, double Qf2,
                                                               const std::array<double, 6> &thresholds,
                                                               const Discretization *discretization,

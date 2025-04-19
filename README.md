@@ -3,6 +3,7 @@
 ## Bugs and status
 
 1. Fixed bug in PushFlavor, now there is still something wrong in the singlet on the line $x_1=0$
+   1. This is checked in the `convolution_check`, where already a single convolution with very trivial test functions show the problem. Fix, there was a factor 2 too much for $x_1=0 / x_3=0$ cases of Vplus13, derived from taking the sum of the two integrals from the thetas, without considering that I should use consistent $\theta$ definition (e.g. $\theta(0)=1/2$)
 
 ## Unsupported feature
 
