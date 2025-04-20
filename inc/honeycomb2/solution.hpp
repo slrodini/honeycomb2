@@ -51,7 +51,6 @@ struct Solution {
    void _copy(const Solution &other);
    void _plus_eq(double x, const Solution &other);
    void _ker_mul(double pref, const Kernels &ker);
-   void _ker_mul_debug(double pref, const Kernels &ker);
 
 public:
    const Discretization *_discretization;
@@ -66,6 +65,29 @@ public:
    std::vector<Eigen::VectorXd> _distr_m;
 };
 
+struct EvolutionOperatorFixedNf {
+
+   EvolutionOperatorFixedNf(const Grid2D *grid, size_t nf);
+   EvolutionOperatorFixedNf() : _grid(nullptr)
+   {
+   }
+
+   void PushFlavor();
+
+   // Runge-Kutta methods
+   void _copy(const EvolutionOperatorFixedNf &other);
+   void _plus_eq(double x, const EvolutionOperatorFixedNf &other);
+   void _ker_mul(double pref, const MergedKernelsFixedNf &ker);
+
+public:
+   const Grid2D *_grid;
+
+   size_t nf;
+
+   Eigen::MatrixXd NS_P, S_P;
+   Eigen::MatrixXd NS_M, S_M;
+};
+
 // Thresholds in \mu^2
 // returns vetor of intermediate scales between Q0 and Qf as
 // {log(\mu_1^2), ..., \log(Qf^2)}. Q0 is not in the vector!
@@ -74,6 +96,7 @@ std::pair<std::vector<double>, Solution> get_initial_solution(double Q02, double
                                                               const Discretization *discretization,
                                                               const InputModel &models);
 
+void ApplyEvolutionOperator(Solution &sol, const EvolutionOperatorFixedNf &O);
 } // namespace Honeycomb
 
 #endif // SOLUTION_HPP

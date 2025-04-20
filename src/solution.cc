@@ -1,6 +1,12 @@
+#include "honeycomb2/thread_pool.hpp"
 #include "honeycomb2/utilities.hpp"
 #include <honeycomb2/solution.hpp>
 #include <Eigen/Core>
+
+namespace
+{
+Honeycomb::ThreadPool global_pool(6);
+}
 
 namespace Honeycomb
 {
@@ -194,30 +200,6 @@ void Solution::_ker_mul(double pref, const Kernels &ker)
    _distr_m[1] = pref * (ker.H_NS * tmp_s - 3 * ker.CF * tmp_s + nf * ker.H_qg_m * tmp_g);
 }
 
-void Solution::_ker_mul_debug(double pref, const Kernels &ker)
-{
-   // TODO: implement S = pref * (ker * S);
-   for (size_t i = 2; i < _distr_p.size(); i++) {
-      _distr_p[i] = pref * (ker.H_NS * _distr_p[i] - 3 * ker.CF * _distr_p[i]);
-      _distr_m[i] = pref * (ker.H_NS * _distr_m[i] - 3 * ker.CF * _distr_m[i]);
-   }
-
-   const double beta0 = (11.0 * ker.Nc - 2.0 * nf) / 3.0;
-
-   Eigen::VectorXd tmp_g = _distr_p[0];
-   Eigen::VectorXd tmp_s = _distr_p[1];
-
-   _distr_p[0] = pref * (ker.H_gg_p * tmp_g - beta0 * tmp_g + ker.H_gq_p * tmp_s);
-   _distr_p[1] = pref * (nf * ker.H_qg_p * tmp_g);
-
-   tmp_g = _distr_m[0];
-   tmp_s = _distr_m[1];
-
-   _distr_m[0] = pref * (ker.H_gg_m * tmp_g - beta0 * tmp_g + ker.H_gq_m * tmp_s);
-   _distr_m[1] = pref * (nf * ker.H_qg_m * tmp_g);
-   // _distr_m[1] = pref * (ker.H_NS * tmp_s - 3 * ker.CF * tmp_s);
-}
-
 std::pair<std::vector<double>, Solution> get_initial_solution(double Q02, double Qf2,
                                                               const std::array<double, 6> &thresholds,
                                                               const Discretization *discretization,
@@ -320,6 +302,76 @@ void Solution::RotateToEvolutionBasis()
    _distr_p    = tmp_p;
    _distr_m    = tmp_m;
    _curr_basis = EVO;
+}
+
+EvolutionOperatorFixedNf::EvolutionOperatorFixedNf(const Grid2D *grid, size_t _nf) : _grid(grid), nf(_nf)
+{
+   NS_P = Eigen::MatrixXd::Identity(grid->c_size_li, grid->c_size_li);
+   NS_M = Eigen::MatrixXd::Identity(grid->c_size_li, grid->c_size_li);
+
+   S_P = Eigen::MatrixXd::Identity(2 * grid->c_size_li, 2 * grid->c_size_li);
+   S_M = Eigen::MatrixXd::Identity(2 * grid->c_size_li, 2 * grid->c_size_li);
+}
+
+void EvolutionOperatorFixedNf::_copy(const EvolutionOperatorFixedNf &other)
+{
+   NS_P = other.NS_P;
+   NS_M = other.NS_M;
+   S_P  = other.S_P;
+   S_M  = other.S_M;
+}
+
+void EvolutionOperatorFixedNf::_plus_eq(double x, const EvolutionOperatorFixedNf &other)
+{
+   NS_P += x * other.NS_P;
+   NS_M += x * other.NS_M;
+   S_P  += x * other.S_P;
+   S_M  += x * other.S_M;
+}
+
+void EvolutionOperatorFixedNf::_ker_mul(double pref, const MergedKernelsFixedNf &ker)
+{
+   NS_P = pref * (ker.H_NS * NS_P);
+   NS_M = pref * (ker.H_NS * NS_M);
+
+   S_P = pref * (ker.H_S_P * S_P);
+   S_M = pref * (ker.H_S_M * S_M);
+}
+
+void ApplyEvolutionOperator(Solution &sol, const EvolutionOperatorFixedNf &O)
+{
+   if (sol.nf != O.nf) {
+      logger(Logger::ERROR, std::format("ApplyEvolutionOperator: incompatible nf between Solution ({:d}) and "
+                                        "Evolution Operator ({:d}).",
+                                        sol.nf, O.nf));
+   }
+
+   for (size_t i = 2; i < sol._distr_p.size(); i++) {
+      sol._distr_p[i] = O.NS_P * sol._distr_p[i];
+      sol._distr_m[i] = O.NS_M * sol._distr_m[i];
+   }
+
+   const long int r      = sol._distr_p[0].size();
+   Eigen::VectorXd tmp_p = Eigen::VectorXd::Zero(r * 2);
+   Eigen::VectorXd tmp_m = Eigen::VectorXd::Zero(r * 2);
+
+   for (long int i = 0; i < r; i++) {
+      tmp_p(i)     = sol._distr_p[0](i);
+      tmp_p(i + r) = sol._distr_p[1](i);
+
+      tmp_m(i)     = sol._distr_m[0](i);
+      tmp_m(i + r) = sol._distr_m[1](i);
+   }
+
+   tmp_p = O.S_P * tmp_p;
+   tmp_m = O.S_M * tmp_m;
+
+   for (long int i = 0; i < r; i++) {
+      sol._distr_p[0](i) = tmp_p(i);
+      sol._distr_p[1](i) = tmp_p(i + r);
+      sol._distr_m[0](i) = tmp_m(i);
+      sol._distr_m[1](i) = tmp_m(i + r);
+   }
 }
 
 } // namespace Honeycomb

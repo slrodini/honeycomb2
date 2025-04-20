@@ -107,6 +107,15 @@ struct Kernels {
    }
 };
 
+struct MergedKernelsFixedNf {
+   MergedKernelsFixedNf(const Kernels &ker, size_t nf);
+
+   size_t nf;
+   double beta0;
+   Eigen::MatrixXd H_NS;
+   Eigen::MatrixXd H_S_P, H_S_M;
+};
+
 // The Chiral-Odd case is special, no need to keep track of anything but the kernel matrix itself
 // So, I have specialized function to compute it
 Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc);

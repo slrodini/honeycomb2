@@ -189,4 +189,39 @@ void Kernels::ComputeKernels()
    th_pool.WaitOnJobs();
 }
 
+MergedKernelsFixedNf::MergedKernelsFixedNf(const Kernels &ker, size_t _nf)
+    : nf(_nf), beta0((11.0 * ker.Nc - 2.0 * nf) / 3.0)
+{
+   H_NS = ker.H_NS - 3 * ker.CF * Eigen::MatrixXd::Identity(ker.H_NS.rows(), ker.H_NS.cols());
+
+   // GG GQ
+   // QG QQ
+   H_S_P = Eigen::MatrixXd::Zero(ker.H_NS.rows() * 2, ker.H_NS.cols() * 2);
+   H_S_M = Eigen::MatrixXd::Zero(ker.H_NS.rows() * 2, ker.H_NS.cols() * 2);
+
+   const long int r = ker.H_NS.rows();
+   const long int c = ker.H_NS.cols();
+
+   for (long int i = 0; i < r; i++) {
+      for (long int j = 0; j < c; j++) {
+         H_S_P(i, j) = ker.H_gg_p(i, j);
+         H_S_M(i, j) = ker.H_gg_m(i, j);
+
+         H_S_P(i + r, j + c) = H_NS(i, j) + nf * ker.H_d13(i, j);
+         H_S_M(i + r, j + c) = H_NS(i, j);
+
+         H_S_P(i, j + c) = ker.H_gq_p(i, j);
+         H_S_M(i, j + c) = ker.H_gq_m(i, j);
+
+         H_S_P(i + r, j) = ker.H_qg_p(i, j);
+         H_S_M(i + r, j) = ker.H_qg_m(i, j);
+
+         if (i == j) {
+            H_S_P(i, j) -= beta0;
+            H_S_M(i, j) -= beta0;
+         }
+      }
+   }
+}
+
 } // namespace Honeycomb

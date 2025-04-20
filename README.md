@@ -2,8 +2,8 @@
 
 ## Bugs and status
 
-1. Fixed bug in PushFlavor, now there is still something wrong in the singlet on the line $x_1=0$
-   1. This is checked in the `convolution_check`, where already a single convolution with very trivial test functions show the problem. Fix, there was a factor 2 too much for $x_1=0 / x_3=0$ cases of Vplus13, derived from taking the sum of the two integrals from the thetas, without considering that I should use consistent $\theta$ definition (e.g. $\theta(0)=1/2$)
+1. At the moment I added Evolution Operator for fix nf. Next step is to have a collection of these that evolves from initial scale to first heavy quark, from first heavy quark to the second etc until final scale. Next to next step is store these for each RungeKutta step and build interpolation table, so that I can decide on the grid once, precompute all evolution operators on the Q grid and then use them.
+2. The gluon plus has some weird ridges, present in both current code and old code equally. They are present along each of the three $x_i=0$ lines, but evident only if zoomed in, if zoomed out they are very difficult to see. To be investigated
 
 ## Unsupported feature
 
