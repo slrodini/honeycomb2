@@ -1,5 +1,6 @@
 #include <honeycomb2/honeycomb2.hpp>
-#include "honeycomb2/solution.hpp"
+#include <honeycomb2/solution.hpp>
+#include "honeycomb2/utilities.hpp"
 #include "honeycomb_120_25_grid_points.hpp"
 #include <cereal/archives/json.hpp>
 
@@ -131,8 +132,9 @@ void evolve_chiral_even()
 
    const double t0 = log(Q02);
 
-   auto [inter_scale, sol1]
-       = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.6129, 17.4724, 1.0e+6}, &discr, model);
+   std::array<double, 6> thresholds = {0, 0, 0, 1.6129, 17.4724, 1.0e+6};
+
+   auto [inter_scale, sol1] = get_initial_solution(Q02, Qf2, thresholds, &discr, model);
    // auto [inter_scale, sol1]
    //     = get_initial_solution(Q02, Qf2, {0, 0, 0, 1.0e+5, 2.0e+5, 1.0e+6}, &discr, model);
 
@@ -176,9 +178,28 @@ void evolve_chiral_even()
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
 
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("  Elapsed: {:.4e} (ms)", fnc_elapsed));
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("  Normal Evolution Elapsed: {:.4e} (ms)", fnc_elapsed));
 
    auto sol_fin = evolver.GetSolution();
+
+   begin             = Honeycomb::timer::now();
+   auto sol_new_evol = Honeycomb::evolve_solution(kers, Q02, Qf2, thresholds, &discr, model, as);
+   end               = Honeycomb::timer::now();
+   fnc_elapsed       = Honeycomb::timer::elapsed_ms(end, begin);
+
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("  Improved Evolution Elapsed: {:.4e} (ms)", fnc_elapsed));
+
+   double evol_diff = 0;
+   for (size_t k = 0; k < sol_fin._distr_p.size(); k++) {
+      for (long int i = 0; i < sol_fin._distr_p[k].size(); i++) {
+         evol_diff = std::max(evol_diff, std::fabs(sol_fin._distr_p[k](i) - sol_new_evol._distr_p[k](i)));
+         evol_diff = std::max(evol_diff, std::fabs(sol_fin._distr_m[k](i) - sol_new_evol._distr_m[k](i)));
+      }
+   }
+   Honeycomb::logger(Honeycomb::Logger::WARNING,
+                     std::format("Max difference between evolustion strategies: {:10e}", evol_diff));
 
    // auto callback_rev = [&back_scales](double t, const Honeycomb::Kernels &, Honeycomb::Solution &S) {
    //    if (t == back_scales.back()) return;

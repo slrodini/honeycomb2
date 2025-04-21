@@ -97,6 +97,11 @@ std::pair<std::vector<double>, Solution> get_initial_solution(double Q02, double
                                                               const InputModel &models);
 
 void ApplyEvolutionOperator(Solution &sol, const EvolutionOperatorFixedNf &O);
+
+Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std::array<double, 6> &thresholds,
+                         const Discretization *discretization, const InputModel &models,
+                         std::function<double(double)> as);
+
 } // namespace Honeycomb
 
 #endif // SOLUTION_HPP

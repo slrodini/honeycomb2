@@ -1,6 +1,7 @@
 #include "honeycomb2/thread_pool.hpp"
 #include "honeycomb2/utilities.hpp"
 #include <honeycomb2/solution.hpp>
+#include <honeycomb2/runge_kutta.hpp>
 #include <Eigen/Core>
 
 namespace
@@ -378,6 +379,94 @@ void ApplyEvolutionOperator(Solution &sol, const EvolutionOperatorFixedNf &O)
       sol._distr_m[0](i) = tmp_m(i);
       sol._distr_m[1](i) = tmp_m(i + r);
    }
+}
+
+Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std::array<double, 6> &thresholds,
+                         const Discretization *discretization, const InputModel &models,
+                         std::function<double(double)> as)
+{
+   auto [inter_scales, sol0] = get_initial_solution(Q02, Qf2, thresholds, discretization, models);
+
+   const long int r = sol0._distr_p[0].size();
+
+   inter_scales.insert(inter_scales.begin(), log(Q02));
+
+   size_t nf_fin = 0;
+   size_t nf_in  = 0;
+   for (size_t i = 0; i < thresholds.size(); i++) {
+      if (thresholds[i] <= Qf2) {
+         nf_fin++;
+      }
+
+      if (thresholds[i] <= Q02) {
+         nf_in++;
+      }
+   }
+
+   logger(Logger::INFO, std::format("nf in {:d}, nf end {:d}", nf_in, nf_fin));
+
+   std::vector<MergedKernelsFixedNf> nf_kers;
+   for (size_t nf = nf_in; nf <= nf_fin; nf++) {
+      nf_kers.emplace_back(MergedKernelsFixedNf(kers, nf));
+   }
+   std::vector<size_t> n_steps = {20};
+
+   for (size_t i = 0; i < inter_scales.size() - 1; i++) {
+
+      // Non-singlets
+      for (size_t j = 2; j < sol0._distr_p.size(); j++) {
+         global_pool.AddTask([&, j]() {
+            runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
+                nf_kers[i].H_NS, sol0._distr_p[j], Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
+                0.01);
+            evolver_p({inter_scales[i + 1]}, n_steps);
+            sol0._distr_p[j] = evolver_p.GetSolution();
+         });
+
+         global_pool.AddTask([&, j]() {
+            runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
+                nf_kers[i].H_NS, sol0._distr_m[j], Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
+                0.01);
+            evolver_m({inter_scales[i + 1]}, n_steps);
+            sol0._distr_m[j] = evolver_m.GetSolution();
+         });
+      }
+
+      global_pool.AddTask([&]() {
+         Eigen::VectorXd tmp_p = Eigen::VectorXd::Zero(r * 2);
+         Eigen::VectorXd tmp_m = Eigen::VectorXd::Zero(r * 2);
+
+         for (long int k = 0; k < r; k++) {
+            tmp_p(k)     = sol0._distr_p[0](k);
+            tmp_p(k + r) = sol0._distr_p[1](k);
+
+            tmp_m(k)     = sol0._distr_m[0](k);
+            tmp_m(k + r) = sol0._distr_m[1](k);
+         }
+
+         runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
+             nf_kers[i].H_S_P, tmp_p, Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
+         evolver_p({inter_scales[i + 1]}, n_steps);
+         tmp_p = evolver_p.GetSolution();
+
+         runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
+             nf_kers[i].H_S_M, tmp_m, Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
+         evolver_m({inter_scales[i + 1]}, n_steps);
+         tmp_m = evolver_m.GetSolution();
+
+         for (long int k = 0; k < r; k++) {
+            sol0._distr_p[0](k) = tmp_p(k);
+            sol0._distr_p[1](k) = tmp_p(k + r);
+            sol0._distr_m[0](k) = tmp_m(k);
+            sol0._distr_m[1](k) = tmp_m(k + r);
+         }
+      });
+      global_pool.WaitOnJobs();
+
+      if (i != inter_scales.size() - 2) sol0.PushFlavor();
+   }
+
+   return sol0;
 }
 
 } // namespace Honeycomb

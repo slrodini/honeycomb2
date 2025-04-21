@@ -213,8 +213,8 @@ MergedKernelsFixedNf::MergedKernelsFixedNf(const Kernels &ker, size_t _nf)
          H_S_P(i, j + c) = ker.H_gq_p(i, j);
          H_S_M(i, j + c) = ker.H_gq_m(i, j);
 
-         H_S_P(i + r, j) = ker.H_qg_p(i, j);
-         H_S_M(i + r, j) = ker.H_qg_m(i, j);
+         H_S_P(i + r, j) = nf * ker.H_qg_p(i, j);
+         H_S_M(i + r, j) = nf * ker.H_qg_m(i, j);
 
          if (i == j) {
             H_S_P(i, j) -= beta0;

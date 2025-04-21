@@ -21,22 +21,30 @@ int main()
    //
    const double rmin = 0.01;
 
-   Honeycomb::Grid2D grid_1 = Honeycomb::generate_compliant_Grid2D(2, {rmin, 0.4, 1}, {6, 6});
-   print_grid_dim(grid_1);
+   // Honeycomb::Grid2D grid_1 = Honeycomb::generate_compliant_Grid2D(2, {rmin, 0.4, 1}, {6, 6});
+   // print_grid_dim(grid_1);
 
-   Honeycomb::Grid2D grid_2 = Honeycomb::generate_compliant_Grid2D(4, {rmin, 0.4, 1}, {10, 10});
-   print_grid_dim(grid_2);
+   // Honeycomb::Grid2D grid_2 = Honeycomb::generate_compliant_Grid2D(4, {rmin, 0.4, 1}, {10, 10});
+   // print_grid_dim(grid_2);
 
-   Honeycomb::Grid2D grid_3 = Honeycomb::generate_compliant_Grid2D(4, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
-   print_grid_dim(grid_3);
+   // Honeycomb::Grid2D grid_3 = Honeycomb::generate_compliant_Grid2D(4, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+   // print_grid_dim(grid_3);
 
-   Honeycomb::Grid2D grid_4 = Honeycomb::generate_compliant_Grid2D(8, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
-   print_grid_dim(grid_4);
+   // Honeycomb::Grid2D grid_4 = Honeycomb::generate_compliant_Grid2D(8, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+   // print_grid_dim(grid_4);
 
-   compute_one_grid(grid_1, "g2_grid_1.dat");
-   compute_one_grid(grid_2, "g2_grid_2.dat");
-   compute_one_grid(grid_3, "g2_grid_3.dat");
-   compute_one_grid(grid_4, "g2_grid_4.dat");
+   // Honeycomb::Grid2D grid_5 = Honeycomb::generate_compliant_Grid2D(20, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+   // print_grid_dim(grid_5);
+
+   Honeycomb::Grid2D grid_6 = Honeycomb::generate_compliant_Grid2D(8, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+   print_grid_dim(grid_6);
+
+   // compute_one_grid(grid_1, "g2_grid_1.dat");
+   // compute_one_grid(grid_2, "g2_grid_2.dat");
+   // compute_one_grid(grid_3, "g2_grid_3.dat");
+   // compute_one_grid(grid_4, "g2_grid_4.dat");
+   // compute_one_grid(grid_5, "g2_grid_5.dat");
+   compute_one_grid(grid_6, "g2_grid_6.dat");
 
    return 0;
 }
