@@ -666,20 +666,20 @@ Grid2D generate_compliant_Grid2D(
 //========================================================
 //========================================================
 
-Discretization1D::Discretization1D(const Grid &grid, std::function<double(double)> const &function)
-    : _grid(grid), size(grid.size), size_li(grid.size_li), _fj(grid.c_size)
+Discretization1D::Discretization1D(const Grid &grid) : _grid(grid)
 {
-   // long int index_li = 0;
-   // for (size_t k = 0; k < grid.c_size; k++) {
-   //    _fj(index_li++) = function(grid._coord[k]);
-   // }
-
-   for (size_t k = 0; k < grid.size; k++) {
-      _fj(_grid._from_iw_to_ic[k]) = function(grid._coord[_grid._from_iw_to_ic[k]]);
-   }
 }
 
-double Discretization1D::interpolate_as_weights(double x) const
+Eigen::VectorXd Discretization1D::operator()(std::function<double(double)> const &function) const
+{
+   Eigen::VectorXd _fj = Eigen::VectorXd::Zero(_grid.c_size_li);
+   for (size_t k = 0; k < _grid.size; k++) {
+      _fj(_grid._from_iw_to_ic[k]) = function(_grid._coord[_grid._from_iw_to_ic[k]]);
+   }
+   return _fj;
+}
+
+double Discretization1D::interpolate_as_weights(double x, const Eigen::VectorXd &_fj) const
 {
 
    const double r = _grid._d_info.to_inter_space(x);
@@ -687,7 +687,26 @@ double Discretization1D::interpolate_as_weights(double x) const
    double res = 0;
 
    for (size_t k = 0; k < _grid.size; k++) {
+      auto supp = _grid.get_support_weight_aj(k);
+      if (r < supp.first || r > supp.second) continue;
       res += _fj(_grid._from_iw_to_ic[k]) * _grid._weights[k](r);
+   }
+
+   return res;
+}
+
+double Discretization1D::interpolate_der_as_weights(double x, const Eigen::VectorXd &_fj) const
+{
+
+   const double r = _grid._d_info.to_inter_space(x);
+
+   double res = 0;
+
+   for (size_t k = 0; k < _grid.size; k++) {
+      auto supp = _grid.get_support_weight_aj(k);
+      if (r < supp.first || r > supp.second) continue;
+
+      res += _fj(_grid._from_iw_to_ic[k]) * _grid._weights_der[k](r) * _grid._d_info.to_inter_space_der(x);
    }
 
    return res;

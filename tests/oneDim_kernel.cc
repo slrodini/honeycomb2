@@ -10,7 +10,8 @@ int main()
    using integrator = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
 
    Honeycomb::Grid grid({{0.01, 0.15, 1.0}, {10, 10}});
-   Honeycomb::Discretization1D discr(grid, test);
+   Honeycomb::Discretization1D discr(grid);
+   Eigen::VectorXd _fj = discr(test);
 
    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(grid.c_size, grid.c_size);
 
@@ -34,7 +35,7 @@ int main()
       }
    }
 
-   Eigen::VectorXd fj2 = H * discr._fj;
+   Eigen::VectorXd fj2 = H * _fj;
 
    std::FILE *fp = fopen("Monodim.dat", "w");
    for (long int i = 0; i < grid.c_size_li; i++) {

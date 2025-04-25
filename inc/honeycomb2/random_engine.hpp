@@ -19,8 +19,9 @@ inline void seed_random_engine(uint32_t seed)
 
 double random_uniform();
 double random_uniform(double low, double high);
+std::vector<double> random_uniform(size_t n, double low, double high);
 double random_normal();
-std::vector<double> random_normal(size_t n);
+std::vector<double> random_normal(size_t n, double mu = 0, double sigma = 1);
 
 } // namespace Random
 } // namespace Honeycomb

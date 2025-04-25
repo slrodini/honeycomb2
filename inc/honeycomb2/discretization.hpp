@@ -425,20 +425,19 @@ generate_compliant_Grid2D(size_t n_pts_for_angle_sector, std::vector<double> rad
 // TODO: Legacy stuff, will be removed later.
 struct Discretization1D {
 public:
-   Discretization1D(const Grid &grid, std::function<double(double)> const &function);
+   Discretization1D(const Grid &grid);
 
-   double interpolate_as_weights(double x) const;
-
-   double operator()(double x) const
+   Eigen::VectorXd discretize(const std::function<double(double)> &function) const
    {
-      return interpolate_as_weights(x);
+      return this->operator()(function);
    }
 
-   const Grid &_grid;
+   double interpolate_as_weights(double x, const Eigen::VectorXd &_fj) const;
+   double interpolate_der_as_weights(double x, const Eigen::VectorXd &_fj) const;
 
-   size_t size; // Global flatten size
-   long int size_li;
-   Eigen::VectorXd _fj;
+   Eigen::VectorXd operator()(const std::function<double(double)> &function) const;
+
+   const Grid &_grid;
 };
 
 } // namespace Honeycomb

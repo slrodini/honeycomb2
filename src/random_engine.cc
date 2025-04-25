@@ -6,8 +6,8 @@ namespace Random
 {
 std::shared_ptr<RandomEngine> get_random_engine(uint32_t seed)
 {
-   static std::shared_ptr<Honeycomb::Random::RandomEngine> engine =
-       std::make_shared<Honeycomb::Random::RandomEngine>(seed);
+   static std::shared_ptr<Honeycomb::Random::RandomEngine> engine
+       = std::make_shared<Honeycomb::Random::RandomEngine>(seed);
    return engine;
 }
 
@@ -22,17 +22,25 @@ double random_uniform(double low, double high)
    return (high - low) * random_uniform() + low;
 }
 
+std::vector<double> random_uniform(size_t n, double low, double high)
+{
+   std::vector<double> res(n, 0);
+   for (double &v : res)
+      v = random_uniform(low, high);
+   return res;
+}
+
 double random_normal()
 {
    std::normal_distribution<double> dist(0.0, 1.0);
    return dist(*get_random_engine());
 }
 
-std::vector<double> random_normal(size_t n)
+std::vector<double> random_normal(size_t n, double mu, double sigma)
 {
    std::vector<double> res(n, 0);
    for (double &v : res)
-      v = random_normal();
+      v = mu + sigma * random_normal();
    return res;
 }
 } // namespace Random
