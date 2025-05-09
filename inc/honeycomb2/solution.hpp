@@ -4,7 +4,7 @@
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/kernels.hpp>
 #include <honeycomb2/discretization.hpp>
-#include <Eigen/Core>
+#include <honeycomb2/Eigen/Core>
 
 namespace Honeycomb
 {

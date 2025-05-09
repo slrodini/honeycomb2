@@ -109,6 +109,7 @@ double StandardGrid::poli_weight_der(double t, size_t j) const
    }
    double res = 0;
    for (size_t i = 0; i <= _N; i++) {
+      if (fabs(t - _tj[i]) < 1.0e-15) return _Dij[i][j]; // MOD:
       res += poli_weight(t, i) * _Dij[i][j];
    }
    return res;

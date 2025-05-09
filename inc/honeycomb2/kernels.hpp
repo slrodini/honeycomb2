@@ -6,7 +6,7 @@
 #include <honeycomb2/kernel_functions.hpp>
 #include <honeycomb2/cereal_extension.hpp>
 
-#include <Eigen/Core>
+#include <honeycomb2/Eigen/Core>
 
 namespace Honeycomb
 {
@@ -17,6 +17,7 @@ concept Arithmetic = std::is_arithmetic_v<T>;
 struct Kernels {
 
    Kernels(const Grid2D &g, double _Nc, bool to_compute = true);
+
    void ComputeKernels();
 
    const Grid2D &grid;

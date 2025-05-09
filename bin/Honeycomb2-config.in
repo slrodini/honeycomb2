@@ -27,14 +27,14 @@ test -n "$tmp" && OUT="$OUT @prefix@"
 tmp=$(echo "$*" | egrep -- '--\<incdir\>')
 test -n "$tmp" && OUT="$OUT @includedir@"
 
-tmp=$(echo "$*" | egrep -- '--\<cflags\>')
-test -n "$tmp" && OUT="$OUT -I@includedir@"
-
 tmp=$(echo "$*" | egrep -- '--\<libdir\>')
 test -n "$tmp" && OUT="$OUT @libdir@"
 
 tmp=$(echo "$*" | egrep -- '--\<ldflags\>')
-test -n "$tmp" && OUT="$OUT -L@libdir@ -lHoneycomb"
+test -n "$tmp" && OUT="$OUT -L@libdir@ -lHoneycomb2"
+
+tmp=$(echo "$*" | egrep -- '--\<cppflags\>')
+test -n "$tmp" && OUT="$OUT @cflags@"
 
 ## Version
 tmp=$(echo "$*" | egrep -- '--\<version\>')

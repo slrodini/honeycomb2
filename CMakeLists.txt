@@ -3,9 +3,10 @@ cmake_minimum_required(VERSION 3.20)
 # ============================
 # SETUP
 # ============================
-set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "" CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
+set(CMAKE_CXX_FLAGS_DEBUG "")
+set(CMAKE_CXX_FLAGS "")
 
 project(Honeycomb2 CXX)
 
@@ -22,7 +23,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-   add_compile_options(
+   set(HONEYCOMB2_CXX_FLAGS
       -Wall -Wextra -Werror
       -fPIC
       -O3
@@ -30,9 +31,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
       -march=native
       -funroll-loops
    )
+   add_compile_options(${HONEYCOMB2_CXX_FLAGS})
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-   add_compile_options(
+   set(HONEYCOMB2_CXX_FLAGS
       -Wall -Wextra -Wpedantic -Werror
       -fPIC
       -O2
@@ -41,12 +43,15 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
       -march=native
       -funroll-loops
    )
+   add_compile_options(${HONEYCOMB2_CXX_FLAGS})
+
    set(SANITIZER_FLAGS "-fsanitize=address,undefined,alignment,bounds,null,vptr")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
+   set(HONEYCOMB2_CXX_FLAGS "${HONEYCOMB2_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
    link_libraries(${SANITIZER_FLAGS})
 
 else()
-   add_compile_options(
+   set(HONEYCOMB2_CXX_FLAGS
       -Wall -Wextra -Werror -Wpedantic
       -fPIC
       -O0
@@ -57,18 +62,22 @@ else()
    )
    set(SANITIZER_FLAGS "-fsanitize=address,undefined,alignment,bounds,null,vptr")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
+   set(HONEYCOMB2_CXX_FLAGS "${HONEYCOMB2_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
    link_libraries(${SANITIZER_FLAGS})
+   add_compile_options(${HONEYCOMB2_CXX_FLAGS})
 endif()
 
 # # -flto causes problems with YAML-CPP
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
       # x86-specific compiler flags
+      list(APPEND HONEYCOMB2_CXX_FLAGS -mfpmath=sse -msse2)
       add_compile_options(-mfpmath=sse -msse2)
       message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
       # ARM-specific compiler flags
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
+      list(APPEND HONEYCOMB2_CXX_FLAGS -mcpu=native -mtune=native)
+      add_compile_options(-mcpu=native -mtune=native)
 
       message(STATUS "CPU architecture is one of: arm64|aarch64")
    else()
@@ -119,7 +128,8 @@ configure_file("${PROJECT_SOURCE_DIR}/inc/honeycomb2/version.hpp.in" "${PROJECT_
 set(prefix ${CMAKE_INSTALL_PREFIX})
 set(includedir "${prefix}/include")
 set(libdir "${prefix}/lib")
-set(cflags "-I${prefix}/include")
+string(JOIN " " HONEYCOMB2_CXX_FLAGS_STR ${HONEYCOMB2_CXX_FLAGS})
+set(cflags "-I${prefix}/include -std=c++20 ${HONEYCOMB2_CXX_FLAGS_STR}")
 set(ldflags "-L${prefix}/lib -lHoneycomb2")
 
 configure_file("${PROJECT_SOURCE_DIR}/bin/Honeycomb2-config.in" "${PROJECT_BINARY_DIR}/bin/Honeycomb2-config")

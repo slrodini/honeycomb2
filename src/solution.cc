@@ -1,8 +1,8 @@
-#include "honeycomb2/thread_pool.hpp"
-#include "honeycomb2/utilities.hpp"
+#include <honeycomb2/thread_pool.hpp>
+#include <honeycomb2/utilities.hpp>
 #include <honeycomb2/solution.hpp>
 #include <honeycomb2/runge_kutta.hpp>
-#include <Eigen/Core>
+#include <honeycomb2/Eigen/Core>
 
 namespace
 {
