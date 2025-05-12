@@ -13,9 +13,10 @@ G2Weights::G2Weights(double _xBj, const Grid2D &_grid, double int_e_r, double in
       logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
                             "generated via `generate_compliant_Grid2D`.");
    }
-   using integrator = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
-
-   ThreadPool th(10);
+   using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
+   unsigned int num_av_threads = std::thread::hardware_concurrency();
+   unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
+   ThreadPool th(num_threads);
 
    std::mutex done_mutex;
 

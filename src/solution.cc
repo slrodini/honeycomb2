@@ -6,8 +6,10 @@
 
 namespace
 {
-Honeycomb::ThreadPool global_pool(6);
-}
+unsigned int _private_num_av_threads = std::thread::hardware_concurrency();
+unsigned int _private_num_threads    = _private_num_av_threads <= 2 ? 1 : _private_num_av_threads - 2;
+Honeycomb::ThreadPool global_pool(_private_num_threads);
+} // namespace
 
 namespace Honeycomb
 {

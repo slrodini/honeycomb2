@@ -87,9 +87,9 @@ void evolve_chiral_even()
 
    const double Nc = 3; // NC = 1 for tests
 
-   const size_t n         = 8;
+   const size_t n         = 5;
    const double rmin      = 0.01;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {9, 5, 5});
 
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));

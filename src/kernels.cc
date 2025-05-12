@@ -8,9 +8,10 @@ Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc)
 {
    const double CF = (_Nc * _Nc - 1.0) / (2.0 * _Nc);
 
-   Eigen::MatrixXd H_CO = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
-
-   ThreadPool th_pool(10);
+   Eigen::MatrixXd H_CO        = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
+   unsigned int num_av_threads = std::thread::hardware_concurrency();
+   unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
+   ThreadPool th_pool(num_threads);
    // std::mutex th_mutex;
 
    for (size_t c_a = 0; c_a < g.c_size; c_a++) {
@@ -85,8 +86,9 @@ Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
 
 void Kernels::ComputeKernels()
 {
-
-   ThreadPool th_pool(10);
+   unsigned int num_av_threads = std::thread::hardware_concurrency();
+   unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
+   ThreadPool th_pool(num_threads);
    // std::mutex th_mutex;
 
    for (size_t c_a = 0; c_a < grid.c_size; c_a++) {
