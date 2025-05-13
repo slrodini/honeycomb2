@@ -161,6 +161,10 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
       logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
                             "generated via `generate_compliant_Grid2D`.");
    }
+
+   const double r0 = _grid.grid_radius._d_info.intervals_phys[0].first;
+   center_approx   = -8.0 * r0 * r0;
+
    using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
    unsigned int num_av_threads = std::thread::hardware_concurrency();
    unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
@@ -185,7 +189,7 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
             auto fnc_external = [&](double x3_r) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
                   auto rhophi = RnC::from_x123_to_rhophi(x1, x3_r - x1, -x3_r);
-                  return -2.0 * grid._dw_dx3[index](rhophi);
+                  return -2.0 * grid._w[index](rhophi);
                };
 
                return integrator::integrate(fnc_internal_1, 0.0, x3_r, int_e_r, int_e_a);
@@ -214,7 +218,7 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
             auto fnc_external = [&](double x3) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
                   auto rhophi = RnC::from_x123_to_rhophi(x1, -x3 - x1, x3);
-                  return -2.0 * grid._dw_dx3[index](rhophi);
+                  return -2.0 * grid._w[index](rhophi);
                };
 
                return integrator::integrate(fnc_internal_1, -x3, 0.0, int_e_r, int_e_a);
@@ -243,7 +247,7 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
             auto fnc_external = [&](double x2) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
                   auto rhophi = RnC::from_x123_to_rhophi(x1, x2, -x1 - x2);
-                  return -2.0 * grid._dw_dx3[index](rhophi);
+                  return -2.0 * grid._w[index](rhophi);
                };
 
                return integrator::integrate(fnc_internal_1, -x2, 0.0, int_e_r, int_e_a);
@@ -272,7 +276,7 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
             auto fnc_external = [&](double x2_r) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
                   auto rhophi = RnC::from_x123_to_rhophi(x1, -x2_r, -x1 + x2_r);
-                  return -2.0 * grid._dw_dx3[index](rhophi);
+                  return -2.0 * grid._w[index](rhophi);
                };
 
                return integrator::integrate(fnc_internal_1, 0.0, x2_r, int_e_r, int_e_a);
@@ -301,7 +305,7 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
             auto fnc_external = [&](double x1_r) -> double {
                auto fnc_internal_1 = [&](double x2) -> double {
                   auto rhophi = RnC::from_x123_to_rhophi(-x1_r, x2, x1_r - x2);
-                  return -2.0 * grid._dw_dx3[index](rhophi);
+                  return -2.0 * grid._w[index](rhophi);
                };
 
                return integrator::integrate(fnc_internal_1, 0.0, x1_r, int_e_r, int_e_a);
@@ -330,7 +334,7 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
             auto fnc_external = [&](double x1) -> double {
                auto fnc_internal_1 = [&](double x2) -> double {
                   auto rhophi = RnC::from_x123_to_rhophi(x1, x2, -x1 - x2);
-                  return -2.0 * grid._dw_dx3[index](rhophi);
+                  return -2.0 * grid._w[index](rhophi);
                };
 
                return integrator::integrate(fnc_internal_1, -x1, 0.0, int_e_r, int_e_a);
@@ -345,6 +349,26 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
    }
 
    th.WaitOnJobs();
+}
+
+double D2Weights::ComputeSingleQuark(const Eigen::VectorXd &_f) const
+{
+   const double tmp = weights.dot(_f);
+   double ave_r0    = 0;
+   double n         = 0;
+   for (size_t c_a = 0; c_a < grid.c_size; c_a++) {
+
+      auto [jP, iP] = grid.c_get_double_index(c_a);
+      size_t c_jP   = grid.grid_radius._from_iw_to_ic[jP];
+
+      if (c_jP != 0) continue;
+
+      ave_r0 += _f[c_a];
+      n++;
+   }
+   ave_r0 /= n;
+
+   return ave_r0 * center_approx + tmp;
 }
 
 } // namespace Honeycomb

@@ -20,11 +20,7 @@ struct D2Weights {
 
    D2Weights(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
 
-   double ComputeSingleQuark(const Solution &)
-   {
-      logger(Logger::ERROR, "D2Weights::ComputeSingleQuark TODO: implement");
-      return 0;
-   }
+   double ComputeSingleQuark(const Eigen::VectorXd &_f) const;
 
    const Grid2D &grid;
    Eigen::VectorXd weights;

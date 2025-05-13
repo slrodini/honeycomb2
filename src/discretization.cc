@@ -227,6 +227,9 @@ double Grid::weight_aj(double u, size_t a, size_t j)
          res += sg.poli_weight_sub(
              from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
       }
+   } else {
+      // logger(Logger::WARNING, std::format("Weight sampled outside domain. {:.10e}, {:.10e}, {:.10e}",
+      //                                     _d_info.intervals[a].first, u, _d_info.intervals[a].second));
    }
 
    return res;
