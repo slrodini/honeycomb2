@@ -1,3 +1,4 @@
+#include "kernel_functions.hpp"
 #include <honeycomb2/kernels.hpp>
 #include <honeycomb2/thread_pool.hpp>
 
@@ -80,6 +81,8 @@ Kernels::Kernels(const Grid2D &g, double _Nc, bool to_compute)
    H_qg_m = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_gq_p = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
    H_gq_m = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
+
+   TestMatrix = Eigen::MatrixXd::Zero(g.c_size, g.c_size);
 
    if (to_compute) ComputeKernels();
 };
@@ -189,6 +192,22 @@ void Kernels::ComputeKernels()
    }
 
    th_pool.WaitOnJobs();
+}
+
+void Kernels::ComputeTestKernel()
+{
+
+   for (size_t c_a = 0; c_a < grid.c_size; c_a++) {
+      // Unsubtracted integrals
+
+      for (size_t aP = 0; aP < grid.size; aP++) {
+         auto [jP, iP]          = grid.get_double_index(aP);
+         size_t c_iP            = grid.grid_angle._from_iw_to_ic[iP];
+         size_t c_jP            = grid.grid_radius._from_iw_to_ic[jP];
+         size_t c_aP            = grid.c_get_flatten_index(c_jP, c_iP);
+         TestMatrix(c_a, c_aP) += Htest::integrate(c_a, aP, grid);
+      }
+   }
 }
 
 MergedKernelsFixedNf::MergedKernelsFixedNf(const Kernels &ker, size_t _nf)

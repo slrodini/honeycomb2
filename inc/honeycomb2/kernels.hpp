@@ -19,6 +19,7 @@ struct Kernels {
    Kernels(const Grid2D &g, double _Nc, bool to_compute = true);
 
    void ComputeKernels();
+   void ComputeTestKernel();
 
    const Grid2D &grid;
 
@@ -26,6 +27,7 @@ struct Kernels {
    const double CA;
    const double CF;
 
+   Eigen::MatrixXd TestMatrix;
    // Note: H_qg and H_d13 do not have nf, must be multiplied outside
    Eigen::MatrixXd H_NS, H_d13, H_gg_p, H_gg_m, H_qg_p, H_qg_m, H_gq_p, H_gq_m;
 

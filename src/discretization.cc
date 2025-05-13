@@ -85,6 +85,21 @@ double StandardGrid::poli_weight(double t, size_t j) const
    return _betaj[j] / den / (t - _tj[j]);
 }
 
+double StandardGrid::poli_weight_extrap(double t, size_t j) const
+{
+
+   if (fabs(t - _tj[j]) < 1.0e-15) return 1.0;
+
+   // Baricentric form
+   double den = 0;
+   for (size_t l = 0; l <= _N; l++) {
+      if (fabs(t - _tj[l]) < 1.0e-15) return 0.0;
+
+      den += _betaj[l] / (t - _tj[l]);
+   }
+   return _betaj[j] / den / (t - _tj[j]);
+}
+
 // bj(u) - 1
 double StandardGrid::poli_weight_sub(double t, size_t j) const
 {
@@ -137,6 +152,7 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
    c_size_li = static_cast<long int>(size - d_info.intervals.size() + (!d_info.is_periodic));
 
    _weights.resize(size);
+   _weights_extrap.resize(size);
    _weights_der.resize(size);
    _weights_sub.resize(size);
    _from_iw_to_ic.resize(size);
@@ -167,6 +183,9 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
 
          _weights[index] = [a, j, this](double u) -> double {
             return this->weight_aj<W_CASE::N>(u, a, j);
+         };
+         _weights_extrap[index] = [a, j, this](double u) -> double {
+            return this->weight_aj_extrap(u, a, j);
          };
          _weights_der[index] = [a, j, this](double u) -> double {
             return this->weight_aj<W_CASE::D>(u, a, j);
@@ -227,12 +246,17 @@ double Grid::weight_aj(double u, size_t a, size_t j)
          res += sg.poli_weight_sub(
              from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
       }
-   } else {
-      // logger(Logger::WARNING, std::format("Weight sampled outside domain. {:.10e}, {:.10e}, {:.10e}",
-      //                                     _d_info.intervals[a].first, u, _d_info.intervals[a].second));
    }
 
    return res;
+}
+
+double Grid::weight_aj_extrap(double u, size_t a, size_t j)
+{
+   StandardGrid &sg = stored_grids.at(_d_info.grid_sizes[a]);
+
+   return sg.poli_weight_extrap(from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second),
+                                j);
 }
 
 // =======================================================
@@ -242,7 +266,8 @@ double Grid::weight_aj(double u, size_t a, size_t j)
 Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi)
     : grid_radius(d_info_rho), grid_angle(d_info_phi), size(grid_radius.size * grid_angle.size),
       size_li(static_cast<long int>(size)), c_size(grid_radius.c_size * grid_angle.c_size),
-      c_size_li(static_cast<long int>(c_size)), _x123(c_size), _x123_minmax(size), _w(size), _dw_dx3(size)
+      c_size_li(static_cast<long int>(c_size)), _x123(c_size), _x123_minmax(size), _w(size), _w_extrap(size),
+      _dw_dx3(size)
 {
    size_t k = 0;
    size_t j = 0;
@@ -289,6 +314,13 @@ Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretiz
                      const double r = grid_radius._d_info.to_inter_space(rhophi(0));
                      const double f = grid_angle._d_info.to_inter_space(rhophi(1));
                      return grid_radius._weights[j](r) * grid_angle._weights[k](f);
+                  };
+
+                  _w_extrap[index] = [j, k, this](const RnC::Pair &rhophi) -> double {
+                     const double r = grid_radius._d_info.to_inter_space(rhophi(0));
+                     const double f = grid_angle._d_info.to_inter_space(rhophi(1));
+                     // Extrapolate only on the radius
+                     return grid_radius._weights_extrap[j](r) * grid_angle._weights[k](f);
                   };
 
                   _dw_dx3[index] = get_dw_dx3_fixed_x1(index);

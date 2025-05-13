@@ -7,6 +7,10 @@
 namespace Honeycomb
 {
 
+struct Htest {
+   static double integrate(size_t c_a, size_t aP, const Grid2D &g);
+};
+
 // Qbar Q kernels
 struct Hhat12 {
    // c_a is _x123 index, in [0, g.c_size)

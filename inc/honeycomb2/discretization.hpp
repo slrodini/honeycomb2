@@ -16,6 +16,7 @@ public:
    double interpolate(double t, Eigen::VectorXd &fj, long int start, long int end) const;
 
    double poli_weight(double t, size_t j) const;
+   double poli_weight_extrap(double t, size_t j) const;
    double poli_weight_sub(double t, size_t j) const;
    double poli_weight_der(double t, size_t j) const;
 
@@ -127,6 +128,8 @@ struct Grid {
    template <int w_case>
    double weight_aj(double u, size_t a, size_t j);
 
+   double weight_aj_extrap(double u, size_t a, size_t j);
+
    // NOTE: Support is given in interpolation space, not physical space.
    std::pair<double, double> get_support_weight_aj(size_t index) const
    {
@@ -150,6 +153,7 @@ struct Grid {
 
    const SingleDiscretizationInfo _d_info;
    std::vector<std::function<double(double)>> _weights;
+   std::vector<std::function<double(double)>> _weights_extrap;
    std::vector<std::function<double(double)>> _weights_der; //  these are dw/du
    std::vector<std::function<double(double)>> _weights_sub; //  these are w-1
    std::vector<double> _coord;
@@ -281,6 +285,7 @@ struct Grid2D {
 
    // size weights derivatives
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _w;
+   std::vector<std::function<double(const RnC::Pair &rhophi)>> _w_extrap;
    std::vector<std::function<double(const RnC::Pair &rhophi)>> _dw_dx3;
 
    bool is_compliant;
