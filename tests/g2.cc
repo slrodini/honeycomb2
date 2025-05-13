@@ -1,5 +1,5 @@
 #include <honeycomb2/honeycomb2.hpp>
-#include "honeycomb2/g2_weights.hpp"
+#include "honeycomb2/obs_weights.hpp"
 #include "honeycomb2/solution.hpp"
 #include "honeycomb_120_25_grid_points.hpp"
 #include <cereal/archives/json.hpp>

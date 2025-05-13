@@ -110,6 +110,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 add_library(Honeycomb2 SHARED ${source_files})
 
 target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc)
+target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc/honeycomb2)
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/lib/llvm-19/lib/clang/19/include")
 

@@ -2,6 +2,7 @@
 #define G2_WEIGHTS_HPP
 
 #include <honeycomb2/discretization.hpp>
+#include <honeycomb2/solution.hpp>
 #include <honeycomb2/gauss_kronrod.hpp>
 
 namespace Honeycomb
@@ -13,6 +14,21 @@ struct G2Weights {
    const double xBj;
    const Grid2D &grid;
    Eigen::VectorXd weights;
+};
+
+struct D2Weights {
+
+   D2Weights(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
+
+   double ComputeSingleQuark(const Solution &)
+   {
+      logger(Logger::ERROR, "D2Weights::ComputeSingleQuark TODO: implement");
+      return 0;
+   }
+
+   const Grid2D &grid;
+   Eigen::VectorXd weights;
+   double center_approx;
 };
 
 } // namespace Honeycomb

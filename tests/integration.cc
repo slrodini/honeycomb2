@@ -1,4 +1,4 @@
-#include "honeycomb2/g2_weights.hpp"
+#include "honeycomb2/obs_weights.hpp"
 #include <honeycomb2/honeycomb2.hpp>
 
 #define Pi M_PI
