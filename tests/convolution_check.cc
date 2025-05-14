@@ -232,9 +232,13 @@ void evolve_chiral_even()
 
    const double Nc = 3; // NC = 1 for tests
 
-   const size_t n         = 8;
-   const double rmin      = 0.01;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+   // const double rmin      = 0.01;
+   // const size_t n         = 8;
+   // Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+
+   const double rmin      = 0.001;
+   const size_t n         = 6;
+   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {10, 7, 7});
 
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
@@ -307,6 +311,7 @@ void evolve_chiral_even()
                                              Honeycomb::EvolutionOperatorFixedNf, 13>
        evolver_O(merge_ker, O1, Honeycomb::runge_kutta::DOPRI8, as, pref, t0, dt);
 
+   Honeycomb::logger(Honeycomb::Logger::INFO, "Normal Evolution ...");
    fnc_elapsed = 0;
    begin       = Honeycomb::timer::now();
    evolver({tf}, std::vector<size_t>{40});
@@ -315,6 +320,7 @@ void evolve_chiral_even()
 
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("  Elapsed: {:.4e} (ms)", fnc_elapsed));
 
+   Honeycomb::logger(Honeycomb::Logger::INFO, "Evolution with Ev.Operator...");
    begin = Honeycomb::timer::now();
    evolver_O({tf}, std::vector<size_t>{40});
    // evolver_O();
@@ -347,8 +353,8 @@ void evolve_chiral_even()
    }
 
    // sol1.RotateToPhysicalBasis();
-   // sol_fin.RotateToPhysicalBasis();
-   // sol2.RotateToPhysicalBasis();
+   sol_fin.RotateToPhysicalBasis();
+   sol2.RotateToPhysicalBasis();
 
    std::FILE *fp_2 = std::fopen("CE_evo_check.dat", "w");
 
@@ -366,4 +372,5 @@ void evolve_chiral_even()
       std::fprintf(fp_2, "\n");
    }
    std::fclose(fp_2);
+   exit(0);
 }

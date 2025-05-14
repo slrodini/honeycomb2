@@ -315,6 +315,12 @@ void Solution::RotateToEvolutionBasis()
 
 EvolutionOperatorFixedNf::EvolutionOperatorFixedNf(const Grid2D *grid, size_t _nf) : _grid(grid), nf(_nf)
 {
+
+   unsigned int num_av_threads = std::thread::hardware_concurrency();
+   unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
+
+   th_pool = new ThreadPool(num_threads);
+
    NS_P = Eigen::MatrixXd::Identity(grid->c_size_li, grid->c_size_li);
    NS_M = Eigen::MatrixXd::Identity(grid->c_size_li, grid->c_size_li);
 
@@ -328,6 +334,8 @@ void EvolutionOperatorFixedNf::_copy(const EvolutionOperatorFixedNf &other)
    NS_M = other.NS_M;
    S_P  = other.S_P;
    S_M  = other.S_M;
+
+   th_pool = other.th_pool;
 }
 
 void EvolutionOperatorFixedNf::_plus_eq(double x, const EvolutionOperatorFixedNf &other)
@@ -340,11 +348,19 @@ void EvolutionOperatorFixedNf::_plus_eq(double x, const EvolutionOperatorFixedNf
 
 void EvolutionOperatorFixedNf::_ker_mul(double pref, const MergedKernelsFixedNf &ker)
 {
-   NS_P = pref * (ker.H_NS * NS_P);
-   NS_M = pref * (ker.H_NS * NS_M);
-
-   S_P = pref * (ker.H_S_P * S_P);
-   S_M = pref * (ker.H_S_M * S_M);
+   th_pool->AddTask([&]() {
+      NS_P = pref * (ker.H_NS * NS_P);
+   });
+   th_pool->AddTask([&]() {
+      NS_M = pref * (ker.H_NS * NS_M);
+   });
+   th_pool->AddTask([&]() {
+      S_P = pref * (ker.H_S_P * S_P);
+   });
+   th_pool->AddTask([&]() {
+      S_M = pref * (ker.H_S_M * S_M);
+   });
+   th_pool->WaitOnJobs();
 }
 
 void ApplyEvolutionOperator(Solution &sol, const EvolutionOperatorFixedNf &O)

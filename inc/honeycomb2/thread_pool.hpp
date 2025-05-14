@@ -15,6 +15,7 @@ struct ThreadPool {
    ~ThreadPool();
    void AddTask(std::function<void()> task);
    void WaitOnJobs();
+   void ShutDown();
 
    std::mutex task_mutex;
 
@@ -28,6 +29,7 @@ private:
    std::mutex _q_mutex;
    std::condition_variable _notifier;
    bool _to_stop = false;
+   bool _am_I_alive;
 };
 } // namespace Honeycomb
 

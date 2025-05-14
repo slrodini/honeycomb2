@@ -5,6 +5,7 @@ namespace Honeycomb
 {
 ThreadPool::ThreadPool(size_t num_threads) : _remaining(0)
 {
+   _am_I_alive = true;
    for (size_t i = 0; i < num_threads; i++) {
       _threads.emplace_back([this] {
          while (true) {
@@ -17,9 +18,8 @@ ThreadPool::ThreadPool(size_t num_threads) : _remaining(0)
 
             if (_to_stop) {
                if (!_tasks.empty()) {
-                  logger(
-                      Logger::WARNING,
-                      "The threadpool is not empty, but the user requested to stop. Ignoring tasks still in the pool.");
+                  logger(Logger::WARNING, "The threadpool is not empty, but the user requested to stop. "
+                                          "Ignoring tasks still in the pool.");
                }
                return;
             }
@@ -42,15 +42,21 @@ ThreadPool::ThreadPool(size_t num_threads) : _remaining(0)
 
 ThreadPool::~ThreadPool()
 {
+   if (_am_I_alive) ShutDown();
+}
 
-   std::unique_lock<std::mutex> lock(_q_mutex);
-   _to_stop = true;
-   lock.unlock();
+void ThreadPool::ShutDown()
+{
+   if (_am_I_alive) {
+      std::unique_lock<std::mutex> lock(_q_mutex);
+      _to_stop = true;
+      lock.unlock();
 
-   _notifier.notify_all();
+      _notifier.notify_all();
 
-   for (std::thread &thread : _threads) {
-      if (thread.joinable()) thread.join();
+      for (std::thread &thread : _threads) {
+         if (thread.joinable()) thread.join();
+      }
    }
 }
 

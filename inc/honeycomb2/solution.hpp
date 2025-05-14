@@ -4,6 +4,7 @@
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/kernels.hpp>
 #include <honeycomb2/discretization.hpp>
+#include <honeycomb2/thread_pool.hpp>
 #include <honeycomb2/Eigen/Core>
 
 namespace Honeycomb
@@ -68,8 +69,17 @@ public:
 struct EvolutionOperatorFixedNf {
 
    EvolutionOperatorFixedNf(const Grid2D *grid, size_t nf);
-   EvolutionOperatorFixedNf() : _grid(nullptr)
+   EvolutionOperatorFixedNf() : _grid(nullptr), th_pool(nullptr)
    {
+   }
+
+   ~EvolutionOperatorFixedNf()
+   {
+      if (th_pool != nullptr) {
+         th_pool->ShutDown();
+         delete th_pool;
+      }
+      th_pool = nullptr;
    }
 
    void PushFlavor();
@@ -81,6 +91,7 @@ struct EvolutionOperatorFixedNf {
 
 public:
    const Grid2D *_grid;
+   ThreadPool *th_pool;
 
    size_t nf;
 
