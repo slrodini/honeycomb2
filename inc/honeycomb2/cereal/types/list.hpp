@@ -30,7 +30,7 @@
 #ifndef CEREAL_TYPES_LIST_HPP_
 #define CEREAL_TYPES_LIST_HPP_
 
-#include "cereal/cereal.hpp"
+#include "honeycomb2/cereal/cereal.hpp"
 #include <list>
 
 namespace cereal

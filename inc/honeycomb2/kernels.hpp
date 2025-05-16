@@ -1,7 +1,7 @@
 #ifndef KERNELS_HPP
 #define KERNELS_HPP
 
-#include "cereal/archives/portable_binary.hpp"
+#include "honeycomb2/cereal/archives/portable_binary.hpp"
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/kernel_functions.hpp>
 #include <honeycomb2/cereal_extension.hpp>
