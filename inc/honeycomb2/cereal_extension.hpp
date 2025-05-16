@@ -1,12 +1,12 @@
 #ifndef CERAL_EXTENSION_HPP
 #define CERAL_EXTENSION_HPP
 
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/access.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/details/traits.hpp>
+#include <honeycomb2/cereal/archives/portable_binary.hpp>
+#include <honeycomb2/cereal/types/vector.hpp>
+#include <honeycomb2/cereal/types/utility.hpp>
+#include <honeycomb2/cereal/access.hpp>
+#include <honeycomb2/cereal/types/memory.hpp>
+#include <honeycomb2/cereal/details/traits.hpp>
 
 #include <sstream>
 #include <fstream>

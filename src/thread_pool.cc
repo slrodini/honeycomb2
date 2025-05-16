@@ -57,6 +57,7 @@ void ThreadPool::ShutDown()
       for (std::thread &thread : _threads) {
          if (thread.joinable()) thread.join();
       }
+      _am_I_alive = false;
    }
 }
 
