@@ -1,3 +1,4 @@
+#include "discretization.hpp"
 #include <honeycomb2/thread_pool.hpp>
 #include <honeycomb2/utilities.hpp>
 #include <honeycomb2/solution.hpp>
@@ -485,6 +486,96 @@ Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std:
    }
 
    return sol0;
+}
+
+//==============================================================================
+OutputModel::OutputModel(const Solution &sol)
+    : T(7, Eigen::VectorXd::Zero(sol._distr_p[0].size())),
+      DT(7, Eigen::VectorXd::Zero(sol._distr_p[0].size())), _discretization(sol._discretization)
+{
+   if (sol._curr_basis != Solution::PHYS) {
+      logger(Logger::ERROR, "OutputModel constructor called with Solution in"
+                            " Evolution basis. This is not suppoertd");
+   }
+
+   long int n = sol._distr_p[0].size();
+
+   for (size_t i = 0; i < sol._distr_p.size(); i++) {
+      for (long int j = 0; j < n; j++) {
+         RnC::Triplet x123 = sol._discretization->_grid._x123[j];
+         RnC::Triplet x321(x123(2), x123(1), x123(0));
+
+         // RnC::Pair rhophi_123 = RnC::from_x123_to_rhophi(x123);
+         RnC::Pair rhophi_321 = RnC::from_x123_to_rhophi(x321);
+         if (i > 0) {
+            T[i][j] = 0.25
+                    * (sol._distr_p[i][j] + sol._distr_m[i][j]
+                       + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i])
+                       - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
+            DT[i][j] = -0.25
+                     * (sol._distr_p[i][j] + sol._distr_m[i][j]
+                        - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i])
+                        + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
+         } else {
+            T[i][j] = 0.5
+                    * (sol._distr_p[i][j]
+                       - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i]));
+            DT[i][j] = 0.5
+                     * (sol._distr_m[i][j]
+                        + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
+         }
+      }
+   }
+}
+
+double OutputModel::GetDistribution(OutputModel::FNC f, const RnC::Pair &rhophi)
+{
+   switch (f) {
+   case T_DN:
+      return _discretization->interpolate_as_weights_v3(rhophi, T[1]);
+      break;
+   case T_UP:
+      return _discretization->interpolate_as_weights_v3(rhophi, T[2]);
+      break;
+   case T_ST:
+      return _discretization->interpolate_as_weights_v3(rhophi, T[3]);
+      break;
+   case T_CH:
+      return _discretization->interpolate_as_weights_v3(rhophi, T[4]);
+      break;
+   case T_BM:
+      return _discretization->interpolate_as_weights_v3(rhophi, T[5]);
+      break;
+   case T_TP:
+      return _discretization->interpolate_as_weights_v3(rhophi, T[6]);
+      break;
+   case DT_DN:
+      return _discretization->interpolate_as_weights_v3(rhophi, DT[1]);
+      break;
+   case DT_UP:
+      return _discretization->interpolate_as_weights_v3(rhophi, DT[2]);
+      break;
+   case DT_ST:
+      return _discretization->interpolate_as_weights_v3(rhophi, DT[3]);
+      break;
+   case DT_CH:
+      return _discretization->interpolate_as_weights_v3(rhophi, DT[4]);
+      break;
+   case DT_BM:
+      return _discretization->interpolate_as_weights_v3(rhophi, DT[5]);
+      break;
+   case DT_TP:
+      return _discretization->interpolate_as_weights_v3(rhophi, DT[6]);
+      break;
+   case T_P_GL:
+      return _discretization->interpolate_as_weights_v3(rhophi, T[0]);
+      break;
+   case T_M_GL:
+      return _discretization->interpolate_as_weights_v3(rhophi, DT[0]);
+      break;
+   default:
+      break;
+   }
 }
 
 } // namespace Honeycomb

@@ -66,6 +66,27 @@ public:
    std::vector<Eigen::VectorXd> _distr_m;
 };
 
+struct OutputModel {
+   enum FNC { T_UP, T_DN, T_ST, T_CH, T_BM, T_TP, DT_UP, DT_DN, DT_ST, DT_CH, DT_BM, DT_TP, T_P_GL, T_M_GL };
+
+   OutputModel(const Solution &sol);
+
+   double GetDistribution(FNC f, const RnC::Triplet &x123)
+   {
+      return GetDistribution(f, RnC::from_x123_to_rhophi(x123));
+   }
+   double GetDistribution(FNC f, const double x1, const double x2, const double x3)
+   {
+      return GetDistribution(f, RnC::from_x123_to_rhophi({x1, x2, x3}));
+   }
+   double GetDistribution(FNC f, const RnC::Pair &rhophi);
+
+   // Note: First element is gluon T^+ and T^-, not DeltaT!
+   std::vector<Eigen::VectorXd> T;
+   std::vector<Eigen::VectorXd> DT;
+   const Discretization *_discretization;
+};
+
 struct EvolutionOperatorFixedNf {
 
    EvolutionOperatorFixedNf(const Grid2D *grid, size_t nf);

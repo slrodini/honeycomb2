@@ -2,7 +2,6 @@
 #include <honeycomb2/solution.hpp>
 #include "honeycomb2/utilities.hpp"
 #include "honeycomb_120_25_grid_points.hpp"
-#include <cereal/archives/json.hpp>
 
 #include "original_model_functions.hpp"
 
