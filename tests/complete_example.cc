@@ -112,6 +112,26 @@ int main()
       std::fclose(fp);
    }
 
+   // Obtain weights for 'd1' observable -> Efremov-LeaderTeryaev sum-rule (up to factor 2)
+   // This needs to be convoluted with S^+, not T!
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("d1 Weights computation"));
+   begin = Honeycomb::timer::now();
+   Honeycomb::D1Weights d1_weights(grid);
+   end = Honeycomb::timer::now();
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+
+   // Compute d1 for each flavor and print it to file
+   {
+      // Open file in "w" = write mode: overwrites old content if any
+      std::FILE *fp = std::fopen("d1_at_1e+4_GeV2.dat", "w");
+      // Single column, rows are, in order: Down, Up, Strange, ... until last non-zero flavor
+      for (size_t i = 1; i < sol_fin._distr_p.size(); i++) {
+         std::fprintf(fp, "%.16e\n", d1_weights.ComputeSingleQuark(sol_fin._distr_p[i]));
+      }
+      std::fclose(fp);
+   }
+
    // Save the initial and evolved solutions to file in the T, DT basis
    {
       // Construct T and DT from S^{\pm}

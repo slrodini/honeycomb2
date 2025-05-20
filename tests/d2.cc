@@ -17,7 +17,7 @@ inline double max3(double a, double b, double c)
 double T_test_2(double x1, double x2, double x3)
 {
    double r = max3(fabs(x1), fabs(x2), fabs(x3));
-   return (1 - x1 * x1) * (1 - x2 * x2) * (1 - x3 * x3) / (r * sqrt(r));
+   return (1 - x1 * x1) * (1 - x2 * x2) * (1 - x3 * x3) * log(r);
 }
 
 double DT_test_2(double x1, double x2, double x3)
@@ -58,17 +58,27 @@ int main()
 
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
-   std::cout << fnc_elapsed << std::endl;
+   std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
 
    begin = Honeycomb::timer::now();
    Honeycomb::D2WeightsCutted d2_weights_cutted(grid, 1.0e-10);
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
-   std::cout << fnc_elapsed << std::endl;
+   std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
+
+   begin = Honeycomb::timer::now();
+   Honeycomb::D1Weights d1_weights(grid, 1.0e-10);
+   end         = Honeycomb::timer::now();
+   fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
+   std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
 
    std::cout << std::format("{:.10f}", d2_weights.ComputeSingleQuark(F_test)) << std::endl;
    std::cout << std::format("{:.10f}", d2_weights_cutted.ComputeSingleQuark(F_test)) << std::endl;
    std::cout << std::format("{:.10f}", d2_weights_cutted.ComputeSingleQuark_NoCorrections(F_test))
              << std::endl;
+
+   std::cout << std::format("{:.10f}", d1_weights.ComputeSingleQuark(F_test)) << std::endl;
+   std::cout << std::format("{:.10f}", d1_weights.ComputeSingleQuark_NoCorrections(F_test)) << std::endl;
+
    return 0;
 }
