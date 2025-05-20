@@ -67,7 +67,7 @@ int main()
    std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
 
    begin = Honeycomb::timer::now();
-   Honeycomb::ELTWeights eft_weights(grid, 1.0e-10);
+   Honeycomb::ELTWeights elt_weights(grid, 1.0e-10);
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
    std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
