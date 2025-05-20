@@ -632,7 +632,7 @@ double D2WeightsCutted::ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &
 
 //================================================================================
 
-EFTWeights::EFTWeights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid(_grid)
+ELTWeights::ELTWeights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid(_grid)
 {
 
    if (!_grid.is_compliant) {
@@ -690,12 +690,12 @@ EFTWeights::EFTWeights(const Grid2D &_grid, double int_e_r, double int_e_a) : gr
    th.WaitOnJobs();
 }
 
-double EFTWeights::ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &_f) const
+double ELTWeights::ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &_f) const
 {
    return weights.dot(_f);
 }
 
-double EFTWeights::ComputeSingleQuark(const Eigen::VectorXd &_f) const
+double ELTWeights::ComputeSingleQuark(const Eigen::VectorXd &_f) const
 {
    const double tmp = weights.dot(_f);
    double ave_r0    = 0;

@@ -67,7 +67,7 @@ int main()
    std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
 
    begin = Honeycomb::timer::now();
-   Honeycomb::EFTWeights eft_weights(grid, 1.0e-10);
+   Honeycomb::ELTWeights eft_weights(grid, 1.0e-10);
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
    std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
@@ -77,8 +77,8 @@ int main()
    std::cout << std::format("{:.10f}", d2_weights_cutted.ComputeSingleQuark_NoCorrections(F_test))
              << std::endl;
 
-   std::cout << std::format("{:.10f}", eft_weights.ComputeSingleQuark(F_test)) << std::endl;
-   std::cout << std::format("{:.10f}", eft_weights.ComputeSingleQuark_NoCorrections(F_test)) << std::endl;
+   std::cout << std::format("{:.10f}", elt_weights.ComputeSingleQuark(F_test)) << std::endl;
+   std::cout << std::format("{:.10f}", elt_weights.ComputeSingleQuark_NoCorrections(F_test)) << std::endl;
 
    return 0;
 }

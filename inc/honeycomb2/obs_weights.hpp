@@ -40,11 +40,11 @@ struct D2WeightsCutted {
    double center_approx;
 };
 
-// Weights for  Efremov-LeaderTeryaev sum rule, defined as
+// Weights for  Efremov-Leader-Teryaev sum rule, defined as
 // 2\int_0^1 dx x g_2(x, Q) = \int_0^1 dx_2 \int_{-x_2}^0 dx_1 (-x_1/x_2^2)\mathfrak{S}^+
-struct EFTWeights {
+struct ELTWeights {
 
-   EFTWeights(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
+   ELTWeights(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
 
    double ComputeSingleQuark(const Eigen::VectorXd &_f) const;
    double ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &_f) const;
