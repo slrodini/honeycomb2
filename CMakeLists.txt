@@ -24,7 +24,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
    set(HONEYCOMB2_CXX_FLAGS
-      -Wall -Wextra -Werror
+      -Wall -Wextra
       -fPIC
       -O3
       -mtune=native
@@ -35,7 +35,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
    set(HONEYCOMB2_CXX_FLAGS
-      -Wall -Wextra -Wpedantic -Werror
+      -Wall -Wextra -Wpedantic
       -fPIC
       -O2
       -g
@@ -52,7 +52,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 
 else()
    set(HONEYCOMB2_CXX_FLAGS
-      -Wall -Wextra -Werror -Wpedantic
+      -Wall -Wextra -Wpedantic
       -fPIC
       -O0
       -g

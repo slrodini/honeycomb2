@@ -16,6 +16,8 @@ struct G2Weights {
    Eigen::VectorXd weights;
 };
 
+// Weights for the d_2 observable, defined as
+// 3\int_0^1 dx x^2 g_2(x, Q) = \int Dx \mathfrak{S}^+
 struct D2Weights {
 
    D2Weights(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
@@ -26,9 +28,9 @@ struct D2Weights {
    Eigen::VectorXd weights;
 };
 
-struct D1Weights {
+struct D2WeightsCutted {
 
-   D1Weights(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
+   D2WeightsCutted(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
 
    double ComputeSingleQuark(const Eigen::VectorXd &_f) const;
    double ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &_f) const;
@@ -38,9 +40,11 @@ struct D1Weights {
    double center_approx;
 };
 
-struct D2WeightsCutted {
+// Weights for  Efremov-LeaderTeryaev sum rule, defined as
+// 2\int_0^1 dx x g_2(x, Q) = \int_0^1 dx_2 \int_{-x_2}^0 dx_1 (-x_1/x_2^2)\mathfrak{S}^+
+struct EFTWeights {
 
-   D2WeightsCutted(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
+   EFTWeights(const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
 
    double ComputeSingleQuark(const Eigen::VectorXd &_f) const;
    double ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &_f) const;

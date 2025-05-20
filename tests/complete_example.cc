@@ -116,7 +116,7 @@ int main()
    // This needs to be convoluted with S^+, not T!
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("d1 Weights computation"));
    begin = Honeycomb::timer::now();
-   Honeycomb::D1Weights d1_weights(grid);
+   Honeycomb::EFTWeights eft_weights(grid);
    end = Honeycomb::timer::now();
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
@@ -127,7 +127,7 @@ int main()
       std::FILE *fp = std::fopen("d1_at_1e+4_GeV2.dat", "w");
       // Single column, rows are, in order: Down, Up, Strange, ... until last non-zero flavor
       for (size_t i = 1; i < sol_fin._distr_p.size(); i++) {
-         std::fprintf(fp, "%.16e\n", d1_weights.ComputeSingleQuark(sol_fin._distr_p[i]));
+         std::fprintf(fp, "%.16e\n", eft_weights.ComputeSingleQuark(sol_fin._distr_p[i]));
       }
       std::fclose(fp);
    }
