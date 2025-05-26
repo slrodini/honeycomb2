@@ -11,6 +11,9 @@ struct G2Weights {
 
    G2Weights(double _xBj, const Grid2D &_grid, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
 
+   static Eigen::VectorXd GetWeights(double _xBj, const Grid2D &_grid, double int_e_r = 1.0e-8,
+                                     double int_e_a = 1.0e-8);
+
    const double xBj;
    const Grid2D &grid;
    Eigen::VectorXd weights;
@@ -38,6 +41,20 @@ struct D2WeightsCutted {
    const Grid2D &grid;
    Eigen::VectorXd weights;
    double center_approx;
+};
+
+// Weights for computing d2 as a cutted integral: \int_a^b dx x^2 g2(x, Q)
+struct D2WeightsPartialIntegral {
+
+   D2WeightsPartialIntegral(const Grid2D &_grid, double a, double b, double int_e_r = 1.0e-8,
+                            double int_e_a = 1.0e-8);
+
+   double ComputeSingleQuark(const Eigen::VectorXd &_f) const;
+
+   const Grid2D &grid;
+   const double a;
+   const double b;
+   Eigen::VectorXd weights;
 };
 
 // Weights for  Efremov-Leader-Teryaev sum rule, defined as

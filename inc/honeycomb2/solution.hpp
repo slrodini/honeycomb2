@@ -4,6 +4,7 @@
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/kernels.hpp>
 #include <honeycomb2/discretization.hpp>
+#include <honeycomb2/random_engine.hpp>
 #include <honeycomb2/thread_pool.hpp>
 #include <honeycomb2/Eigen/Core>
 

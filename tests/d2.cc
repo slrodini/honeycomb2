@@ -72,10 +72,17 @@ int main()
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
    std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
 
+   // begin = Honeycomb::timer::now();
+   // Honeycomb::D2WeightsPartialIntegral d2_weights_PI(grid, rmin, 1.0);
+   // end         = Honeycomb::timer::now();
+   // fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
+   // std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
+
    std::cout << std::format("{:.10f}", d2_weights.ComputeSingleQuark(F_test)) << std::endl;
    std::cout << std::format("{:.10f}", d2_weights_cutted.ComputeSingleQuark(F_test)) << std::endl;
    std::cout << std::format("{:.10f}", d2_weights_cutted.ComputeSingleQuark_NoCorrections(F_test))
              << std::endl;
+   // std::cout << std::format("{:.10f}", d2_weights_PI.ComputeSingleQuark(F_test)) << std::endl;
 
    std::cout << std::format("{:.10f}", elt_weights.ComputeSingleQuark(F_test)) << std::endl;
    std::cout << std::format("{:.10f}", elt_weights.ComputeSingleQuark_NoCorrections(F_test)) << std::endl;

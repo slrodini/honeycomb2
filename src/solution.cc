@@ -12,6 +12,81 @@ unsigned int _private_num_threads    = _private_num_av_threads <= 2 ? 1 : _priva
 Honeycomb::ThreadPool global_pool(_private_num_threads);
 } // namespace
 
+namespace
+{
+void check_symmetry_qFq(std::function<double(double, double, double)> model, double s)
+{
+   double diff = 0;
+   int i       = 0;
+   Honeycomb::logger(Honeycomb::Logger::INFO, "Running check on model symmetries...");
+   while (i < 1e+4) {
+      double x1 = Honeycomb::Random::random_uniform(-1.0, 1.0);
+      double x2, x3;
+      if (x1 >= 0) {
+         x2 = Honeycomb::Random::random_uniform(-1.0, 1.0 - x1);
+      } else {
+         x2 = Honeycomb::Random::random_uniform(-1.0 - x1, 1.0);
+      }
+      x3 = -x1 - x2;
+      if (std::fabs(x3) > 1) continue;
+      diff = model(x1, x2, x3) - s * model(-x3, -x2, -x1);
+      if (std::fabs(diff) > 1.0e-14) {
+         Honeycomb::logger(Honeycomb::Logger::WARNING, "Detected violation of symmetry in the"
+                                                       "model of order > 1.0e-14");
+      }
+      if (std::fabs(diff) > 1.e-6) {
+         Honeycomb::logger(Honeycomb::Logger::ERROR, "Detected violation of symmetry in the"
+                                                     "model of order > 1.0e-6."
+                                                     "This is too large. Aborting.");
+      }
+      i++;
+   }
+}
+
+void check_symmetry_FFF(std::function<double(double, double, double)> model, double s)
+{
+   double diff = 0;
+   int i       = 0;
+   Honeycomb::logger(Honeycomb::Logger::INFO, "Running check on model symmetries...");
+   while (i < 1e+4) {
+      double x1 = Honeycomb::Random::random_uniform(-1.0, 1.0);
+      double x2, x3;
+      if (x1 >= 0) {
+         x2 = Honeycomb::Random::random_uniform(-1.0, 1.0 - x1);
+      } else {
+         x2 = Honeycomb::Random::random_uniform(-1.0 - x1, 1.0);
+      }
+      x3 = -x1 - x2;
+      if (std::fabs(x3) > 1) continue;
+
+      diff = model(x1, x2, x3) - model(-x3, -x2, -x1);
+      if (std::fabs(diff) > 1.0e-14) {
+         Honeycomb::logger(Honeycomb::Logger::WARNING, "Detected violation of symmetry in the"
+                                                       "model of order > 1.0e-14");
+      }
+      if (std::fabs(diff) > 1.e-6) {
+         Honeycomb::logger(Honeycomb::Logger::ERROR, "Detected violation of symmetry in the"
+                                                     "model of order > 1.0e-6."
+                                                     "This is too large. Aborting.");
+      }
+
+      diff = model(x1, x2, x3) + s * model(x3, x2, x1);
+      if (std::fabs(diff) > 1.0e-14) {
+         Honeycomb::logger(Honeycomb::Logger::WARNING, "Detected violation of symmetry in the"
+                                                       "model of order > 1.0e-14");
+      }
+      if (std::fabs(diff) > 1.e-6) {
+         Honeycomb::logger(Honeycomb::Logger::ERROR, "Detected violation of symmetry in the"
+                                                     "model of order > 1.0e-6."
+                                                     "This is too large. Aborting.");
+      }
+
+      i++;
+   }
+}
+
+} // namespace
+
 namespace Honeycomb
 {
 
@@ -19,45 +94,59 @@ void InputModel::SetModel(FNC f, std::function<double(double, double, double)> m
 {
    switch (f) {
    case T_DN:
+      check_symmetry_qFq(model, +1);
       T[0] = model;
       break;
    case T_UP:
+      check_symmetry_qFq(model, +1);
       T[1] = model;
       break;
    case T_ST:
+      check_symmetry_qFq(model, +1);
       T[2] = model;
       break;
    case T_CH:
+      check_symmetry_qFq(model, +1);
       T[3] = model;
       break;
    case T_BM:
+      check_symmetry_qFq(model, +1);
       T[4] = model;
       break;
    case T_TP:
+      check_symmetry_qFq(model, +1);
       T[5] = model;
       break;
    case DT_DN:
+      check_symmetry_qFq(model, -1);
       DT[0] = model;
       break;
    case DT_UP:
+      check_symmetry_qFq(model, -1);
       DT[1] = model;
       break;
    case DT_ST:
+      check_symmetry_qFq(model, -1);
       DT[2] = model;
       break;
    case DT_CH:
+      check_symmetry_qFq(model, -1);
       DT[3] = model;
       break;
    case DT_BM:
+      check_symmetry_qFq(model, -1);
       DT[4] = model;
       break;
    case DT_TP:
+      check_symmetry_qFq(model, -1);
       DT[5] = model;
       break;
    case T_P_GL:
+      check_symmetry_FFF(model, +1);
       T_p_gl = model;
       break;
    case T_M_GL:
+      check_symmetry_FFF(model, -1);
       T_m_gl = model;
       break;
    default:

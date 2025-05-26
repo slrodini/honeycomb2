@@ -1,3 +1,4 @@
+#include "gauss_kronrod.hpp"
 #include <honeycomb2/obs_weights.hpp>
 #include <honeycomb2/thread_pool.hpp>
 #include <honeycomb2/utilities.hpp>
@@ -5,11 +6,10 @@
 namespace Honeycomb
 {
 
-G2Weights::G2Weights(double _xBj, const Grid2D &_grid, double int_e_r, double int_e_a)
-    : xBj(_xBj), grid(_grid)
+Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int_e_r, double int_e_a)
 {
 
-   if (!_grid.is_compliant) {
+   if (!grid.is_compliant) {
       logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
                             "generated via `generate_compliant_Grid2D`.");
    }
@@ -20,7 +20,7 @@ G2Weights::G2Weights(double _xBj, const Grid2D &_grid, double int_e_r, double in
 
    std::mutex done_mutex;
 
-   weights = Eigen::VectorXd::Zero(grid.c_size_li);
+   Eigen::VectorXd weights = Eigen::VectorXd::Zero(grid.c_size_li);
 
    //  Sector 0, only first integral
    for (size_t k = grid.grid_angle._delim_indexes[0]; k < grid.grid_angle._delim_indexes[1]; k++) {
@@ -154,6 +154,20 @@ G2Weights::G2Weights(double _xBj, const Grid2D &_grid, double int_e_r, double in
    // ! Extra factor 1/2 from convention
    for (long int i = 0; i < grid.c_size_li; i++)
       weights[i] *= 0.5;
+
+   return weights;
+}
+
+G2Weights::G2Weights(double _xBj, const Grid2D &_grid, double int_e_r, double int_e_a)
+    : xBj(_xBj), grid(_grid)
+{
+
+   if (!_grid.is_compliant) {
+      logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
+                            "generated via `generate_compliant_Grid2D`.");
+   }
+
+   weights = G2Weights::GetWeights(_xBj, _grid, int_e_r, int_e_a);
 }
 
 //================================================================================
@@ -711,6 +725,36 @@ double ELTWeights::ComputeSingleQuark(const Eigen::VectorXd &_f) const
    ave_r0 /= n;
 
    return ave_r0 * center_approx + tmp;
+}
+
+D2WeightsPartialIntegral::D2WeightsPartialIntegral(const Grid2D &_grid, double _a, double _b, double int_e_r,
+                                                   double int_e_a)
+    : grid(_grid), a(_a), b(_b)
+{
+   // \int_a^b dx 3 x^2 w_g2(x)
+   const double center      = (b + a) / 2.0;
+   const double half_length = (b / a) / 2.0;
+   const size_t n           = Integration::GK_41::size;
+
+   weights = Integration::GK_41::w_gk[n - 1] * 3.0 * center * center
+           * G2Weights::GetWeights(center, grid, int_e_r, int_e_a);
+
+   for (size_t i = 0; i < n - 1; i++) {
+      const double x_m    = center - half_length * Integration::GK_41::x_gk[i];
+      const double x_p    = center + half_length * Integration::GK_41::x_gk[i];
+      const double pref_m = 3.0 * x_m * x_m * Integration::GK_41::w_gk[i];
+      const double pref_p = 3.0 * x_p * x_p * Integration::GK_41::w_gk[i];
+
+      weights += pref_m * G2Weights::GetWeights(x_m, grid, int_e_r, int_e_a);
+      weights += pref_p * G2Weights::GetWeights(x_p, grid, int_e_r, int_e_a);
+   }
+
+   weights *= half_length;
+}
+
+double D2WeightsPartialIntegral::ComputeSingleQuark(const Eigen::VectorXd &_f) const
+{
+   return weights.dot(_f);
 }
 
 } // namespace Honeycomb
