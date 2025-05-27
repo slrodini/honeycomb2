@@ -19,3 +19,4 @@ CMakeUserPresets.json
 /tests/ignored/
 /.cache/
 /.history/
+/dat/

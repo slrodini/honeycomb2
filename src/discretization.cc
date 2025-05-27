@@ -3,7 +3,8 @@
 namespace
 {
 std::map<size_t, Honeycomb::StandardGrid> stored_grids;
-}
+
+} // namespace
 
 namespace Honeycomb
 {
@@ -551,8 +552,9 @@ Grid2D generate_compliant_Grid2D(
     size_t n_pts_for_angle_sector, std::vector<double> radius_inter, std::vector<size_t> radius_g_size,
     std::function<double(double)> radius_to_i_space, std::function<double(double)> radius_to_i_space_der,
     std::function<double(double)> radius_to_p_space, std::function<double(double)> radius_to_p_space_der,
-    std::function<double(double)> angle_to_i_space, std::function<double(double)> angle_to_i_space_der,
-    std::function<double(double)> angle_to_p_space, std::function<double(double)> angle_to_p_space_der)
+    std::string radius_grid_descr, std::function<double(double)> angle_to_i_space,
+    std::function<double(double)> angle_to_i_space_der, std::function<double(double)> angle_to_p_space,
+    std::function<double(double)> angle_to_p_space_der, std::string angle_grid_descr)
 {
 
    // SECTION: Sanity checks on the radial intervals
@@ -685,14 +687,92 @@ Grid2D generate_compliant_Grid2D(
 
    // SECTION: Done with checks, can initialize and return
 
-   SingleDiscretizationInfo info_radius(radius_inter, radius_g_size, false, radius_to_i_space,
-                                        radius_to_i_space_der, radius_to_p_space, radius_to_p_space_der);
+   SingleDiscretizationInfo info_radius(radius_inter, radius_g_size, radius_grid_descr, false,
+                                        radius_to_i_space, radius_to_i_space_der, radius_to_p_space,
+                                        radius_to_p_space_der);
 
    const std::vector<size_t> is_a(6, n_pts_for_angle_sector);
-   SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, is_a, true, angle_to_i_space,
+   SingleDiscretizationInfo info_angle({0, 1, 2, 3, 4, 5, 6}, is_a, angle_grid_descr, true, angle_to_i_space,
                                        angle_to_i_space_der, angle_to_p_space, angle_to_p_space_der);
 
    return Grid2D(info_radius, info_angle);
+}
+
+bool _check_d_info_intervals(const SingleDiscretizationInfo &a, const SingleDiscretizationInfo &b,
+                             std::string name)
+{
+   if (a.grid_descr != b.grid_descr) {
+      logger(Logger::ERROR, "Trying to load incompatible grids. The description of "
+                            "the "
+                                + name + " grid do not match.");
+   }
+   if (name == "angular") {
+      if (!a.is_periodic) {
+         logger(Logger::ERROR, "Trying to load incompatible grids. The stored angular "
+                               "grid is periodic. This is a bug!");
+      }
+   } else {
+      if (a.is_periodic) {
+         logger(Logger::ERROR, "Trying to load incompatible grids. The stored radial "
+                               "grid is periodic. This is a bug!");
+      }
+   }
+
+   if (a.intervals_phys.size() != b.intervals_phys.size()) {
+      logger(Logger::ERROR, "Trying to load incompatible grids. The stored  " + name
+                                + " grid has incorrect number of sub-intervals.");
+   }
+
+   for (size_t i = 0; i < a.intervals_phys.size(); i++) {
+      if (std::fabs(a.intervals_phys[i].first - b.intervals_phys[i].first) > 1.0e-14) {
+         logger(Logger::ERROR, "Trying to load incompatible grids. The stored  " + name
+                                   + " grid has incorrect sub-interval structure. The " + std::to_string(i)
+                                   + "-th sub-interval lower bound does not match.");
+      }
+      if (std::fabs(a.intervals_phys[i].second - b.intervals_phys[i].second) > 1.0e-14) {
+         logger(Logger::ERROR, "Trying to load incompatible grids. The stored  " + name
+                                   + " grid has incorrect sub-interval structure. The " + std::to_string(i)
+                                   + "-th sub-interval upper bound does not match.");
+      }
+   }
+
+   return true;
+}
+
+bool check_grid_compatibility(const Grid2D &tmp_grid, const Grid2D &grid)
+{
+   if (tmp_grid.is_compliant != grid.is_compliant) {
+      std::string err_msg = "";
+      if (tmp_grid.is_compliant) err_msg += " The stored grid is compliant, whereas the one in use is not.";
+      if (!tmp_grid.is_compliant) err_msg += " The stored grid is not compliant, whereas the one in use is.";
+
+      logger(Logger::ERROR, "Trying to load incompatible grids.");
+   }
+
+   if (tmp_grid.c_size != grid.c_size || tmp_grid.size != grid.size) {
+      logger(Logger::ERROR, "Trying to load incompatible grids. The dimensions do "
+                            "not match. Aborting.");
+   }
+   if (tmp_grid.grid_radius.c_size != grid.grid_radius.c_size
+       || tmp_grid.grid_radius.size != grid.grid_radius.size) {
+      logger(Logger::ERROR, "Trying to load incompatible grids. The dimensions of the radial grid do "
+                            "not match. Aborting.");
+   }
+   if (tmp_grid.grid_angle.c_size != grid.grid_angle.c_size
+       || tmp_grid.grid_angle.size != grid.grid_angle.size) {
+      logger(Logger::ERROR, "Trying to load incompatible grids. The dimensions of the angular grid do "
+                            "not match. Aborting.");
+   }
+
+   if (!_check_d_info_intervals(tmp_grid.grid_radius._d_info, grid.grid_radius._d_info, "radial")) {
+      logger(Logger::ERROR, "Trying to load incompatible grids. The stored radial "
+                            "grid has incompatible DiscretizationInfo.");
+   }
+   if (!_check_d_info_intervals(tmp_grid.grid_angle._d_info, grid.grid_angle._d_info, "angular")) {
+      logger(Logger::ERROR, "Trying to load incompatible grids. The stored angular "
+                            "grid has incompatible DiscretizationInfo.");
+   }
+   return true;
 }
 
 //========================================================

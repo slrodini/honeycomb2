@@ -54,6 +54,9 @@ struct Solution {
    void _plus_eq(double x, const Solution &other);
    void _ker_mul(double pref, const Kernels &ker);
 
+   // Utilities
+   bool is_equalt_to(const Solution &other) const;
+
 public:
    const Discretization *_discretization;
 

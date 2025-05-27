@@ -52,7 +52,7 @@ public:
          })) {};
 
    SingleDiscretizationInfo(
-       std::vector<double> inter, std::vector<size_t> g_size, bool is_per = false,
+       std::vector<double> inter, std::vector<size_t> g_size, std::string _grid_descr, bool is_per = false,
        std::function<double(double)> to_i_space =
            [](double x) {
               return x;
@@ -71,9 +71,9 @@ public:
               (void)x;
               return 1;
            })
-       : is_periodic(is_per), intervals(inter.size() - 1, {0, 0}), intervals_phys(inter.size() - 1, {0, 0}),
-         grid_sizes(g_size), to_inter_space(to_i_space), to_inter_space_der(to_i_space_der),
-         to_phys_space(to_p_space), to_phys_space_der(to_p_space_der)
+       : grid_descr(_grid_descr), is_periodic(is_per), intervals(inter.size() - 1, {0, 0}),
+         intervals_phys(inter.size() - 1, {0, 0}), grid_sizes(g_size), to_inter_space(to_i_space),
+         to_inter_space_der(to_i_space_der), to_phys_space(to_p_space), to_phys_space_der(to_p_space_der)
    {
       if (g_size.size() != (inter.size() - 1)) {
          logger(Logger::ERROR, std::format("[SingleDiscretizationInfo] Incompatible sizes for number of "
@@ -87,7 +87,16 @@ public:
       }
    };
 
-   const bool is_periodic;
+   template <class Archive>
+   void serialize(Archive &archive)
+   {
+      archive(grid_descr);
+      archive(is_periodic);
+      archive(intervals_phys);
+   }
+
+   std::string grid_descr;
+   bool is_periodic;
    std::vector<std::pair<double, double>> intervals;
    std::vector<std::pair<double, double>> intervals_phys;
    const std::vector<size_t> grid_sizes;
@@ -151,7 +160,14 @@ struct Grid {
       return {NAN, NAN};
    }
 
-   const SingleDiscretizationInfo _d_info;
+   template <class Archive>
+   void serialize(Archive &archive)
+   {
+      archive(size, c_size);
+      archive(_d_info);
+   }
+
+   SingleDiscretizationInfo _d_info;
    std::vector<std::function<double(double)>> _weights;
    std::vector<std::function<double(double)>> _weights_extrap;
    std::vector<std::function<double(double)>> _weights_der; //  these are dw/du
@@ -268,8 +284,8 @@ struct Grid2D {
       return {i_r, i_a};
    }
 
-   const Grid grid_radius;
-   const Grid grid_angle;
+   Grid grid_radius;
+   Grid grid_angle;
 
    size_t size;      // Global flatten size
    long int size_li; // Global flatten size
@@ -294,8 +310,11 @@ struct Grid2D {
    void serialize(Archive &archive)
    {
       archive(size, c_size);
-      archive(_x123);
-      archive(_x123_minmax);
+      archive(is_compliant);
+      archive(grid_radius);
+      archive(grid_angle);
+      // archive(_x123);
+      // archive(_x123_minmax);
    }
 };
 
@@ -418,14 +437,18 @@ struct OneOverSqrtXGrid {
 Grid2D
 generate_compliant_Grid2D(size_t n_pts_for_angle_sector, std::vector<double> radius_inter,
                           std::vector<size_t> radius_g_size,
-                          std::function<double(double)> radius_to_i_space     = LogGrid::to_i_space,
-                          std::function<double(double)> radius_to_i_space_der = LogGrid::to_i_space_der,
-                          std::function<double(double)> radius_to_p_space     = LogGrid::to_p_space,
-                          std::function<double(double)> radius_to_p_space_der = LogGrid::to_p_space_der,
+                          std::function<double(double)> radius_to_i_space     = LinearGrid::to_i_space,
+                          std::function<double(double)> radius_to_i_space_der = LinearGrid::to_i_space_der,
+                          std::function<double(double)> radius_to_p_space     = LinearGrid::to_p_space,
+                          std::function<double(double)> radius_to_p_space_der = LinearGrid::to_p_space_der,
+                          std::string radius_grid_descr                       = "LinearGrid",
                           std::function<double(double)> angle_to_i_space      = LinearGrid::to_i_space,
                           std::function<double(double)> angle_to_i_space_der  = LinearGrid::to_i_space_der,
                           std::function<double(double)> angle_to_p_space      = LinearGrid::to_p_space,
-                          std::function<double(double)> angle_to_p_space_der  = LinearGrid::to_p_space_der);
+                          std::function<double(double)> angle_to_p_space_der  = LinearGrid::to_p_space_der,
+                          std::string angle_grid_descr                        = "LinearGrid");
+
+bool check_grid_compatibility(const Grid2D &tmp_grid, const Grid2D &grid);
 
 // TODO: Legacy stuff, will be removed later.
 struct Discretization1D {

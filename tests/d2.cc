@@ -54,20 +54,20 @@ int main()
    // Eigen::VectorXd F_test = discr(DT_test_2);
 
    begin = Honeycomb::timer::now();
-   Honeycomb::D2Weights d2_weights(grid, 1.0e-10);
+   Honeycomb::D2Weights d2_weights(grid, true, 1.0e-10);
 
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
    std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
 
    begin = Honeycomb::timer::now();
-   Honeycomb::D2WeightsCutted d2_weights_cutted(grid, 1.0e-10);
+   Honeycomb::D2WeightsCutted d2_weights_cutted(grid, true, 1.0e-10);
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
    std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;
 
    begin = Honeycomb::timer::now();
-   Honeycomb::ELTWeights elt_weights(grid, 1.0e-10);
+   Honeycomb::ELTWeights elt_weights(grid, true, 1.0e-10);
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
    std::cout << "Elapsed (ms): " << fnc_elapsed << std::endl;

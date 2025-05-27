@@ -4,6 +4,7 @@
 #include <honeycomb2/cereal/archives/portable_binary.hpp>
 #include <honeycomb2/cereal/types/vector.hpp>
 #include <honeycomb2/cereal/types/utility.hpp>
+#include <honeycomb2/cereal/types/string.hpp>
 #include <honeycomb2/cereal/access.hpp>
 #include <honeycomb2/cereal/types/memory.hpp>
 #include <honeycomb2/cereal/details/traits.hpp>

@@ -61,29 +61,8 @@ struct Kernels {
       Grid2D tmp_grid;
       // This laods the dimensions and the points
       archive(tmp_grid);
-      if (tmp_grid.c_size != grid.c_size || tmp_grid.size != grid.size) {
-         logger(Logger::ERROR, "Trying to load incompatible kernels with the given grid. The dimensions do "
-                               "not match. Aborting.");
-      }
-      for (size_t i = 0; i < grid.c_size; i++) {
-         if (grid._x123[i].distance(tmp_grid._x123[i]) > 1.0e-12) {
-            logger(Logger::ERROR, "Trying to load incompatible kernels with the given grid. The grid points "
-                                  "do not match. Aborting.");
-         }
-      }
 
-      for (size_t i = 0; i < grid.size; i++) {
-         if (grid._x123_minmax[i].first.distance(tmp_grid._x123_minmax[i].first) > 1.0e-12) {
-            logger(Logger::ERROR,
-                   "Trying to load incompatible kernels with the given grid. The xmins for the weights "
-                   "do not match. Aborting.");
-         }
-         if (grid._x123_minmax[i].second.distance(tmp_grid._x123_minmax[i].second) > 1.0e-12) {
-            logger(Logger::ERROR,
-                   "Trying to load incompatible kernels with the given grid. The xmaxs for the weights "
-                   "do not match. Aborting.");
-         }
-      }
+      check_grid_compatibility(tmp_grid, grid);
 
       double tmp_Nc = 0;
       // Load the number of colors

@@ -2,6 +2,7 @@
 #include "honeycomb_120_25_grid_points.hpp"
 #include "original_model_functions.hpp"
 #include "solution.hpp"
+#include "utilities.hpp"
 
 int main()
 {
@@ -66,10 +67,22 @@ int main()
    // Generate 'Solution' at initial scale and list of intermediate scales for evolution
    auto [inter_scale, sol1] = get_initial_solution(Q02, Qf2, thresholds, &discr, model);
 
+   // Copy only the log(m_q^2) scales, to push new flavors in evolution
+   std::vector<double> log_active_thresholds(inter_scale.begin(), inter_scale.end() - 1);
+
+   std::vector<std::pair<double, Honeycomb::Solution>> solutions;
+
    // Setup callback for evolution to add new flavor at the threshold
-   auto callback = [&inter_scale](double t, const Honeycomb::Kernels &, Honeycomb::Solution &S) {
-      if (t == inter_scale.back()) return;
-      S.PushFlavor();
+   auto callback = [&log_active_thresholds, &solutions](double t, const Honeycomb::Kernels &,
+                                                        Honeycomb::Solution &S) -> void {
+      auto it = std::find_if(log_active_thresholds.begin(), log_active_thresholds.end(), [t](double x) {
+         return std::abs(x - t) < 1.0e-14;
+      });
+
+      // t = log(m_q^2)
+      if (it != log_active_thresholds.end()) S.PushFlavor();
+
+      solutions.emplace_back(std::make_pair(t, S));
       return;
    };
 
@@ -87,6 +100,14 @@ int main()
 
    // Extract solution at final scale from the Evolver
    Honeycomb::Solution sol_fin = evolver.GetSolution();
+
+   bool are_equal = sol_fin.is_equalt_to(solutions.back().second);
+   if (are_equal) {
+      Honeycomb::logger(Honeycomb::Logger::INFO, "Solutions match!");
+   } else {
+
+      Honeycomb::logger(Honeycomb::Logger::WARNING, "Solutions do not match!");
+   }
 
    // Put solution into physical basis
    sol1.RotateToPhysicalBasis();

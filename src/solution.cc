@@ -403,6 +403,50 @@ void Solution::RotateToEvolutionBasis()
    _curr_basis = EVO;
 }
 
+bool Solution::is_equalt_to(const Solution &other) const
+{
+   bool ok = true;
+   ok      = ok && (nf == other.nf);
+   if (!ok) {
+      logger(Logger::WARNING, std::format("Solutions are at different nf: {:d}, {:d}", nf, other.nf));
+      return false;
+   }
+
+   ok = ok && (_distr_p.size() == other._distr_p.size());
+   ok = ok && (_distr_m.size() == other._distr_m.size());
+   if (!ok) {
+      logger(Logger::WARNING,
+             std::format("Solutions have different number of independent functions: {:d}, {:d}",
+                         _distr_p.size(), other._distr_p.size()));
+      return false;
+   }
+   double a, b;
+   for (size_t i = 0; i < _distr_p.size(); i++) {
+      for (long int j = 0; j < _distr_p[i].size(); j++) {
+         a  = _distr_p[i][j];
+         b  = other._distr_p[i][j];
+         ok = ok && (std::fabs(a - b) < 1.0e-12);
+         if (!ok) {
+            logger(Logger::WARNING,
+                   std::format("Element [{:d}, {:d}] of _distr_p are too different: {:.12e}, {:.12e}", i, j,
+                               a, b));
+            return false;
+         }
+         a  = _distr_m[i][j];
+         b  = other._distr_m[i][j];
+         ok = ok && (std::fabs(a - b) < 1.0e-12);
+         if (!ok) {
+            logger(Logger::WARNING,
+                   std::format("Element [{:d}, {:d}] of _distr_m are too different: {:.12e}, {:.12e}", i, j,
+                               a, b));
+            return false;
+         }
+      }
+   }
+
+   return ok;
+}
+
 EvolutionOperatorFixedNf::EvolutionOperatorFixedNf(const Grid2D *grid, size_t _nf) : _grid(grid), nf(_nf)
 {
 

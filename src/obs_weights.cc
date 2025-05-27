@@ -158,7 +158,7 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
    return weights;
 }
 
-G2Weights::G2Weights(double _xBj, const Grid2D &_grid, double int_e_r, double int_e_a)
+G2Weights::G2Weights(double _xBj, const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a)
     : xBj(_xBj), grid(_grid)
 {
 
@@ -166,13 +166,12 @@ G2Weights::G2Weights(double _xBj, const Grid2D &_grid, double int_e_r, double in
       logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
                             "generated via `generate_compliant_Grid2D`.");
    }
-
-   weights = G2Weights::GetWeights(_xBj, _grid, int_e_r, int_e_a);
+   if (to_compute) weights = G2Weights::GetWeights(_xBj, _grid, int_e_r, int_e_a);
 }
 
 //================================================================================
 
-D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid(_grid)
+D2Weights::D2Weights(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a) : grid(_grid)
 {
 
    if (!_grid.is_compliant) {
@@ -180,7 +179,12 @@ D2Weights::D2Weights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid
                             "generated via `generate_compliant_Grid2D`.");
    }
 
-   const double r0 = _grid.grid_radius._d_info.intervals_phys[0].first;
+   if (to_compute) GetWeights(int_e_r, int_e_a);
+}
+
+void D2Weights::GetWeights(double int_e_r, double int_e_a)
+{
+   const double r0 = grid.grid_radius._d_info.intervals_phys[0].first;
 
    using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
    unsigned int num_av_threads = std::thread::hardware_concurrency();
@@ -401,15 +405,22 @@ double D2Weights::ComputeSingleQuark(const Eigen::VectorXd &_f) const
 
 //================================================================================
 
-D2WeightsCutted::D2WeightsCutted(const Grid2D &_grid, double int_e_r, double int_e_a) : grid(_grid)
+D2WeightsCutted::D2WeightsCutted(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a)
+    : grid(_grid)
 {
 
    if (!_grid.is_compliant) {
       logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
                             "generated via `generate_compliant_Grid2D`.");
    }
+   center_approx = 0;
+   if (to_compute) GetWeights(int_e_r, int_e_a);
+}
 
-   const double r0 = _grid.grid_radius._d_info.intervals_phys[0].first;
+void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
+{
+
+   const double r0 = grid.grid_radius._d_info.intervals_phys[0].first;
 
    center_approx = 3.0 * r0 * r0 / 8.0;
 
@@ -646,15 +657,20 @@ double D2WeightsCutted::ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &
 
 //================================================================================
 
-ELTWeights::ELTWeights(const Grid2D &_grid, double int_e_r, double int_e_a) : grid(_grid)
+ELTWeights::ELTWeights(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a) : grid(_grid)
 {
 
    if (!_grid.is_compliant) {
       logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
                             "generated via `generate_compliant_Grid2D`.");
    }
+   center_approx = 0;
+   if (to_compute) GetWeights(int_e_r, int_e_a);
+}
 
-   const double r0 = _grid.grid_radius._d_info.intervals_phys[0].first;
+void ELTWeights::GetWeights(double int_e_r, double int_e_a)
+{
+   const double r0 = grid.grid_radius._d_info.intervals_phys[0].first;
    center_approx   = r0 / 2.0;
 
    using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
@@ -727,9 +743,15 @@ double ELTWeights::ComputeSingleQuark(const Eigen::VectorXd &_f) const
    return ave_r0 * center_approx + tmp;
 }
 
-D2WeightsPartialIntegral::D2WeightsPartialIntegral(const Grid2D &_grid, double _a, double _b, double int_e_r,
-                                                   double int_e_a)
+D2WeightsPartialIntegral::D2WeightsPartialIntegral(const Grid2D &_grid, double _a, double _b, bool to_compute,
+                                                   double int_e_r, double int_e_a)
     : grid(_grid), a(_a), b(_b)
+{
+
+   if (to_compute) GetWeights(int_e_r, int_e_a);
+}
+
+void D2WeightsPartialIntegral::GetWeights(double int_e_r, double int_e_a)
 {
    // \int_a^b dx 3 x^2 w_g2(x)
    const double center      = (b + a) / 2.0;
