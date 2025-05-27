@@ -101,6 +101,9 @@ int main()
    // Extract solution at final scale from the Evolver
    Honeycomb::Solution sol_fin = evolver.GetSolution();
 
+   // The solution extracted from the evolver must be equal to the last
+   // entry of the solutions array to which we appendend in the callback function.
+   // This is a sanity check.
    bool are_equal = sol_fin.is_equalt_to(solutions.back().second);
    if (are_equal) {
       Honeycomb::logger(Honeycomb::Logger::INFO, "Solutions match!");
