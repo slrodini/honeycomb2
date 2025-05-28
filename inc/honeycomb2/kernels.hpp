@@ -111,7 +111,9 @@ inline Kernels load_kernels(const std::string &file_name, const Grid2D &g, doubl
 {
    Kernels ker(g, _Nc, false);
    if (!LoadAndVerify<Kernels, cereal::PortableBinaryInputArchive>(file_name, ker)) {
-      logger(Logger::WARNING, "I was not able to correctly load the cereal archive. Compute and overwrite");
+      logger(Logger::WARNING, "I was not able to correctly load the cereal archive " + file_name
+                                  + " containing the kernels. "
+                                    "Compute (and possibly overwrite)");
       ker.ComputeKernels();
       save_kernels(ker, file_name);
    }

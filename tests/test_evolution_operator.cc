@@ -108,7 +108,31 @@ int main()
    if (are_equal) {
       Honeycomb::logger(Honeycomb::Logger::INFO, "Solutions match!");
    } else {
+      Honeycomb::logger(Honeycomb::Logger::WARNING, "Solutions do not match!");
+   }
 
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Computing evolution operator..."));
+   begin                   = Honeycomb::timer::now();
+   Honeycomb::EvOp evol_op = compute_evolution_operator(kers, Q02, Qf2, thresholds, as);
+   end                     = Honeycomb::timer::now();
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+
+   Honeycomb::save_evolution_operator(evol_op, "reduced_grid_EvOp.cereal");
+
+   auto [ok_load, evol_op_load] = Honeycomb::load_evolution_operator("reduced_grid_EvOp.cereal", grid);
+
+   if (!ok_load) {
+      std::cerr << "An Error occured\n";
+   }
+
+   Honeycomb::Solution sol_eo(sol1);
+   Honeycomb::ApplyEvolutionOperator(sol_eo, evol_op_load);
+
+   are_equal = sol_fin.is_equalt_to(sol_eo, 1.0e-10);
+   if (are_equal) {
+      Honeycomb::logger(Honeycomb::Logger::INFO, "Solutions match!");
+   } else {
       Honeycomb::logger(Honeycomb::Logger::WARNING, "Solutions do not match!");
    }
 

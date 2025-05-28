@@ -1,4 +1,4 @@
-#include "discretization.hpp"
+#include <honeycomb2/discretization.hpp>
 #include <honeycomb2/thread_pool.hpp>
 #include <honeycomb2/utilities.hpp>
 #include <honeycomb2/solution.hpp>
@@ -403,7 +403,7 @@ void Solution::RotateToEvolutionBasis()
    _curr_basis = EVO;
 }
 
-bool Solution::is_equalt_to(const Solution &other) const
+bool Solution::is_equalt_to(const Solution &other, double acc) const
 {
    bool ok = true;
    ok      = ok && (nf == other.nf);
@@ -425,19 +425,19 @@ bool Solution::is_equalt_to(const Solution &other) const
       for (long int j = 0; j < _distr_p[i].size(); j++) {
          a  = _distr_p[i][j];
          b  = other._distr_p[i][j];
-         ok = ok && (std::fabs(a - b) < 1.0e-12);
+         ok = ok && (std::fabs(a - b) < acc);
          if (!ok) {
             logger(Logger::WARNING,
-                   std::format("Element [{:d}, {:d}] of _distr_p are too different: {:.12e}, {:.12e}", i, j,
+                   std::format("Element [{:d}, {:d}] of _distr_p are too different: {:.16e}, {:.16e}", i, j,
                                a, b));
             return false;
          }
          a  = _distr_m[i][j];
          b  = other._distr_m[i][j];
-         ok = ok && (std::fabs(a - b) < 1.0e-12);
+         ok = ok && (std::fabs(a - b) < acc);
          if (!ok) {
             logger(Logger::WARNING,
-                   std::format("Element [{:d}, {:d}] of _distr_m are too different: {:.12e}, {:.12e}", i, j,
+                   std::format("Element [{:d}, {:d}] of _distr_m are too different: {:.16e}, {:.16e}", i, j,
                                a, b));
             return false;
          }
@@ -447,7 +447,8 @@ bool Solution::is_equalt_to(const Solution &other) const
    return ok;
 }
 
-EvolutionOperatorFixedNf::EvolutionOperatorFixedNf(const Grid2D *grid, size_t _nf) : _grid(grid), nf(_nf)
+EvolutionOperatorFixedNf::EvolutionOperatorFixedNf(const Grid2D *grid, size_t _nf, ThreadPool *th)
+    : _grid(grid), th_pool(th), nf(_nf)
 {
 
    unsigned int num_av_threads = std::thread::hardware_concurrency();
@@ -497,7 +498,7 @@ void EvolutionOperatorFixedNf::_ker_mul(double pref, const MergedKernelsFixedNf 
    th_pool->WaitOnJobs();
 }
 
-void ApplyEvolutionOperator(Solution &sol, const EvolutionOperatorFixedNf &O)
+void ApplyEvolutionOperator(Solution &sol, const EvOpNF &O)
 {
    if (sol.nf != O.nf) {
       logger(Logger::ERROR, std::format("ApplyEvolutionOperator: incompatible nf between Solution ({:d}) and "
