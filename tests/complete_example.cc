@@ -11,9 +11,10 @@ int main()
    Honeycomb::timer::mark end   = Honeycomb::timer::now();
 
    // Grid setup
-   const size_t n         = 7;
-   const double rmin      = 0.001;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {12, 8, 7});
+   const size_t n    = 7;
+   const double rmin = 0.001;
+   Honeycomb::Grid2D grid;
+   grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {12, 8, 7});
    Honeycomb::Discretization discr(grid);
 
    // Print grid information

@@ -11,9 +11,10 @@ int main()
    Honeycomb::timer::mark end   = Honeycomb::timer::now();
 
    // Grid setup
-   const size_t n         = 2;
-   const double rmin      = 0.001;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.4, 1}, {4, 4});
+   const size_t n    = 2;
+   const double rmin = 0.001;
+   Honeycomb::Grid2D grid;
+   grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.4, 1}, {4, 4});
    Honeycomb::Discretization discr(grid);
 
    // Print grid information
@@ -21,7 +22,6 @@ int main()
                      std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Total x123 size: {:d}x{:d}", grid.c_size, grid.c_size));
-
    // Load/compute evolution kernels, timing it
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Kernel Discretization..."));
    begin                   = Honeycomb::timer::now();
@@ -113,17 +113,21 @@ int main()
 
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Computing evolution operator..."));
    begin                   = Honeycomb::timer::now();
-   Honeycomb::EvOp evol_op = compute_evolution_operator(kers, Q02, Qf2, thresholds, as);
+   Honeycomb::EvOp evol_op = Honeycomb::compute_evolution_operator(&grid, kers, Q02, Qf2, thresholds, as);
    end                     = Honeycomb::timer::now();
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    Honeycomb::save_evolution_operator(evol_op, "reduced_grid_EvOp.cereal");
 
-   auto [ok_load, evol_op_load] = Honeycomb::load_evolution_operator("reduced_grid_EvOp.cereal", grid);
+   auto [ok_load, evol_op_load_foo] = Honeycomb::load_evolution_operator("reduced_grid_EvOp.cereal", &grid);
+
+   Honeycomb::EvOp evol_op_load;
 
    if (!ok_load) {
       std::cerr << "An Error occured\n";
+   } else {
+      evol_op_load = evol_op_load_foo;
    }
 
    Honeycomb::Solution sol_eo(sol1);

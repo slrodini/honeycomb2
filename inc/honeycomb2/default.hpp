@@ -1,5 +1,5 @@
-#ifndef DEFAULT_HPP
-#define DEFAULT_HPP
+#ifndef HC2_DEFAULT_HPP
+#define HC2_DEFAULT_HPP
 
 // Input/output
 #include <cstdio>
@@ -43,4 +43,4 @@ inline double cu(double x) noexcept
    return x * x * x;
 };
 
-#endif // DEFAULT_HPP
+#endif // HC2_DEFAULT_HPP

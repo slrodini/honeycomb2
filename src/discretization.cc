@@ -4,6 +4,21 @@ namespace
 {
 std::map<size_t, Honeycomb::StandardGrid> stored_grids;
 
+// u=a <=> t=+1
+// u=b <=> t=-1
+double from_ab_to_m1p1(double u, double a, double b) noexcept
+{
+   return -2 * (u - a) / (b - a) + 1;
+};
+double from_m1p1_to_ab(double t, double a, double b) noexcept
+{
+   return (b - a) * (1 - t) * 0.5 + a;
+};
+double from_ab_to_m1p1_der(double a, double b) noexcept
+{
+   return -2 / (b - a);
+};
+
 } // namespace
 
 namespace Honeycomb
@@ -135,9 +150,12 @@ double StandardGrid::poli_weight_der(double t, size_t j) const
 // ========================= GRID ========================
 // =======================================================
 
-Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
+void Grid::Initialize(const SingleDiscretizationInfo &d_info)
 {
-   size = 0;
+   if (_is_initialized) return;
+   _is_initialized = true;
+   _d_info         = d_info;
+   size            = 0;
    for (size_t i = 0; i < d_info.intervals.size(); i++) {
       // NOTE: This works ok because grid_sizes stores N, but the points are N+1 always
       // NOTE: This is implementation of non-overlapping grids, leading to simpler weights
@@ -182,17 +200,58 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
          _from_iw_to_ic[index] = index_coord;
          if (j != d_info.grid_sizes[a]) index_coord++;
 
-         _weights[index] = [a, j, this](double u) -> double {
-            return this->weight_aj<W_CASE::N>(u, a, j);
+         // Note: in order to have proper assignement operator
+         // I cannot use [this] in the lambdas. Hence, I need to
+         // pass the needed variables by value to the lambdas.
+         size_t cached_gs                       = _d_info.grid_sizes[a];
+         size_t cached_int_size                 = _d_info.intervals.size();
+         std::pair<double, double> cached_inter = _d_info.intervals[a];
+
+         // ------------------------------
+         _weights[index] = [a, j, cached_gs, cached_int_size, cached_inter](double u) -> double {
+            StandardGrid &sg = stored_grids.at(cached_gs);
+            double res       = 0;
+
+            bool condition_x = a == cached_int_size - 1 ? u <= cached_inter.second : u < cached_inter.second;
+            if (u >= cached_inter.first && condition_x) {
+               res += sg.poli_weight(from_ab_to_m1p1(u, cached_inter.first, cached_inter.second), j);
+            }
+
+            return res;
          };
-         _weights_extrap[index] = [a, j, this](double u) -> double {
-            return this->weight_aj_extrap(u, a, j);
+
+         // ------------------------------
+         _weights_extrap[index] = [j, cached_gs, cached_inter](double u) -> double {
+            StandardGrid &sg = stored_grids.at(cached_gs);
+
+            return sg.poli_weight_extrap(from_ab_to_m1p1(u, cached_inter.first, cached_inter.second), j);
          };
-         _weights_der[index] = [a, j, this](double u) -> double {
-            return this->weight_aj<W_CASE::D>(u, a, j);
+
+         // ------------------------------
+         _weights_der[index] = [a, j, cached_gs, cached_int_size, cached_inter](double u) -> double {
+            StandardGrid &sg = stored_grids.at(cached_gs);
+            double res       = 0;
+
+            bool condition_x = a == cached_int_size - 1 ? u <= cached_inter.second : u < cached_inter.second;
+            if (u >= cached_inter.first && condition_x) {
+               const double dl_dx = from_ab_to_m1p1_der(cached_inter.first, cached_inter.second);
+               const double dw_dl
+                   = sg.poli_weight_der(from_ab_to_m1p1(u, cached_inter.first, cached_inter.second), j);
+               res += dw_dl * dl_dx;
+            }
+
+            return res;
          };
-         _weights_sub[index] = [a, j, this](double u) -> double {
-            return this->weight_aj<W_CASE::S>(u, a, j);
+         _weights_sub[index] = [a, j, cached_gs, cached_int_size, cached_inter](double u) -> double {
+            StandardGrid &sg = stored_grids.at(cached_gs);
+            double res       = 0;
+
+            bool condition_x = a == cached_int_size - 1 ? u <= cached_inter.second : u < cached_inter.second;
+            if (u >= cached_inter.first && condition_x) {
+               res += sg.poli_weight_sub(from_ab_to_m1p1(u, cached_inter.first, cached_inter.second), j);
+            }
+
+            return res;
          };
 
          long int inner_index = 0;
@@ -211,11 +270,6 @@ Grid::Grid(const SingleDiscretizationInfo &d_info) : _d_info(d_info)
    for (size_t i = 0; i < _from_iw_to_ic.size(); i++) {
       _from_ic_to_iw[_from_iw_to_ic[i]].push_back(i);
    }
-
-   // for (const auto &v : _from_ic_to_iw) {
-   //    logger(Logger::WARNING, std::format("{:d}", v.size()));
-   // }
-   // logger(Logger::WARNING, "========================");
 }
 
 double Grid::get_der_matrix(size_t a, size_t j, size_t b, size_t k) const
@@ -225,51 +279,28 @@ double Grid::get_der_matrix(size_t a, size_t j, size_t b, size_t k) const
    return sg._Dij[j][k];
 }
 
-template <int w_case>
-double Grid::weight_aj(double u, size_t a, size_t j)
-{
-   StandardGrid &sg = stored_grids.at(_d_info.grid_sizes[a]);
-   double res       = 0;
-
-   bool condition_x = a == _d_info.intervals.size() - 1 ? u <= _d_info.intervals[a].second
-                                                        : u < _d_info.intervals[a].second;
-
-   if (u >= _d_info.intervals[a].first && condition_x) {
-      if constexpr (w_case == D) {
-         const double dl_dx = from_ab_to_m1p1_der(_d_info.intervals[a].first, _d_info.intervals[a].second);
-         const double dw_dl = sg.poli_weight_der(
-             from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
-         res += dw_dl * dl_dx;
-      } else if constexpr (w_case == N) {
-         res += sg.poli_weight(from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second),
-                               j);
-      } else {
-         res += sg.poli_weight_sub(
-             from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second), j);
-      }
-   }
-
-   return res;
-}
-
-double Grid::weight_aj_extrap(double u, size_t a, size_t j)
-{
-   StandardGrid &sg = stored_grids.at(_d_info.grid_sizes[a]);
-
-   return sg.poli_weight_extrap(from_ab_to_m1p1(u, _d_info.intervals[a].first, _d_info.intervals[a].second),
-                                j);
-}
-
 // =======================================================
 // ======================== GRID2D =======================
 // =======================================================
 
-Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi)
-    : grid_radius(d_info_rho), grid_angle(d_info_phi), size(grid_radius.size * grid_angle.size),
-      size_li(static_cast<long int>(size)), c_size(grid_radius.c_size * grid_angle.c_size),
-      c_size_li(static_cast<long int>(c_size)), _x123(c_size), _x123_minmax(size), _w(size), _w_extrap(size),
-      _dw_dx3(size)
+void Grid2D::Initialize(const SingleDiscretizationInfo &d_info_rho,
+                        const SingleDiscretizationInfo &d_info_phi)
 {
+   if (_is_initialized) return;
+   _is_initialized = true;
+
+   grid_radius.Initialize(d_info_rho);
+   grid_angle.Initialize(d_info_phi);
+   size      = grid_radius.size * grid_angle.size;
+   size_li   = static_cast<long int>(size);
+   c_size    = grid_radius.c_size * grid_angle.c_size;
+   c_size_li = static_cast<long int>(c_size);
+   _x123.resize(c_size);
+   _x123_minmax.resize(size);
+   _w.resize(size);
+   _w_extrap.resize(size);
+   _dw_dx3.resize(size);
+
    size_t k = 0;
    size_t j = 0;
    // These are loops over the double w indexes
@@ -311,17 +342,27 @@ Grid2D::Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretiz
                   RnC::Pair rf(grid_radius._coord[c_j], grid_angle._coord[c_k]);
                   _x123[f_index] = RnC::from_rhophi_to_x123(rf);
 
-                  _w[index] = [j, k, this](const RnC::Pair &rhophi) -> double {
-                     const double r = grid_radius._d_info.to_inter_space(rhophi(0));
-                     const double f = grid_angle._d_info.to_inter_space(rhophi(1));
-                     return grid_radius._weights[j](r) * grid_angle._weights[k](f);
+                  // Note: in order to have proper assignement operator
+                  // I cannot use [this] in the lambdas. Hence, I need to
+                  // pass the needed functions by value to the lambdas.
+                  auto cached_tis_r      = grid_radius._d_info.to_inter_space;
+                  auto cached_tis_a      = grid_angle._d_info.to_inter_space;
+                  auto cached_gr_wj      = grid_radius._weights[j];
+                  auto cached_gr_wj_extr = grid_radius._weights_extrap[j];
+                  auto cached_ga_wk      = grid_angle._weights[k];
+
+                  _w[index] = [cached_tis_r, cached_tis_a, cached_gr_wj,
+                               cached_ga_wk](const RnC::Pair &rhophi) -> double {
+                     const double r = cached_tis_r(rhophi(0));
+                     const double f = cached_tis_a(rhophi(1));
+                     return cached_gr_wj(r) * cached_ga_wk(f);
                   };
 
-                  _w_extrap[index] = [j, k, this](const RnC::Pair &rhophi) -> double {
-                     const double r = grid_radius._d_info.to_inter_space(rhophi(0));
-                     const double f = grid_angle._d_info.to_inter_space(rhophi(1));
-                     // Extrapolate only on the radius
-                     return grid_radius._weights_extrap[j](r) * grid_angle._weights[k](f);
+                  _w_extrap[index] = [cached_tis_r, cached_tis_a, cached_gr_wj_extr,
+                                      cached_ga_wk](const RnC::Pair &rhophi) -> double {
+                     const double r = cached_tis_r(rhophi(0));
+                     const double f = cached_tis_a(rhophi(1));
+                     return cached_gr_wj_extr(r) * cached_ga_wk(f);
                   };
 
                   _dw_dx3[index] = get_dw_dx3_fixed_x1(index);
@@ -383,10 +424,6 @@ std::function<double(const RnC::Pair &rhophi)> Grid2D::get_dw_dx3_fixed_x1(size_
 // =======================================================
 // =================== DISCRETIZATION ====================
 // =======================================================
-
-Discretization::Discretization(const Grid2D &grid) : _grid(grid)
-{
-}
 
 Eigen::VectorXd
 Discretization::operator()(std::function<double(double, double, double)> const &function) const

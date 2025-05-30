@@ -41,11 +41,11 @@ void EvOp::push_back(const EvOpNF &arg)
 
 // -----------------------------------------------------------------------------
 
-EvOp compute_evolution_operator(const Kernels &kers, double Q02, double Qf2,
+EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, double Qf2,
                                 const std::array<double, 6> &thresholds, std::function<double(double)> as)
 {
 
-   EvOp result(kers.grid);
+   EvOp result(grid);
    result.SetScales(log(Q02), log(Qf2));
    result.SetThresholds(std::vector<double>(thresholds.begin(), thresholds.end()));
 

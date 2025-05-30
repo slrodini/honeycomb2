@@ -1,5 +1,5 @@
-#ifndef G2_WEIGHTS_HPP
-#define G2_WEIGHTS_HPP
+#ifndef HC2_G2_WEIGHTS_HPP
+#define HC2_G2_WEIGHTS_HPP
 
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/solution.hpp>
@@ -204,6 +204,30 @@ struct ELTWeights {
    }
 };
 
+template <typename WT>
+concept IsWeight
+    = std::same_as<WT, G2Weights> || std::same_as<WT, D2Weights> || std::same_as<WT, D2WeightsCutted>
+   || std::same_as<WT, D2WeightsPartialIntegral> || std::same_as<WT, ELTWeights>;
+
+template <typename WT>
+requires IsWeight<WT>
+inline void save_weights(const WT &O, const std::string &file_name)
+{
+   SaveChecksumArchive<WT, cereal::PortableBinaryOutputArchive>(O, file_name);
+}
+
+template <typename WT>
+requires IsWeight<WT>
+inline bool load_weights(const std::string &file_name, WT &result)
+{
+   if (!LoadAndVerify<WT, cereal::PortableBinaryInputArchive>(file_name, result)) {
+      logger(Logger::WARNING,
+             "I was not able to correctly load the cereal archive " + file_name + " containing the weights.");
+      return false;
+   }
+   return true;
+}
+
 } // namespace Honeycomb
 
-#endif
+#endif // HC2_G2_WEIGHTS_HPP

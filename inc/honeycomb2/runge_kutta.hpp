@@ -1,5 +1,5 @@
-#ifndef RUNGE_KUTTA_HPP
-#define RUNGE_KUTTA_HPP
+#ifndef HC2_RUNGE_KUTTA_HPP
+#define HC2_RUNGE_KUTTA_HPP
 
 #include <functional>
 #include <concepts>
@@ -324,4 +324,4 @@ constexpr GenericRungeKuttaTableaux<13>
 } // namespace runge_kutta
 } // namespace Honeycomb
 
-#endif // RUNGE_KUTTA_HPP
+#endif // HC2_RUNGE_KUTTA_HPP

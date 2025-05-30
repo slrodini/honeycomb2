@@ -1,5 +1,5 @@
-#ifndef CHECKSUM_HPP
-#define CHECKSUM_HPP
+#ifndef HC2_CHECKSUM_HPP
+#define HC2_CHECKSUM_HPP
 
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
@@ -12,4 +12,5 @@ uint64_t compute_file_checksum(const char *file_path);
 
 } // namespace Honeycomb
 
-#endif // CHECKSUM_HPP
+#endif // HC2_
+HC2_CHECKSUM_HPP

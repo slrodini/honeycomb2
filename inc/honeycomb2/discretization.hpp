@@ -1,5 +1,5 @@
-#ifndef DISCRETIZATION_HPP
-#define DISCRETIZATION_HPP
+#ifndef HC2_DISCRETIZATION_HPP
+#define HC2_DISCRETIZATION_HPP
 
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
@@ -99,45 +99,43 @@ public:
    bool is_periodic;
    std::vector<std::pair<double, double>> intervals;
    std::vector<std::pair<double, double>> intervals_phys;
-   const std::vector<size_t> grid_sizes;
-   const std::function<double(double)> to_inter_space;
-   const std::function<double(double)> to_inter_space_der;
-   const std::function<double(double)> to_phys_space;
-   const std::function<double(double)> to_phys_space_der;
+   std::vector<size_t> grid_sizes;
+   std::function<double(double)> to_inter_space;
+   std::function<double(double)> to_inter_space_der;
+   std::function<double(double)> to_phys_space;
+   std::function<double(double)> to_phys_space_der;
 };
 
 // Store the grid in either the radius or the angle
 struct Grid {
 
-   // u=a <=> t=+1
-   // u=b <=> t=-1
-   double from_ab_to_m1p1(double u, double a, double b) const noexcept
+   Grid(const SingleDiscretizationInfo &d_info)
    {
-      return -2 * (u - a) / (b - a) + 1;
-   };
-   double from_m1p1_to_ab(double t, double a, double b) const noexcept
-   {
-      return (b - a) * (1 - t) * 0.5 + a;
-   };
-   double from_ab_to_m1p1_der(double a, double b) const noexcept
-   {
-      return -2 / (b - a);
-   };
+      Initialize(d_info);
+   }
 
-   enum W_CASE { N = 1, D = 2, S = 3 };
+   void Initialize(const SingleDiscretizationInfo &d_info);
 
-   Grid(const SingleDiscretizationInfo &d_info);
+   Grid(const Grid &other)
+   {
+      *this = other; // Reuse assignment
+   }
+
+   Grid &operator=(const Grid &other)
+   {
+      if (this == &other) return *this;
+      _is_initialized = other._is_initialized;
+      Initialize(other._d_info);
+      return *this;
+   }
+
+   Grid(Grid &&other) noexcept            = default;
+   Grid &operator=(Grid &&other) noexcept = default;
 
    // Empty default constructor
-   Grid() {};
+   Grid() : _is_initialized(false) {};
 
    double get_der_matrix(size_t a, size_t j, size_t b, size_t k) const;
-
-   // NOTE: u is in interpolation space, not physical space
-   template <int w_case>
-   double weight_aj(double u, size_t a, size_t j);
-
-   double weight_aj_extrap(double u, size_t a, size_t j);
 
    // NOTE: Support is given in interpolation space, not physical space.
    std::pair<double, double> get_support_weight_aj(size_t index) const
@@ -167,6 +165,7 @@ struct Grid {
       archive(_d_info);
    }
 
+   bool _is_initialized = false;
    SingleDiscretizationInfo _d_info;
    std::vector<std::function<double(double)>> _weights;
    std::vector<std::function<double(double)>> _weights_extrap;
@@ -242,13 +241,34 @@ std::pair<Triplet, Triplet> dx123_drhophi(Pair rhophi);
 
 struct Grid2D {
 
-   Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi);
+   Grid2D(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi)
+   {
+      Initialize(d_info_rho, d_info_phi);
+   }
+   void Initialize(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi);
 
    // Empty default constructor
    Grid2D()
    {
-      is_compliant = false;
+      is_compliant    = true;
+      _is_initialized = false;
    };
+
+   Grid2D(const Grid2D &other)
+   {
+      *this = other; // Reuse assignment
+   }
+
+   Grid2D &operator=(const Grid2D &other)
+   {
+      if (this == &other) return *this;
+      _is_initialized = other._is_initialized;
+      Initialize(other.grid_radius._d_info, other.grid_angle._d_info);
+      return *this;
+   }
+
+   Grid2D(Grid2D &&other) noexcept            = default;
+   Grid2D &operator=(Grid2D &&other) noexcept = default;
 
    std::function<double(const RnC::Pair &rhophi)> get_dw_dx3_fixed_x1(size_t index) const;
 
@@ -284,6 +304,7 @@ struct Grid2D {
       return {i_r, i_a};
    }
 
+   bool _is_initialized = false;
    Grid grid_radius;
    Grid grid_angle;
 
@@ -320,7 +341,7 @@ struct Grid2D {
 
 struct Discretization {
 public:
-   Discretization(const Grid2D &grid);
+   Discretization(const Grid2D &grid) : _grid(grid) {};
 
    double interpolate_as_weights(const RnC::Pair &rhophi, const Eigen::VectorXd &_fj) const;
 
@@ -469,4 +490,4 @@ public:
 };
 
 } // namespace Honeycomb
-#endif // DISCRETIZATION_HPP
+#endif // HC2_DISCRETIZATION_HPP

@@ -1,0 +1,4 @@
+#ifndef TESTS_PATH
+#define TESTS_PATH "@CMAKE_CURRENT_SOURCE_DIR@"
+
+#endif

@@ -161,11 +161,6 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
 G2Weights::G2Weights(double _xBj, const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a)
     : xBj(_xBj), grid(_grid)
 {
-
-   if (!_grid.is_compliant) {
-      logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
-                            "generated via `generate_compliant_Grid2D`.");
-   }
    if (to_compute) weights = G2Weights::GetWeights(_xBj, _grid, int_e_r, int_e_a);
 }
 
@@ -174,16 +169,16 @@ G2Weights::G2Weights(double _xBj, const Grid2D &_grid, bool to_compute, double i
 D2Weights::D2Weights(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a) : grid(_grid)
 {
 
-   if (!_grid.is_compliant) {
-      logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
-                            "generated via `generate_compliant_Grid2D`.");
-   }
-
    if (to_compute) GetWeights(int_e_r, int_e_a);
 }
 
 void D2Weights::GetWeights(double int_e_r, double int_e_a)
 {
+   if (!grid.is_compliant) {
+      logger(Logger::ERROR, "D2Weights: The Grid2D is not compliant to the specs. Please use only grids "
+                            "generated via `generate_compliant_Grid2D`.");
+   }
+
    const double r0 = grid.grid_radius._d_info.intervals_phys[0].first;
 
    using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
@@ -222,6 +217,7 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
                return integrator::integrate(fnc_internal_1, 0.0, x3_r, int_e_r, int_e_a);
             };
             const double tmp = integrator::integrate(fnc_external, x3_r_min, x3_r_max, int_e_r, int_e_a);
+
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -409,17 +405,17 @@ D2WeightsCutted::D2WeightsCutted(const Grid2D &_grid, bool to_compute, double in
     : grid(_grid)
 {
 
-   if (!_grid.is_compliant) {
-      logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
-                            "generated via `generate_compliant_Grid2D`.");
-   }
    center_approx = 0;
    if (to_compute) GetWeights(int_e_r, int_e_a);
 }
 
 void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
 {
-
+   if (!grid.is_compliant) {
+      logger(Logger::ERROR,
+             "D2WeightsCutted: The Grid2D is not compliant to the specs. Please use only grids "
+             "generated via `generate_compliant_Grid2D`.");
+   }
    const double r0 = grid.grid_radius._d_info.intervals_phys[0].first;
 
    center_approx = 3.0 * r0 * r0 / 8.0;
@@ -660,16 +656,16 @@ double D2WeightsCutted::ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &
 ELTWeights::ELTWeights(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a) : grid(_grid)
 {
 
-   if (!_grid.is_compliant) {
-      logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
-                            "generated via `generate_compliant_Grid2D`.");
-   }
    center_approx = 0;
    if (to_compute) GetWeights(int_e_r, int_e_a);
 }
 
 void ELTWeights::GetWeights(double int_e_r, double int_e_a)
 {
+   if (!grid.is_compliant) {
+      logger(Logger::ERROR, "ELTWeights: The Grid2D is not compliant to the specs. Please use only grids "
+                            "generated via `generate_compliant_Grid2D`.");
+   }
    const double r0 = grid.grid_radius._d_info.intervals_phys[0].first;
    center_approx   = r0 / 2.0;
 

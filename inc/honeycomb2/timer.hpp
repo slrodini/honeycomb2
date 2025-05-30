@@ -1,5 +1,5 @@
-#ifndef TIMER_HPP
-#define TIMER_HPP
+#ifndef HC2_TIMER_HPP
+#define HC2_TIMER_HPP
 
 #include <chrono>
 
@@ -40,4 +40,4 @@ inline double elapsed_s(const mark &end, const mark &begin)
 } // namespace timer
 } // namespace Honeycomb
 
-#endif // TIMER_HPP
+#endif // HC2_TIMER_HPP

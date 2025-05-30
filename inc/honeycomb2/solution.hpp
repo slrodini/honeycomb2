@@ -1,5 +1,5 @@
-#ifndef SOLUTION_HPP
-#define SOLUTION_HPP
+#ifndef HC2_SOLUTION_HPP
+#define HC2_SOLUTION_HPP
 
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/kernels.hpp>
@@ -192,7 +192,8 @@ struct EvOpNF {
 };
 
 struct EvOp {
-   EvOp(const Grid2D &grid) : _grid(grid) {};
+   EvOp(Grid2D *grid) : _grid(grid) {};
+   EvOp() : _grid(nullptr) {};
 
    void emplace_back(const EvOpNF &arg);
    void push_back(const EvOpNF &arg);
@@ -204,14 +205,14 @@ struct EvOp {
       return _operators.back();
    }
 
-   const Grid2D &_grid;
+   Grid2D *_grid;
    std::vector<EvOpNF> _operators;
-   std::vector<double> _thresholds;
+   std::vector<double> _thresholds; // This stores ALL the 6 thresholds
    std::pair<double, double> t0tF;
    template <class Archive>
    void save(Archive &archive) const
    {
-      archive(_grid);
+      archive(*_grid);
       archive(_operators);
       archive(_thresholds);
       archive(t0tF);
@@ -222,7 +223,7 @@ struct EvOp {
    {
       Grid2D tmp_grid;
       archive(tmp_grid);
-      check_grid_compatibility(tmp_grid, _grid);
+      check_grid_compatibility(tmp_grid, *_grid);
 
       archive(_operators);
       archive(_thresholds);
@@ -235,7 +236,7 @@ inline void save_evolution_operator(const EvOp &O, const std::string &file_name)
    SaveChecksumArchive<EvOp, cereal::PortableBinaryOutputArchive>(O, file_name);
 }
 
-inline std::pair<bool, EvOp> load_evolution_operator(const std::string &file_name, const Grid2D &g)
+inline std::pair<bool, EvOp> load_evolution_operator(const std::string &file_name, Grid2D *g)
 {
    EvOp result(g);
    if (!LoadAndVerify<EvOp, cereal::PortableBinaryInputArchive>(file_name, result)) {
@@ -246,7 +247,7 @@ inline std::pair<bool, EvOp> load_evolution_operator(const std::string &file_nam
    return {true, result};
 }
 
-EvOp compute_evolution_operator(const Kernels &kers, double Q02, double Qf2,
+EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, double Qf2,
                                 const std::array<double, 6> &thresholds, std::function<double(double)> as);
 
 // Thresholds in \mu^2
@@ -266,4 +267,4 @@ Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std:
 
 } // namespace Honeycomb
 
-#endif // SOLUTION_HPP
+#endif // HC2_SOLUTION_HPP

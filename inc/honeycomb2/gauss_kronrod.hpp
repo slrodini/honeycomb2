@@ -1,5 +1,5 @@
-#ifndef GAUSS_KRONROD_HPP
-#define GAUSS_KRONROD_HPP
+#ifndef HC2_GAUSS_KRONROD_HPP
+#define HC2_GAUSS_KRONROD_HPP
 
 #include <honeycomb2/default.hpp>
 
@@ -46,14 +46,14 @@ struct GaussKronrod {
                            double eps_rel = 1.0e-10, double eps_abs = 1.0e-10);
 
 private:
-   static std::tuple<double, double, double> gauss_kronrod_recursive_step(std::function<double(double)> const &fnc,
-                                                                          double const &a, double const &b,
-                                                                          size_t depth, double eps_rel, double eps_abs);
-   static std::tuple<double, double, double> gauss_kronrod_simplified(std::function<double(double)> const &fnc,
-                                                                      double const &a, double const &b);
+   static std::tuple<double, double, double>
+   gauss_kronrod_recursive_step(std::function<double(double)> const &fnc, double const &a, double const &b,
+                                size_t depth, double eps_rel, double eps_abs);
+   static std::tuple<double, double, double>
+   gauss_kronrod_simplified(std::function<double(double)> const &fnc, double const &a, double const &b);
 };
 
 } // namespace Integration
 } // namespace Honeycomb
 
-#endif // GAUSS_KRONROD_HPP
+#endif // HC2_GAUSS_KRONROD_HPP

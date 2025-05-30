@@ -1,5 +1,5 @@
-#ifndef UTILITIES_HPP
-#define UTILITIES_HPP
+#ifndef HC2_UTILITIES_HPP
+#define HC2_UTILITIES_HPP
 
 #include <honeycomb2/default.hpp>
 
@@ -86,4 +86,4 @@ inline bool is_near(double a, double b, double eps = 1.0e-15)
 }
 } // namespace Honeycomb
 
-#endif
+#endif // HC2_UTILITIES_HPP

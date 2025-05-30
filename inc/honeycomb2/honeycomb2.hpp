@@ -1,5 +1,5 @@
-#ifndef HONEYCOMB2_HPP
-#define HONEYCOMB2_HPP
+#ifndef HC2_HONEYCOMB2_HPP
+#define HC2_HONEYCOMB2_HPP
 
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
@@ -21,4 +21,6 @@
 
 #include <honeycomb2/obs_weights.hpp>
 
-#endif // HONEYCOMB2_HPP
+#include <honeycomb2/foreign_interface.hpp>
+
+#endif // HC2_HONEYCOMB2_HPP

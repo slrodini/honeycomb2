@@ -1,5 +1,5 @@
-#ifndef THREAD_POOL_HPP
-#define THREAD_POOL_HPP
+#ifndef HC2_THREAD_POOL_HPP
+#define HC2_THREAD_POOL_HPP
 
 #include <honeycomb2/default.hpp>
 #include <mutex>
@@ -33,4 +33,4 @@ private:
 };
 } // namespace Honeycomb
 
-#endif // THREAD_POOL_HPP
+#endif // HC2_THREAD_POOL_HPP

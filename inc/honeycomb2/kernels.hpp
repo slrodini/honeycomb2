@@ -1,5 +1,5 @@
-#ifndef KERNELS_HPP
-#define KERNELS_HPP
+#ifndef HC2_KERNELS_HPP
+#define HC2_KERNELS_HPP
 
 #include "honeycomb2/cereal/archives/portable_binary.hpp"
 #include <honeycomb2/discretization.hpp>
@@ -122,4 +122,4 @@ inline Kernels load_kernels(const std::string &file_name, const Grid2D &g, doubl
 
 } // namespace Honeycomb
 
-#endif // KERNELS_HPP
+#endif // HC2_KERNELS_HPP

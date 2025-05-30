@@ -1,5 +1,5 @@
-#ifndef KERNEL_FUNCTIONS_HPP
-#define KERNEL_FUNCTIONS_HPP
+#ifndef HC2_KERNEL_FUNCTIONS_HPP
+#define HC2_KERNEL_FUNCTIONS_HPP
 
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/utilities.hpp>
@@ -126,4 +126,4 @@ struct DeltaWP23 {
 
 } // namespace Honeycomb
 
-#endif // KERNEL_FUNCTIONS_HPP
+#endif // HC2_KERNEL_FUNCTIONS_HPP

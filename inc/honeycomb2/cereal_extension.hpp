@@ -1,5 +1,5 @@
-#ifndef CERAL_EXTENSION_HPP
-#define CERAL_EXTENSION_HPP
+#ifndef HC2_CERAL_EXTENSION_HPP
+#define HC2_CERAL_EXTENSION_HPP
 
 #include <honeycomb2/cereal/archives/portable_binary.hpp>
 #include <honeycomb2/cereal/types/vector.hpp>
@@ -146,4 +146,4 @@ bool LoadArchive(const std::string &file_name, T &data)
 
 } // namespace Honeycomb
 
-#endif // CERAL_EXTENSION_HPP
+#endif // HC2_CERAL_EXTENSION_HPP

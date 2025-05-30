@@ -1,5 +1,5 @@
-#ifndef RANDOM_ENGINE_HPP
-#define RANDOM_ENGINE_HPP
+#ifndef HC2_RANDOM_ENGINE_HPP
+#define HC2_RANDOM_ENGINE_HPP
 
 #include <honeycomb2/default.hpp>
 
@@ -26,4 +26,4 @@ std::vector<double> random_normal(size_t n, double mu = 0, double sigma = 1);
 } // namespace Random
 } // namespace Honeycomb
 
-#endif // RANDOM_ENGINE_HPP
+#endif // HC2_RANDOM_ENGINE_HPP
