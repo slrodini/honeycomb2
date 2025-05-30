@@ -22,15 +22,23 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(ENABLE_VECTORIZATION "Enable vectorization flags" ON)
+if(ENABLE_VECTORIZATION)
+   message(STATUS "Vectorization flags will be applied")
+else()
+   message(STATUS "Vectorization flags will be disabled")
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
    set(HONEYCOMB2_CXX_FLAGS
       -Wall -Wextra
       -fPIC
       -O3
-      -mtune=native
-      -march=native
       -funroll-loops
    )
+   if(ENABLE_VECTORIZATION)
+      list(APPEND HONEYCOMB2_CXX_FLAGS  -mtune=native -march=native)
+   endif()
    add_compile_options(${HONEYCOMB2_CXX_FLAGS})
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -39,10 +47,11 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
       -fPIC
       -O2
       -g
-      -mtune=native
-      -march=native
       -funroll-loops
    )
+   if(ENABLE_VECTORIZATION)
+      list(APPEND HONEYCOMB2_CXX_FLAGS  -mtune=native -march=native)
+   endif()
    add_compile_options(${HONEYCOMB2_CXX_FLAGS})
 
    set(SANITIZER_FLAGS "-fsanitize=address,undefined,alignment,bounds,null,vptr")
@@ -56,10 +65,11 @@ else()
       -fPIC
       -O0
       -g
-      -mtune=native
-      -march=native
       -funroll-loops
    )
+   if(ENABLE_VECTORIZATION)
+      list(APPEND HONEYCOMB2_CXX_FLAGS  -mtune=native -march=native)
+   endif()
    set(SANITIZER_FLAGS "-fsanitize=address,undefined,alignment,bounds,null,vptr")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
    set(HONEYCOMB2_CXX_FLAGS "${HONEYCOMB2_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
@@ -68,20 +78,22 @@ else()
 endif()
 
 # # -flto causes problems with YAML-CPP
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-   if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
-      # x86-specific compiler flags
-      list(APPEND HONEYCOMB2_CXX_FLAGS -mfpmath=sse -msse2)
-      add_compile_options(-mfpmath=sse -msse2)
-      message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
-   elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
-      # ARM-specific compiler flags
-      list(APPEND HONEYCOMB2_CXX_FLAGS -mcpu=native -mtune=native)
-      add_compile_options(-mcpu=native -mtune=native)
+if(ENABLE_VECTORIZATION)
+   if(CMAKE_BUILD_TYPE STREQUAL "Release")
+      if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
+         # x86-specific compiler flags
+         list(APPEND HONEYCOMB2_CXX_FLAGS -mfpmath=sse -msse2)
+         add_compile_options(-mfpmath=sse -msse2)
+         message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
+      elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+         # ARM-specific compiler flags
+         list(APPEND HONEYCOMB2_CXX_FLAGS -mcpu=native -mtune=native)
+         add_compile_options(-mcpu=native -mtune=native)
 
-      message(STATUS "CPU architecture is one of: arm64|aarch64")
-   else()
-      message(WARNING "Unrecognized CPU architecture")
+         message(STATUS "CPU architecture is one of: arm64|aarch64")
+      else()
+         message(WARNING "Unrecognized CPU architecture")
+      endif()
    endif()
 endif()
 
@@ -117,7 +129,7 @@ target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc/honeycomb
 # Define libraries to be linked
 target_link_libraries(Honeycomb2)
 
-set(USER_INCLUDE_DIR "" CACHE PATH "Path to search for cereal library (Should be path to parent folder of cereal/)")
+# set(USER_INCLUDE_DIR "" CACHE PATH "Path to search for cereal library (Should be path to parent folder of cereal/)")
 
 enable_testing()
 add_subdirectory(tests)
@@ -129,9 +141,13 @@ configure_file("${PROJECT_SOURCE_DIR}/inc/honeycomb2/version.hpp.in" "${PROJECT_
 set(prefix ${CMAKE_INSTALL_PREFIX})
 set(includedir "${prefix}/include")
 set(libdir "${prefix}/lib")
-string(JOIN " " HONEYCOMB2_CXX_FLAGS_STR ${HONEYCOMB2_CXX_FLAGS})
-set(cflags "-I${prefix}/include -std=c++20 ${HONEYCOMB2_CXX_FLAGS_STR}")
+set(cflags "-I${prefix}/include")
 set(ldflags "-L${prefix}/lib -lHoneycomb2")
+
+string(JOIN " " HONEYCOMB2_CXX_FLAGS_STR ${HONEYCOMB2_CXX_FLAGS})
+set(allflags "-I${prefix}/include -std=c++20 ${HONEYCOMB2_CXX_FLAGS_STR}")
+# string(JOIN " " HONEYCOMB2_VEC_FLAGS_STR ${HONEYCOMB2_VEC_FLAGS})
+# set(vecflags "${HONEYCOMB2_VEC_FLAGS_STR}")
 
 configure_file("${PROJECT_SOURCE_DIR}/bin/Honeycomb2-config.in" "${PROJECT_BINARY_DIR}/bin/Honeycomb2-config")
 

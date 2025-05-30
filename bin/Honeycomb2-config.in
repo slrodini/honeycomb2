@@ -17,6 +17,7 @@ if [[ $# -eq 0 || -n $(echo $* | egrep -- "--help|-h") ]]; then
    echo "  --libdir       : show the path to the honeycomb2 library directory"
    echo "  --cppflags     : get compiler flags for use with the C preprocessor stage of C++ compilation"
    echo "  --ldflags      : get compiler flags for use with the linker stage of any compilation"
+   echo "  --allflags     : get all the compiler flags used with Honeycomb2"
 fi
 
 OUT=""
@@ -35,6 +36,9 @@ test -n "$tmp" && OUT="$OUT -L@libdir@ -lHoneycomb2"
 
 tmp=$(echo "$*" | egrep -- '--\<cppflags\>')
 test -n "$tmp" && OUT="$OUT @cflags@"
+
+tmp=$(echo "$*" | egrep -- '--\<allflags\>')
+test -n "$tmp" && OUT="$OUT @allflags@"
 
 ## Version
 tmp=$(echo "$*" | egrep -- '--\<version\>')
