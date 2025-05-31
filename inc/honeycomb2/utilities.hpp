@@ -25,7 +25,7 @@ public:
 
    static Logger instance;
 
-   enum LEVEL { INFO = 0, WARNING = 1, ERROR = 2 };
+   enum LEVEL { INFO = 0, WARNING = 1, ERROR = 2, NONE = 3 };
    enum PREV_STATE { UNDEF = -1, TO_FILE = 0, TO_STD = 1 };
 
    // Calling init multiple times with the same filepath closes the old file AND OVERWRITES IT.
@@ -45,28 +45,40 @@ public:
       state         = to_stderr ? PREV_STATE::TO_STD : PREV_STATE::TO_FILE;
    }
 
-   void operator()(LEVEL l, const std::string &message)
+   void operator()(LEVEL l, const std::string &message, bool app_nl = true)
    {
-      if (!has_been_initialized) init("EMPTY", 2);
+      if (!has_been_initialized) init("EMPTY", 0);
+      char eol = app_nl ? '\n' : ' ';
+
       switch (l) {
       case LEVEL::INFO:
-         if (min_log_level >= LEVEL::INFO) std::fprintf(fileStream, "\033[0;32m[INFO]\033[0m    ");
+         if (min_log_level <= LEVEL::INFO)
+            std::fprintf(fileStream, "\033[0;32m[INFO]\033[0m    %s%c", message.c_str(), eol);
          break;
       case LEVEL::WARNING:
-         if (min_log_level >= LEVEL::WARNING) std::fprintf(fileStream, "\033[0;33m[WARNING]\033[0m ");
+         if (min_log_level <= LEVEL::WARNING)
+            std::fprintf(fileStream, "\033[0;33m[WARNING]\033[0m %s%c", message.c_str(), eol);
          break;
       case LEVEL::ERROR:
-         if (min_log_level >= LEVEL::ERROR) std::fprintf(fileStream, "\033[0;31m[ERROR]\033[0m   ");
+         if (min_log_level <= LEVEL::ERROR)
+            std::fprintf(fileStream, "\033[0;31m[ERROR]\033[0m   %s%c", message.c_str(), eol);
+         break;
+      case LEVEL::NONE:
+         if (min_log_level <= prev_level) std::fprintf(fileStream, " %s%c", message.c_str(), eol);
          break;
       default:
          break;
       }
-      std::fprintf(fileStream, "%s\n", message.c_str());
+
+      // std::fprintf(fileStream, "%s\n", message.c_str());
+      prev_level = l;
+
       if (l == LEVEL::ERROR) exit(-1);
    }
 
 private:
    PREV_STATE state = PREV_STATE::UNDEF;
+   LEVEL prev_level = NONE;
 };
 
 extern Logger logger;

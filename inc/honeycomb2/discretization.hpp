@@ -222,6 +222,11 @@ struct Triplet {
       return sq(v[0] - other.v[0]) + sq(v[1] - other.v[1]) + sq(v[2] - other.v[2]);
    }
 
+   std::string to_string() const
+   {
+      return std::format("[x1, x2, x3] = [{:.16e}, {:.16e}, {:.16e}]", v[0], v[1], v[2]);
+   }
+
    std::array<double, 3> v;
 
    template <class Archive>

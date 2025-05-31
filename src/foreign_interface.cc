@@ -1,7 +1,9 @@
 #include "discretization.hpp"
 #include "obs_weights.hpp"
+#include "timer.hpp"
 #include "utilities.hpp"
 #include <honeycomb2/foreign_interface.hpp>
+#include <thread>
 
 static Honeycomb::ForeignInterfaceState state;
 
@@ -19,7 +21,14 @@ bool _compare_thr(const std::vector<double> &v1, const std::vector<double> &v2)
 
 void set_up(const std::string &config_name)
 {
+   Honeycomb::timer::mark begin = Honeycomb::timer::now();
+   Honeycomb::timer::mark end   = Honeycomb::timer::now();
+
+   logger(Logger::INFO, "Parsing config file...", false);
+   begin = timer::now();
    ConfigParser cp(read_file_to_str(config_name));
+   end = timer::now();
+   logger(Logger::INFO, std::format("  Elapsed: {:.4e} (ms)", timer::elapsed_ms(end, begin)));
 
    // Parse the grid info
    const size_t n               = cp.GetValue<size_t>("n_phi");
@@ -43,20 +52,18 @@ void set_up(const std::string &config_name)
       save_weights(state.elt_weights, cp.GetValue("wf", 1));
    }
 
-   state.fin_scales = cp.GetValue<std::vector<double>>("FinalScales");
-   state.Q02        = cp.GetValue<double>("InitialScale");
-   double t0        = log(state.Q02);
-   state.thresholds = cp.GetValue<std::vector<double>>("mthr");
+   state.interm_scales = cp.GetValue<std::vector<double>>("Scales");
+   state.thresholds    = cp.GetValue<std::vector<double>>("mthr");
    if (state.thresholds.size() != 6) {
       logger(Logger::ERROR, std::format("Config must contain exactly 6 mass thresholds. {:d} found.",
                                         state.thresholds.size()));
    }
 
    std::vector<std::string> eo_file_list = cp.GetMap().at("eo");
-   if (eo_file_list.size() != state.fin_scales.size()) {
+   if (eo_file_list.size() != state.interm_scales.size() - 1) {
       logger(Logger::ERROR, std::format("Mismatch between number of finale scales ({:d}) requested and list "
                                         "of files for evolution operators ({:d}).",
-                                        state.fin_scales.size(), eo_file_list.size()));
+                                        state.interm_scales.size() - 1, eo_file_list.size()));
    }
 
    std::string ker_file = "fi_kernels.cereal";
@@ -68,7 +75,11 @@ void set_up(const std::string &config_name)
    for (size_t i = 0; i < eo_file_list.size(); i++) {
       std::string f_name          = eo_file_list[i];
       auto [ok_load, eo_load_tmp] = load_evolution_operator(f_name, &state.grid);
-      double tF                   = log(state.fin_scales[i]);
+
+      const double Q02 = state.interm_scales[i];
+      const double Qf2 = state.interm_scales[i + 1];
+      const double t0  = log(Q02);
+      const double tF  = log(Qf2);
 
       // Did not load properly OR scales do not match
       if (!ok_load || !is_near(t0, eo_load_tmp.t0tF.first, 1.0e-10)
@@ -80,10 +91,13 @@ void set_up(const std::string &config_name)
          for (size_t j = 0; j < 6; j++) {
             tmp_thr[j] = state.thresholds[j];
          }
-         logger(Logger::INFO, "Computing evolution operator. This will take a while...");
-         eo_load_tmp = compute_evolution_operator(&state.grid, kers, state.Q02, state.fin_scales[i], tmp_thr,
-                                                  state.as_fnc);
+
+         logger(Logger::INFO, "Computing evolution operator...");
+         begin       = timer::now();
+         eo_load_tmp = compute_evolution_operator(&state.grid, kers, Q02, Qf2, tmp_thr, state.as_fnc);
          save_evolution_operator(eo_load_tmp, f_name);
+         end = timer::now();
+         logger(Logger::INFO, std::format("  Elapsed: {:.4e} (ms)", timer::elapsed_ms(end, begin)));
       }
       state.evol_op.emplace_back(eo_load_tmp);
    }
@@ -93,5 +107,10 @@ void set_up(const std::string &config_name)
 extern "C" void set_up_(const char *config_name, int len)
 {
    (void)len;
+   Honeycomb::timer::mark begin = Honeycomb::timer::now();
    Honeycomb::set_up(std::string(config_name));
+   Honeycomb::timer::mark end = Honeycomb::timer::now();
+   Honeycomb::logger(Honeycomb::Logger::INFO,
+                     std::format("Full setup took {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   std::this_thread::sleep_for(std::chrono::seconds(30));
 }

@@ -91,11 +91,11 @@ int main()
        kers, sol1, Honeycomb::runge_kutta::DOPRI8, as, pref, t0, 0.01, callback);
 
    // Evolve from initial to final scale, between each threshold uses 40 steps
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Evolving..."));
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Evolving..."), false);
    begin = Honeycomb::timer::now();
    evolver(inter_scale, 40);
    end = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
+   Honeycomb::logger(Honeycomb::Logger::NONE,
                      std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    // Extract solution at final scale from the Evolver
@@ -112,26 +112,35 @@ int main()
    }
 
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Computing evolution operator..."));
-   begin                   = Honeycomb::timer::now();
-   Honeycomb::EvOp evol_op = Honeycomb::compute_evolution_operator(&grid, kers, Q02, Qf2, thresholds, as);
-   end                     = Honeycomb::timer::now();
+   begin = Honeycomb::timer::now();
+   Honeycomb::EvOp evol_op_1
+       = Honeycomb::compute_evolution_operator(&grid, kers, Q02, thresholds[4], thresholds, as);
+   Honeycomb::EvOp evol_op_2
+       = Honeycomb::compute_evolution_operator(&grid, kers, thresholds[4], Qf2, thresholds, as);
+   end = Honeycomb::timer::now();
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
-   Honeycomb::save_evolution_operator(evol_op, "reduced_grid_EvOp.cereal");
+   Honeycomb::save_evolution_operator(evol_op_1, "reduced_grid_EvOp_1.cereal");
+   Honeycomb::save_evolution_operator(evol_op_2, "reduced_grid_EvOp_2.cereal");
 
-   auto [ok_load, evol_op_load_foo] = Honeycomb::load_evolution_operator("reduced_grid_EvOp.cereal", &grid);
+   auto [ok_load_1, evol_op_load_foo_1]
+       = Honeycomb::load_evolution_operator("reduced_grid_EvOp_1.cereal", &grid);
 
-   Honeycomb::EvOp evol_op_load;
+   auto [ok_load_2, evol_op_load_foo_2]
+       = Honeycomb::load_evolution_operator("reduced_grid_EvOp_2.cereal", &grid);
 
-   if (!ok_load) {
+   Honeycomb::EvOp evol_op_load_1, evol_op_load_2;
+
+   if (!ok_load_1 || !ok_load_2) {
       std::cerr << "An Error occured\n";
    } else {
-      evol_op_load = evol_op_load_foo;
+      evol_op_load_1 = evol_op_load_foo_1;
+      evol_op_load_2 = evol_op_load_foo_2;
    }
 
    Honeycomb::Solution sol_eo(sol1);
-   Honeycomb::ApplyEvolutionOperator(sol_eo, evol_op_load);
+   Honeycomb::ApplyEvolutionOperator(sol_eo, {evol_op_load_1, evol_op_load_2});
 
    are_equal = sol_fin.is_equalt_to(sol_eo, 1.0e-10);
    if (are_equal) {

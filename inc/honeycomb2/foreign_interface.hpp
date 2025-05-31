@@ -36,9 +36,10 @@ struct ForeignInterfaceState {
    std::vector<double> thresholds = {0, 0, 0, 1.6129, 17.4724, 1.0e+6};
    D2Weights d2_weights;
    ELTWeights elt_weights;
-   double Q02;
-   std::vector<double> fin_scales;   // final scales, in GeV^2 (i.e. Qf^2)
-   std::vector<EvOp> evol_op;        // For any number of scales.
+   std::vector<double> interm_scales; // final scales, in GeV^2 (i.e. Qf^2)
+   // These are for staggered evolution:
+   // Q0^2 -> Q1^2 -> Q2^2 -> .. -> Qf^2
+   std::vector<EvOp> evol_op;
    std::vector<Solution> _solutions; // For any number of scales.
 };
 } // namespace Honeycomb

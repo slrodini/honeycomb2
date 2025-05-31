@@ -12,34 +12,44 @@ unsigned int _private_num_threads    = _private_num_av_threads <= 2 ? 1 : _priva
 Honeycomb::ThreadPool global_pool(_private_num_threads);
 } // namespace
 
-namespace
+namespace Honeycomb
 {
 void check_symmetry_qFq(std::function<double(double, double, double)> model, double s)
 {
    double diff = 0;
    int i       = 0;
-   Honeycomb::logger(Honeycomb::Logger::INFO, "Running check on model symmetries...");
+   bool ok     = true;
+   std::vector<RnC::Triplet> _x123_probl;
+   logger(Logger::INFO, "Running check on model symmetries for qFq...", false);
    while (i < 1e+4) {
-      double x1 = Honeycomb::Random::random_uniform(-1.0, 1.0);
+      double x1 = Random::random_uniform(-1.0, 1.0);
       double x2, x3;
       if (x1 >= 0) {
-         x2 = Honeycomb::Random::random_uniform(-1.0, 1.0 - x1);
+         x2 = Random::random_uniform(-1.0, 1.0 - x1);
       } else {
-         x2 = Honeycomb::Random::random_uniform(-1.0 - x1, 1.0);
+         x2 = Random::random_uniform(-1.0 - x1, 1.0);
       }
       x3 = -x1 - x2;
       if (std::fabs(x3) > 1) continue;
       diff = model(x1, x2, x3) - s * model(-x3, -x2, -x1);
       if (std::fabs(diff) > 1.0e-14) {
-         Honeycomb::logger(Honeycomb::Logger::WARNING, "Detected violation of symmetry in the"
-                                                       "model of order > 1.0e-14");
+         ok = false;
+         _x123_probl.emplace_back(RnC::Triplet{x1, x2, x3});
       }
       if (std::fabs(diff) > 1.e-6) {
-         Honeycomb::logger(Honeycomb::Logger::ERROR, "Detected violation of symmetry in the"
-                                                     "model of order > 1.0e-6."
-                                                     "This is too large. Aborting.");
+         logger(Logger::ERROR, "\nDetected violation of symmetry in the"
+                               "model of order > 1.0e-6."
+                               "This is too large. Aborting.");
       }
       i++;
+   }
+   if (ok) logger(Logger::NONE, "  OK");
+   else {
+      logger(Logger::WARNING, "\nDetected violation of symmetry in the"
+                              " model of order > 1.0e-14. Here are the problematic points: ");
+      for (const RnC::Triplet x123 : _x123_probl) {
+         logger(Logger::WARNING, x123.to_string());
+      }
    }
 }
 
@@ -47,45 +57,55 @@ void check_symmetry_FFF(std::function<double(double, double, double)> model, dou
 {
    double diff = 0;
    int i       = 0;
-   Honeycomb::logger(Honeycomb::Logger::INFO, "Running check on model symmetries...");
+   bool ok     = true;
+   std::vector<RnC::Triplet> _x123_probl;
+   logger(Logger::INFO, "Running check on model symmetries for FFF...", false);
    while (i < 1e+4) {
-      double x1 = Honeycomb::Random::random_uniform(-1.0, 1.0);
+      double x1 = Random::random_uniform(-1.0, 1.0);
       double x2, x3;
       if (x1 >= 0) {
-         x2 = Honeycomb::Random::random_uniform(-1.0, 1.0 - x1);
+         x2 = Random::random_uniform(-1.0, 1.0 - x1);
       } else {
-         x2 = Honeycomb::Random::random_uniform(-1.0 - x1, 1.0);
+         x2 = Random::random_uniform(-1.0 - x1, 1.0);
       }
       x3 = -x1 - x2;
       if (std::fabs(x3) > 1) continue;
 
       diff = model(x1, x2, x3) - model(-x3, -x2, -x1);
       if (std::fabs(diff) > 1.0e-14) {
-         Honeycomb::logger(Honeycomb::Logger::WARNING, "Detected violation of symmetry in the"
-                                                       "model of order > 1.0e-14");
+         ok = false;
+         _x123_probl.emplace_back(RnC::Triplet{x1, x2, x3});
       }
       if (std::fabs(diff) > 1.e-6) {
-         Honeycomb::logger(Honeycomb::Logger::ERROR, "Detected violation of symmetry in the"
-                                                     "model of order > 1.0e-6."
-                                                     "This is too large. Aborting.");
+         logger(Logger::ERROR, "\nDetected violation of symmetry in the"
+                               "model of order > 1.0e-6."
+                               "This is too large. Aborting.");
       }
 
       diff = model(x1, x2, x3) + s * model(x3, x2, x1);
       if (std::fabs(diff) > 1.0e-14) {
-         Honeycomb::logger(Honeycomb::Logger::WARNING, "Detected violation of symmetry in the"
-                                                       "model of order > 1.0e-14");
+         ok = false;
+         _x123_probl.emplace_back(RnC::Triplet{x1, x2, x3});
       }
       if (std::fabs(diff) > 1.e-6) {
-         Honeycomb::logger(Honeycomb::Logger::ERROR, "Detected violation of symmetry in the"
-                                                     "model of order > 1.0e-6."
-                                                     "This is too large. Aborting.");
+         logger(Logger::ERROR, "\nDetected violation of symmetry in the"
+                               "model of order > 1.0e-6."
+                               "This is too large. Aborting.");
       }
 
       i++;
    }
+   if (ok) logger(Logger::NONE, "  OK");
+   else {
+      logger(Logger::WARNING, "\nDetected violation of symmetry in the"
+                              " model of order > 1.0e-14. Here are the problematic points: ");
+      for (const RnC::Triplet x123 : _x123_probl) {
+         logger(Logger::WARNING, x123.to_string());
+      }
+   }
 }
 
-} // namespace
+} // namespace Honeycomb
 
 namespace Honeycomb
 {
@@ -191,7 +211,7 @@ Solution::Solution(const Discretization *discretization, const InputModel &model
 
 void Solution::PushFlavor()
 {
-   logger(Logger::INFO, "Pushing new falvor");
+   // logger(Logger::INFO, "Pushing new falvor");
    // Trivial case
    if (nf == 1) {
       _distr_p.push_back(_distr_p[1]);
@@ -500,10 +520,13 @@ void EvolutionOperatorFixedNf::_ker_mul(double pref, const MergedKernelsFixedNf 
 
 void ApplyEvolutionOperator(Solution &sol, const EvOpNF &O)
 {
-   if (sol.nf != O.nf) {
+   if (sol.nf > O.nf) {
       logger(Logger::ERROR, std::format("ApplyEvolutionOperator: incompatible nf between Solution ({:d}) and "
                                         "Evolution Operator ({:d}).",
                                         sol.nf, O.nf));
+   }
+   while (sol.nf < O.nf) {
+      sol.PushFlavor();
    }
 
    for (size_t i = 2; i < sol._distr_p.size(); i++) {
@@ -570,16 +593,14 @@ Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std:
       for (size_t j = 2; j < sol0._distr_p.size(); j++) {
          global_pool.AddTask([&, j]() {
             runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
-                nf_kers[i].H_NS, sol0._distr_p[j], Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
-                0.01);
+                nf_kers[i].H_NS, sol0._distr_p[j], runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
             evolver_p({inter_scales[i + 1]}, n_steps);
             sol0._distr_p[j] = evolver_p.GetSolution();
          });
 
          global_pool.AddTask([&, j]() {
             runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
-                nf_kers[i].H_NS, sol0._distr_m[j], Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
-                0.01);
+                nf_kers[i].H_NS, sol0._distr_m[j], runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
             evolver_m({inter_scales[i + 1]}, n_steps);
             sol0._distr_m[j] = evolver_m.GetSolution();
          });
@@ -598,12 +619,12 @@ Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std:
          }
 
          runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
-             nf_kers[i].H_S_P, tmp_p, Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
+             nf_kers[i].H_S_P, tmp_p, runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
          evolver_p({inter_scales[i + 1]}, n_steps);
          tmp_p = evolver_p.GetSolution();
 
          runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
-             nf_kers[i].H_S_M, tmp_m, Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
+             nf_kers[i].H_S_M, tmp_m, runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
          evolver_m({inter_scales[i + 1]}, n_steps);
          tmp_m = evolver_m.GetSolution();
 

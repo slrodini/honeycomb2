@@ -71,7 +71,7 @@ EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, d
    // inter_scales = [t_{Q0}, t_{mq1}, t_{mq2}, ..., t_{Qf}]
    // t_x = log(x**2)
 
-   logger(Logger::INFO, std::format("nf in {:d}, nf end {:d}", nf_in, nf_fin));
+   logger(Logger::INFO, std::format("    nf in {:d}, nf end {:d}", nf_in, nf_fin));
 
    std::vector<MergedKernelsFixedNf> nf_kers;
    for (size_t nf = nf_in; nf <= nf_fin; nf++) {
@@ -109,4 +109,9 @@ void ApplyEvolutionOperator(Solution &sol, const EvOp &O)
    }
 }
 
+void ApplyEvolutionOperator(Solution &sol, const std::vector<EvOp> &Os)
+{
+   for (const EvOp &O : Os)
+      ApplyEvolutionOperator(sol, O);
+}
 } // namespace Honeycomb
