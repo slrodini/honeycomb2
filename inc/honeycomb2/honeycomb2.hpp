@@ -16,6 +16,7 @@
 
 #include <honeycomb2/kernels.hpp>
 #include <honeycomb2/solution.hpp>
+#include <honeycomb2/alpha_s.hpp>
 
 #include <honeycomb2/config_parser.hpp>
 

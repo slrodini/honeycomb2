@@ -1,8 +1,9 @@
 import numpy as np
 
-root_folder = "/mnt/d/Dropbox/ThinkPad/Documents/Code/honeycomb2/"
+# root_folder = "/mnt/d/Dropbox/ThinkPad/Documents/Code/honeycomb2/"
+root_folder = "../"
 
-data_old = np.loadtxt(root_folder + "dat/T_and_DT_final_scale_1p0e+4.dat")
+data_old = np.loadtxt(root_folder + "dat/T_and_DT_final_scale_1pe+4_true_as.dat")
 
 data_new = np.loadtxt("T_and_DT_final_scale.dat")
 

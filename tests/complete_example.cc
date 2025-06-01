@@ -1,4 +1,5 @@
 #include <honeycomb2/honeycomb2.hpp>
+#include "alpha_s.hpp"
 #include "honeycomb_120_25_grid_points.hpp"
 #include "original_model_functions.hpp"
 #include "solution.hpp"
@@ -47,11 +48,6 @@ int main()
    model.SetModel(Honeycomb::InputModel::T_P_GL, orignal_models::TFp_test);
    model.SetModel(Honeycomb::InputModel::T_M_GL, orignal_models::TFm_test);
 
-   // Setup for evolution
-   // \alpha_s / 4\pi
-   auto as = [](double t) -> double {
-      return 1.0 / (11.0 * (t + 3.0));
-   };
    // Evolution prefactor, DO NOT CHANGE
    const double pref = -1.0;
 
@@ -64,6 +60,10 @@ int main()
 
    // Mass^2 of quarks (down, up, strange, charm, bottom, top)
    std::array<double, 6> thresholds = {0, 0, 0, 1.6129, 17.4724, 1.0e+6};
+
+   // Setup for evolution
+   // \alpha_s / 4\pi
+   auto as = Honeycomb::GetAlphaS_o_4pi(thresholds);
 
    // Generate 'Solution' at initial scale and list of intermediate scales for evolution
    auto [inter_scale, sol1] = get_initial_solution(Q02, Qf2, thresholds, &discr, model);

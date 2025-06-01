@@ -1,6 +1,7 @@
 #ifndef HC2_FOREIGN_INTERFACE
 #define HC2_FOREIGN_INTERFACE
 
+#include <cmath>
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
 #include <honeycomb2/random_engine.hpp>
@@ -34,8 +35,9 @@ struct ForeignInterfaceState {
    Grid2D grid;
    Discretization discr;
    InputModel model;
-   std::function<double(double)> as_fnc = [](double t) -> double {
-      return 1.0 / (11.0 * (t + 3.0));
+   std::function<double(double)> as_fnc = [](double) -> double {
+      logger(Logger::ERROR, "Alpha_s has not been correctly provided!");
+      return NAN;
    };
 
    std::vector<double> thresholds = {0, 0, 0, 1.6129, 17.4724, 1.0e+6};

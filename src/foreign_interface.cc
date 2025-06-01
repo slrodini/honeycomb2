@@ -1,9 +1,5 @@
-#include "discretization.hpp"
-#include "obs_weights.hpp"
-#include "solution.hpp"
-#include "timer.hpp"
-#include "utilities.hpp"
 #include <honeycomb2/foreign_interface.hpp>
+#include <honeycomb2/alpha_s.hpp>
 #include <honeycomb2/honeycomb2_c_api.h>
 
 static Honeycomb::ForeignInterfaceState state;
@@ -22,8 +18,8 @@ bool _compare_thr(const std::vector<double> &v1, const std::vector<double> &v2)
 
 void set_up(const std::string &config_name)
 {
-   Honeycomb::timer::mark begin = Honeycomb::timer::now();
-   Honeycomb::timer::mark end   = Honeycomb::timer::now();
+   timer::mark begin = timer::now();
+   timer::mark end   = timer::now();
 
    logger(Logger::INFO, "Parsing config file...", false);
    begin = timer::now();
@@ -72,6 +68,12 @@ void set_up(const std::string &config_name)
       }
    }
 
+   std::array<double, 6> tmp_thr;
+   for (size_t j = 0; j < 6; j++) {
+      tmp_thr[j] = state.thresholds[j];
+   }
+   state.as_fnc = GetAlphaS_o_4pi(tmp_thr);
+
    state.nf_initial_scale = 0;
    for (size_t i = 0; i < state.thresholds.size(); i++) {
       if (state.thresholds[i] <= state.interm_scales[0]) {
@@ -109,10 +111,6 @@ void set_up(const std::string &config_name)
           || !_compare_thr(eo_load_tmp._thresholds, state.thresholds)) {
          // logger(Logger::ERROR, "TODO");
          Kernels kers = Honeycomb::load_kernels(ker_file, state.grid, 3);
-         std::array<double, 6> tmp_thr;
-         for (size_t j = 0; j < 6; j++) {
-            tmp_thr[j] = state.thresholds[j];
-         }
 
          logger(Logger::INFO, "Computing evolution operator...");
          begin       = timer::now();
