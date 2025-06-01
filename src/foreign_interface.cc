@@ -21,7 +21,7 @@ void set_up(const std::string &config_name)
    timer::mark begin = timer::now();
    timer::mark end   = timer::now();
 
-   logger(Logger::INFO, "Parsing config file...", false);
+   logger(Logger::INFO, "Parsing config file...");
    begin = timer::now();
    ConfigParser cp(read_file_to_str(config_name));
    end = timer::now();
@@ -172,9 +172,13 @@ void ForeignInterfaceState::Unload()
 extern "C" {
 void hc2_fi_set_up_(const char *config_name, int len)
 {
-   (void)len;
+
+   std::string conf_n(config_name, len);
+   conf_n.erase(conf_n.find_last_not_of(' ') + 1);
+   Honeycomb::logger(Honeycomb::Logger::INFO, "Loading config: \"" + conf_n + "\"");
+
    Honeycomb::timer::mark begin = Honeycomb::timer::now();
-   Honeycomb::set_up(std::string(config_name));
+   Honeycomb::set_up(conf_n);
    Honeycomb::timer::mark end = Honeycomb::timer::now();
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Full setup took {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));

@@ -1,9 +1,8 @@
-#include <Honeycomb2/honeycomb2.hpp>
-#include <Honeycomb2/honeycomb2_c_api.h>
+#include <honeycomb2/honeycomb2.hpp>
+#include <honeycomb2/honeycomb2_c_api.h>
 #include <test_config.hpp>
 #include "honeycomb_120_25_grid_points.hpp"
 #include "original_model_functions.hpp"
-#include "solution.hpp"
 
 double Tu_test_loc(double *x1, double *x2, double *x3)
 {
