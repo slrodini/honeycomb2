@@ -4,7 +4,6 @@
 #include "timer.hpp"
 #include "utilities.hpp"
 #include <honeycomb2/foreign_interface.hpp>
-#include <thread>
 #include <honeycomb2/honeycomb2_c_api.h>
 
 static Honeycomb::ForeignInterfaceState state;
