@@ -1,9 +1,11 @@
 #include "discretization.hpp"
 #include "obs_weights.hpp"
+#include "solution.hpp"
 #include "timer.hpp"
 #include "utilities.hpp"
 #include <honeycomb2/foreign_interface.hpp>
 #include <thread>
+#include <honeycomb2/honeycomb2_c_api.h>
 
 static Honeycomb::ForeignInterfaceState state;
 
@@ -53,10 +55,31 @@ void set_up(const std::string &config_name)
    }
 
    state.interm_scales = cp.GetValue<std::vector<double>>("Scales");
-   state.thresholds    = cp.GetValue<std::vector<double>>("mthr");
+   if (state.interm_scales.size() <= 1) {
+      logger(Logger::ERROR, "Not enough scales to evolve. At least two scales "
+                            "(initial and final) must be specified.");
+   }
+
+   state.thresholds = cp.GetValue<std::vector<double>>("mthr");
    if (state.thresholds.size() != 6) {
       logger(Logger::ERROR, std::format("Config must contain exactly 6 mass thresholds. {:d} found.",
                                         state.thresholds.size()));
+   }
+
+   // Compute initial nf
+   for (size_t i = 0; i < 5; i++) {
+      if (state.thresholds[i + 1] < state.thresholds[i]) {
+         logger(Logger::ERROR, "Thresholds are not increasing, backward evolution not supported yet.");
+      }
+   }
+
+   state.nf_initial_scale = 0;
+   for (size_t i = 0; i < state.thresholds.size(); i++) {
+      if (state.thresholds[i] <= state.interm_scales[0]) {
+         state.nf_initial_scale++;
+      } else {
+         break;
+      }
    }
 
    std::vector<std::string> eo_file_list = cp.GetMap().at("eo");
@@ -102,9 +125,55 @@ void set_up(const std::string &config_name)
       state.evol_op.emplace_back(eo_load_tmp);
    }
 }
+
+void ForeignInterfaceState::Evolve()
+{
+   if (_unloaded) {
+      logger(Logger::ERROR, "Interface was previously unloaded. Cannot evolve.");
+   }
+   for (size_t i = 0; i < state.interm_scales.size(); i++) {
+      state._solutions.emplace_back(Solution(&state.discr, state._models, state.nf_initial_scale));
+
+      // i=0: initial solution
+      // i=1: O[0] S[0] = O(Q1 <- Q0) S(Q0)
+      // i=2: O[1] S[1] = O[1] O[0] S[0] = O(Q2 <- Q1) O(Q1 <- Q0) S(Q0)
+      for (int j = 0; j < static_cast<int>(i); j++) {
+         ApplyEvolutionOperator(state._solutions[i], state.evol_op[j]);
+      }
+      state._solutions[i].RotateToPhysicalBasis();
+   }
+
+   for (const Solution &s : state._solutions) {
+      state._fin_models.emplace_back(OutputModel(s));
+   }
+}
+
+double ForeignInterfaceState::GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2, double x3)
+{
+   size_t j = 0;
+   for (size_t i = 0; i < state.interm_scales.size(); i++, j++) {
+      if (is_near(Q2, state.interm_scales[i], 1.0e-12)) {
+         break;
+      }
+   }
+   if (j == state.interm_scales.size()) {
+      logger(Logger::ERROR, std::format("Scale: {:12e} is not among the available scales: ", Q2)
+                                + vec_to_string(state.interm_scales));
+   }
+   return state._fin_models[j].GetDistribution(f, x1, x2, x3);
+}
+
+void ForeignInterfaceState::Unload()
+{
+   state.evol_op.clear();
+   state.evol_op.shrink_to_fit();
+   state._unloaded = true;
+}
+
 }; // namespace Honeycomb
 
-extern "C" void set_up_(const char *config_name, int len)
+extern "C" {
+void hc2_fi_set_up_(const char *config_name, int len)
 {
    (void)len;
    Honeycomb::timer::mark begin = Honeycomb::timer::now();
@@ -112,5 +181,40 @@ extern "C" void set_up_(const char *config_name, int len)
    Honeycomb::timer::mark end = Honeycomb::timer::now();
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Full setup took {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
-   std::this_thread::sleep_for(std::chrono::seconds(30));
+}
+
+void hc2_fi_set_model_(int *what, ModelSign model)
+{
+   if (*what < 0 || *what > 13) {
+      Honeycomb::logger(Honeycomb::Logger::ERROR, std::format("Model index {:d} is out of bound"
+                                                              " of available functions to set: [0, 13]",
+                                                              *what));
+   }
+   Honeycomb::InputModel::FNC f = static_cast<Honeycomb::InputModel::FNC>(*what);
+   state._models.SetModel(f, [model](double x1, double x2, double x3) -> double {
+      double a = x1, b = x2, c = x3;
+      return model(&a, &b, &c);
+   });
+}
+
+void hc2_fi_evolve_()
+{
+   state.Evolve();
+}
+
+void hc2_fi_unload_()
+{
+   state.Unload();
+}
+
+double hc2_fi_get_model_(int *what, double *Q2, double *x1, double *x2, double *x3)
+{
+   if (*what < 0 || *what > 13) {
+      Honeycomb::logger(Honeycomb::Logger::ERROR, std::format("Model index {:d} is out of bound"
+                                                              " of available functions to set: [0, 13]",
+                                                              *what));
+   }
+   Honeycomb::OutputModel::FNC f = static_cast<Honeycomb::OutputModel::FNC>(*what);
+   return state.GetDistribution(f, *Q2, *x1, *x2, *x3);
+}
 }

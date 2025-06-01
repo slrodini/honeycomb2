@@ -24,7 +24,12 @@
 namespace Honeycomb
 {
 struct ForeignInterfaceState {
-   ForeignInterfaceState() : discr(grid), d2_weights(grid, false), elt_weights(grid, false) {};
+   ForeignInterfaceState()
+       : discr(grid), d2_weights(grid, false), elt_weights(grid, false), _unloaded(false) {};
+
+   void Evolve();
+   double GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2, double x3);
+   void Unload();
 
    Grid2D grid;
    Discretization discr;
@@ -36,11 +41,20 @@ struct ForeignInterfaceState {
    std::vector<double> thresholds = {0, 0, 0, 1.6129, 17.4724, 1.0e+6};
    D2Weights d2_weights;
    ELTWeights elt_weights;
-   std::vector<double> interm_scales; // final scales, in GeV^2 (i.e. Qf^2)
+   std::vector<double> interm_scales; // scales, in GeV^2 (i.e. Q0^2, Qf^2)
    // These are for staggered evolution:
    // Q0^2 -> Q1^2 -> Q2^2 -> .. -> Qf^2
    std::vector<EvOp> evol_op;
    std::vector<Solution> _solutions; // For any number of scales.
+
+   // Computed
+   size_t nf_initial_scale;
+
+   // Only one model is accepted for the moment.
+   InputModel _models;
+   std::vector<OutputModel> _fin_models;
+
+   bool _unloaded = false;
 };
 } // namespace Honeycomb
 

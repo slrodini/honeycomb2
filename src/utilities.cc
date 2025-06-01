@@ -21,6 +21,19 @@ std::string to_lower_case(std::string s)
       ret += std::tolower(s[i]);
    return ret;
 }
+//_________________________________________________________________________________
+std::string vec_to_string(std::vector<double> &v)
+{
+   std::string r = "{";
+   for (size_t i = 0; i < v.size(); i++) {
+      r += std::format("{:.16e}", v[i]);
+      if (i != v.size() - 1) {
+         r += ", ";
+      }
+   }
+   r += "}";
+   return r;
+}
 
 //_________________________________________________________________________________
 void setup_logging(std::string outpath, std::string outname, bool to_stderr, size_t min_log_level)

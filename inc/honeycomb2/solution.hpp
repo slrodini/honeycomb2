@@ -30,7 +30,7 @@ struct InputModel {
 
    std::function<double(double, double, double)> T_p_gl = zero_function;
    std::function<double(double, double, double)> T_m_gl = zero_function;
-}; // namespace Honeycomb
+};
 
 struct Solution {
 

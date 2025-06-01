@@ -96,6 +96,10 @@ inline bool is_near(double a, double b, double eps = 1.0e-15)
 {
    return std::fabs(a - b) < eps;
 }
+
+//_________________________________________________________________________________
+std::string vec_to_string(std::vector<double> &v);
+
 } // namespace Honeycomb
 
 #endif // HC2_UTILITIES_HPP
