@@ -37,9 +37,10 @@ int main()
 
    // const double Nc = 3; // NC = 1 for tests
 
-   const size_t n         = 8;
-   const double rmin      = 0.001;
-   Honeycomb::Grid2D grid = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {13, 9, 7});
+   const size_t n    = 8;
+   const double rmin = 0.001;
+   Honeycomb::Grid2D grid
+       = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {13, 9, 7});
 
    Honeycomb::logger(Honeycomb::Logger::INFO,
                      std::format("Total grid size: {:d}x{:d}", grid.size, grid.size));
@@ -85,7 +86,8 @@ int main()
    // std::cout << std::format("{:.10f}", d2_weights_PI.ComputeSingleQuark(F_test)) << std::endl;
 
    std::cout << std::format("{:.10f}", elt_weights.ComputeSingleQuark(F_test)) << std::endl;
-   std::cout << std::format("{:.10f}", elt_weights.ComputeSingleQuark_NoCorrections(F_test)) << std::endl;
+   std::cout << std::format("{:.10f}", elt_weights.ComputeSingleQuark_NoCorrections(F_test))
+             << std::endl;
 
    return 0;
 }

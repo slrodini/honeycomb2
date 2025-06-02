@@ -28,8 +28,9 @@ int main()
    const double Nc         = 3; // NC = 1 for tests
    Honeycomb::Kernels kers = Honeycomb::load_kernels("kernels_reduced_grid.cereal", grid, Nc);
    end                     = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    // Initial model setup
    Honeycomb::InputModel model;
@@ -75,9 +76,10 @@ int main()
    // Setup callback for evolution to add new flavor at the threshold
    auto callback = [&log_active_thresholds, &solutions](double t, const Honeycomb::Kernels &,
                                                         Honeycomb::Solution &S) -> void {
-      auto it = std::find_if(log_active_thresholds.begin(), log_active_thresholds.end(), [t](double x) {
-         return std::abs(x - t) < 1.0e-14;
-      });
+      auto it
+          = std::find_if(log_active_thresholds.begin(), log_active_thresholds.end(), [t](double x) {
+               return std::abs(x - t) < 1.0e-14;
+            });
 
       // t = log(m_q^2)
       if (it != log_active_thresholds.end()) S.PushFlavor();
@@ -95,8 +97,9 @@ int main()
    begin = Honeycomb::timer::now();
    evolver(inter_scale, 40);
    end = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::NONE,
-                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::NONE,
+       std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    // Extract solution at final scale from the Evolver
    Honeycomb::Solution sol_fin = evolver.GetSolution();
@@ -118,8 +121,9 @@ int main()
    Honeycomb::EvOp evol_op_2
        = Honeycomb::compute_evolution_operator(&grid, kers, thresholds[4], Qf2, thresholds, as);
    end = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    Honeycomb::save_evolution_operator(evol_op_1, "reduced_grid_EvOp_1.cereal");
    Honeycomb::save_evolution_operator(evol_op_2, "reduced_grid_EvOp_2.cereal");

@@ -31,8 +31,9 @@ int main()
    const double Nc         = 3; // NC = 1 for tests
    Honeycomb::Kernels kers = Honeycomb::load_kernels("full_kernels.cereal", grid, Nc);
    end                     = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    // Initial model setup
    Honeycomb::InputModel model;
@@ -77,9 +78,10 @@ int main()
    // Setup callback for evolution to add new flavor at the threshold
    auto callback = [&log_active_thresholds, &solutions](double t, const Honeycomb::Kernels &,
                                                         Honeycomb::Solution &S) -> void {
-      auto it = std::find_if(log_active_thresholds.begin(), log_active_thresholds.end(), [t](double x) {
-         return std::abs(x - t) < 1.0e-14;
-      });
+      auto it
+          = std::find_if(log_active_thresholds.begin(), log_active_thresholds.end(), [t](double x) {
+               return std::abs(x - t) < 1.0e-14;
+            });
 
       // t = log(m_q^2)
       if (it != log_active_thresholds.end()) S.PushFlavor();
@@ -97,8 +99,9 @@ int main()
    begin = Honeycomb::timer::now();
    evolver(inter_scale, 40);
    end = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    // Extract solution at final scale from the Evolver
    Honeycomb::Solution sol_fin = evolver.GetSolution();
@@ -124,8 +127,9 @@ int main()
    begin = Honeycomb::timer::now();
    Honeycomb::D2Weights d2_weights(grid);
    end = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    // Compute d2 for each flavor and print it to file
    {
@@ -144,8 +148,9 @@ int main()
    begin = Honeycomb::timer::now();
    Honeycomb::ELTWeights elt_weights(grid);
    end = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    // Compute d1 for each flavor and print it to file
    {
@@ -181,23 +186,30 @@ int main()
 
          //------------------------------------------
          // This is final scale model
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_P_GL, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_M_GL, x123));
+         std::fprintf(fp, "%.16e\t",
+                      out_model.GetDistribution(Honeycomb::OutputModel::T_P_GL, x123));
+         std::fprintf(fp, "%.16e\t",
+                      out_model.GetDistribution(Honeycomb::OutputModel::T_M_GL, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_DN, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_DN, x123));
+         std::fprintf(fp, "%.16e\t",
+                      out_model.GetDistribution(Honeycomb::OutputModel::DT_DN, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_UP, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_UP, x123));
+         std::fprintf(fp, "%.16e\t",
+                      out_model.GetDistribution(Honeycomb::OutputModel::DT_UP, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_ST, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_ST, x123));
+         std::fprintf(fp, "%.16e\t",
+                      out_model.GetDistribution(Honeycomb::OutputModel::DT_ST, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_CH, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_CH, x123));
+         std::fprintf(fp, "%.16e\t",
+                      out_model.GetDistribution(Honeycomb::OutputModel::DT_CH, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_BM, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_BM, x123));
+         std::fprintf(fp, "%.16e\t",
+                      out_model.GetDistribution(Honeycomb::OutputModel::DT_BM, x123));
 
          // Omit Top quark, essentially irrelevant for us.
          std::fprintf(fp, "\n");
@@ -205,18 +217,30 @@ int main()
          //------------------------------------------
          // This is initial scale model
 
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_P_GL, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_M_GL, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_DN, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_DN, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_UP, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_UP, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_ST, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_ST, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_CH, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_CH, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_BM, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_BM, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::T_P_GL, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::T_M_GL, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::T_DN, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_DN, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::T_UP, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_UP, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::T_ST, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_ST, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::T_CH, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_CH, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::T_BM, x123));
+         std::fprintf(fp_1, "%.16e\t",
+                      out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_BM, x123));
 
          // Omit Top quark, essentially irrelevant for us.
          std::fprintf(fp_1, "\n");
@@ -226,12 +250,12 @@ int main()
 
       Honeycomb::RnC::Triplet x123_test
           = {1.4426435400697815e-01, 7.5928607372093768e-03, -1.5185721474418754e-01};
-      Honeycomb::logger(
-          Honeycomb::Logger::WARNING,
-          std::format("{:.12e}", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_UP, x123_test)));
-      Honeycomb::logger(
-          Honeycomb::Logger::WARNING,
-          std::format("{:.12e}", orignal_models::Tu_test(x123_test[0], x123_test[1], x123_test[2])));
+      Honeycomb::logger(Honeycomb::Logger::WARNING,
+                        std::format("{:.12e}", out_model_ini.GetDistribution(
+                                                   Honeycomb::OutputModel::T_UP, x123_test)));
+      Honeycomb::logger(Honeycomb::Logger::WARNING,
+                        std::format("{:.12e}", orignal_models::Tu_test(x123_test[0], x123_test[1],
+                                                                       x123_test[2])));
    }
 
    return 0;

@@ -33,13 +33,15 @@ inline double Ts_test(double x1, double x2, double x3)
 inline double DTu_test(double x1, double x2, double x3)
 {
 
-   return (sin(x2 * M_PI) + 4 * (x1 * x1 - x3 * x3)) * (1 - x1 * x1) * (1 - x2 * x2) * (1 - x3 * x3);
+   return (sin(x2 * M_PI) + 4 * (x1 * x1 - x3 * x3)) * (1 - x1 * x1) * (1 - x2 * x2)
+        * (1 - x3 * x3);
 }
 inline double DTd_test(double x1, double x2, double x3)
 {
 
    double r = max3(fabs(x1), fabs(x2), fabs(x3));
-   return sin(x2 * M_PI) * (2 - 2 * cos(3 * M_PI * (1 - x1 * x1) * (1 - x2 * x2) * (1 - x3 * x3))) / sqrt(r);
+   return sin(x2 * M_PI) * (2 - 2 * cos(3 * M_PI * (1 - x1 * x1) * (1 - x2 * x2) * (1 - x3 * x3)))
+        / sqrt(r);
 }
 inline double DTs_test(double x1, double x2, double x3)
 {

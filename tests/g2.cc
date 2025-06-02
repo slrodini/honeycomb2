@@ -27,16 +27,17 @@ int main()
    // Honeycomb::Grid2D grid_2 = Honeycomb::generate_compliant_Grid2D(4, {rmin, 0.4, 1}, {10, 10});
    // print_grid_dim(grid_2);
 
-   // Honeycomb::Grid2D grid_3 = Honeycomb::generate_compliant_Grid2D(4, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
-   // print_grid_dim(grid_3);
+   // Honeycomb::Grid2D grid_3 = Honeycomb::generate_compliant_Grid2D(4, {rmin, 0.1, 0.4, 1}, {12,
+   // 9, 7}); print_grid_dim(grid_3);
 
-   // Honeycomb::Grid2D grid_4 = Honeycomb::generate_compliant_Grid2D(8, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
-   // print_grid_dim(grid_4);
+   // Honeycomb::Grid2D grid_4 = Honeycomb::generate_compliant_Grid2D(8, {rmin, 0.1, 0.4, 1}, {12,
+   // 9, 7}); print_grid_dim(grid_4);
 
-   // Honeycomb::Grid2D grid_5 = Honeycomb::generate_compliant_Grid2D(20, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
-   // print_grid_dim(grid_5);
+   // Honeycomb::Grid2D grid_5 = Honeycomb::generate_compliant_Grid2D(20, {rmin, 0.1, 0.4, 1}, {12,
+   // 9, 7}); print_grid_dim(grid_5);
 
-   Honeycomb::Grid2D grid_6 = Honeycomb::generate_compliant_Grid2D(8, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
+   Honeycomb::Grid2D grid_6
+       = Honeycomb::generate_compliant_Grid2D(8, {rmin, 0.1, 0.4, 1}, {12, 9, 7});
    print_grid_dim(grid_6);
 
    // compute_one_grid(grid_1, "g2_grid_1.dat");
@@ -65,8 +66,9 @@ void compute_one_grid(const Honeycomb::Grid2D &grid, const std::string file_name
    Honeycomb::Kernels kers(grid, Nc);
 
    end = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    Honeycomb::Discretization discr(grid);
 
@@ -123,7 +125,8 @@ void compute_one_grid(const Honeycomb::Grid2D &grid, const std::string file_name
          Splus_summed += pref * sol_fin._distr_p[j];
       }
 
-      std::FILE *fp_3 = std::fopen(std::string("CE_evo_check_evo_basis_" + file_name + ".dat").c_str(), "w");
+      std::FILE *fp_3
+          = std::fopen(std::string("CE_evo_check_evo_basis_" + file_name + ".dat").c_str(), "w");
 
       for (Honeycomb::RnC::Triplet &x123 : honeycomb_points) {
          Honeycomb::RnC::Pair rhophi = Honeycomb::RnC::from_x123_to_rhophi(x123);
@@ -136,8 +139,8 @@ void compute_one_grid(const Honeycomb::Grid2D &grid, const std::string file_name
    }
 
    std::vector<Honeycomb::G2Weights> weights;
-   std::vector<double> xBjs
-       = {0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95};
+   std::vector<double> xBjs = {0.1,  0.15, 0.2,  0.25, 0.3,  0.35, 0.4,  0.45, 0.5,
+                               0.55, 0.6,  0.65, 0.7,  0.75, 0.8,  0.85, 0.9,  0.95};
 
    double total_time = 0;
    for (const double &xBj : xBjs) {

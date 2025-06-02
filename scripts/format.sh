@@ -11,15 +11,22 @@ if [ "$major_version" -le 15 ]; then
    exit -2
 fi
 
-DIRECTORY="../src/"
-EXTENSION="cc"
-
 for file in ./src/*.cc; do
    echo "Processing file: $file"
    clang-format -i -style=file $file
 done
 
 for file in ./inc/honeycomb2/*.hpp; do
+   echo "Processing file: $file"
+   clang-format -i -style=file $file
+done
+
+for file in ./tests/*.hpp; do
+   echo "Processing file: $file"
+   clang-format -i -style=file $file
+done
+
+for file in ./tests/*.cc; do
    echo "Processing file: $file"
    clang-format -i -style=file $file
 done
