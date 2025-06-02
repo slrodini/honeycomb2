@@ -65,7 +65,7 @@ int main()
    hc2_fi_evolve_();
    hc2_fi_unload_();
 
-   double Q2fin = 4;
+   double Q2fin = 10000;
    double Q20   = 1;
 
    std::FILE *fp   = std::fopen("T_and_DT_final_scale.dat", "w");

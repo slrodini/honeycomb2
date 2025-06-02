@@ -18,7 +18,7 @@ inline double zero_function(double, double, double)
 
 struct InputModel {
 
-   enum FNC { T_UP, T_DN, T_ST, T_CH, T_BM, T_TP, DT_UP, DT_DN, DT_ST, DT_CH, DT_BM, DT_TP, T_P_GL, T_M_GL };
+   enum FNC { T_DN, T_UP, T_ST, T_CH, T_BM, T_TP, DT_DN, DT_UP, DT_ST, DT_CH, DT_BM, DT_TP, T_P_GL, T_M_GL };
    void SetModel(FNC f, std::function<double(double, double, double)> model);
 
    // down, up, strange, charm, bottom, top
@@ -71,7 +71,7 @@ public:
 };
 
 struct OutputModel {
-   enum FNC { T_UP, T_DN, T_ST, T_CH, T_BM, T_TP, DT_UP, DT_DN, DT_ST, DT_CH, DT_BM, DT_TP, T_P_GL, T_M_GL };
+   enum FNC { T_DN, T_UP, T_ST, T_CH, T_BM, T_TP, DT_DN, DT_UP, DT_ST, DT_CH, DT_BM, DT_TP, T_P_GL, T_M_GL };
 
    OutputModel(const Solution &sol);
 
