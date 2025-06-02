@@ -1,10 +1,70 @@
-# Honeycomb V2
+# Honeycomb2 <img src="resources/logo.png" alt="drawing" width="30"/>
 
-## Bugs and status
+This is the new version of the twist-3 evolution code [honeycomb](https://github.com/QCDatHT/honeycomb).
+The new version sees a complete reworking of the discretization procedure and API. 
+There is no backward compatibility. 
 
-1. At the moment I added Evolution Operator for fix nf. Next step is to have a collection of these that evolves from initial scale to first heavy quark, from first heavy quark to the second etc until final scale. Next to next step is store these for each RungeKutta step and build interpolation table, so that I can decide on the grid once, precompute all evolution operators on the Q grid and then use them.
-2. The gluon plus has some weird ridges, present in both current code and old code equally. They are present along each of the three $x_i=0$ lines, but evident only if zoomed in, if zoomed out they are very difficult to see. To be investigated
+> The library is still work-in-progress. The API is somewhat stable, but major changes can still happen.
 
-## Unsupported feature
+### Installation
 
-1. It is not yet possible to obtain from the Solution struct the discretized values as vectors on the grid for $T, \Delta T, T_F^\pm$. It is only possible to rotate between evolution basis (gluon, singlet, NSi) to physical basis in terms of $\mathfrak{S}^\pm_f, \mathfrak{F}^\pm$ (the latter two for the gluon are the same between evolution and physical) 
+**Prerequisite:** 
+1. You should have installed a C++ compiler with support for C++20, including the `format` header.
+2. You should have installed `cmake`
+
+**Installation:**
+The usual `cmake` procedure. From within `honeycomb2` directory
+```shell
+mkdir build && cd build
+cmake -DCMAKE_INSTALL_PREFIX=/your/installation/path/ ..
+make
+make install
+```
+*Note:* By the default, if no prefix specification is given, `honeycomb2` will be installed in the `/usr/local/`  directory. If you want (or need) to use a different path, remember to export the `honeycomb2` `/lib` folder into the `LD_LIBRARY_PATH`.
+
+After installation, you can run 
+```shell
+Honeycomb2-config --help
+```
+to get the list of available flags to be used in your project when using `honeycomb2`.
+
+`honeycomb2` can be un-installed by running:
+```shell
+make clean
+xargs rm < install_manifest.txt
+```
+from within the `build` directory.
+
+**C/FORTRAN interface:**
+`honeycomb2` supplies a limited API for C/FORTRAN programs. For C programs, one should 
+```C
+#include <honeycomb2/honeycomb2_c_api.h>
+```
+which expose the C-compatible API calls. 
+
+In FORTRAN programs, one should remember to declare external the API calls, for instance
+```FORTRAN
+      external hc2_fi_set_up
+      external hc2_fi_set_model
+      external hc2_fi_evolve
+      external hc2_fi_unload
+      double precision hc2_fi_get_model
+      external hc2_fi_get_model
+```
+where the trailing underscore is not present, since FORTRAN mingles function names automatically with the trailing underscore.
+
+Both C and FORTRAN program must link with `libHoneycomb2.so`. The linker flags can be readily obtained running 
+`Honeycomb2-config --ldflags`.
+A minimalistic makefile for compiling a single FORTRAN file and link it with `honeycomb2` is:
+```makefile
+all: test
+
+test: main.f
+	gfortran $^ $(shell Honeycomb2-config --ldflags) -o $@
+
+run: test
+	LD_LIBRARY_PATH=$(shell Honeycomb2-config --libdir):$(LD_LIBRARY_PATH) ./test
+
+```
+### Examples 
+Examples are under construction...
