@@ -52,7 +52,8 @@ public:
          })) {};
 
    SingleDiscretizationInfo(
-       std::vector<double> inter, std::vector<size_t> g_size, std::string _grid_descr, bool is_per = false,
+       std::vector<double> inter, std::vector<size_t> g_size, std::string _grid_descr,
+       bool is_per = false,
        std::function<double(double)> to_i_space =
            [](double x) {
               return x;
@@ -73,13 +74,15 @@ public:
            })
        : grid_descr(_grid_descr), is_periodic(is_per), intervals(inter.size() - 1, {0, 0}),
          intervals_phys(inter.size() - 1, {0, 0}), grid_sizes(g_size), to_inter_space(to_i_space),
-         to_inter_space_der(to_i_space_der), to_phys_space(to_p_space), to_phys_space_der(to_p_space_der)
+         to_inter_space_der(to_i_space_der), to_phys_space(to_p_space),
+         to_phys_space_der(to_p_space_der)
    {
       if (g_size.size() != (inter.size() - 1)) {
-         logger(Logger::ERROR, std::format("[SingleDiscretizationInfo] Incompatible sizes for number of "
-                                           "subintervals ({:d}) andentries in the "
-                                           "vector of number of points for each subinterval ({:d})",
-                                           inter.size() - 1, g_size.size()));
+         logger(Logger::ERROR,
+                std::format("[SingleDiscretizationInfo] Incompatible sizes for number of "
+                            "subintervals ({:d}) andentries in the "
+                            "vector of number of points for each subinterval ({:d})",
+                            inter.size() - 1, g_size.size()));
       }
       for (size_t i = 0; i < inter.size() - 1; i++) {
          intervals[i]      = {to_i_space(inter[i]), to_i_space(inter[i + 1])};
@@ -144,7 +147,8 @@ struct Grid {
          if (_delim_indexes[a] <= index && index < _delim_indexes[a + 1])
             return {_d_info.intervals[a].first, _d_info.intervals[a].second};
       }
-      logger(Logger::ERROR, std::format("[Grid::get_support_weight_aj] Index {:d} out of bound", index));
+      logger(Logger::ERROR,
+             std::format("[Grid::get_support_weight_aj] Index {:d} out of bound", index));
       return {NAN, NAN};
    }
 
@@ -154,7 +158,8 @@ struct Grid {
          if (_delim_indexes[a] <= index && index < _delim_indexes[a + 1])
             return {_d_info.intervals_phys[a].first, _d_info.intervals_phys[a].second};
       }
-      logger(Logger::ERROR, std::format("[Grid::get_phys_support_weight_aj] Index {:d} out of bound", index));
+      logger(Logger::ERROR,
+             std::format("[Grid::get_phys_support_weight_aj] Index {:d} out of bound", index));
       return {NAN, NAN};
    }
 
@@ -250,7 +255,8 @@ struct Grid2D {
    {
       Initialize(d_info_rho, d_info_phi);
    }
-   void Initialize(const SingleDiscretizationInfo &d_info_rho, const SingleDiscretizationInfo &d_info_phi);
+   void Initialize(const SingleDiscretizationInfo &d_info_rho,
+                   const SingleDiscretizationInfo &d_info_phi);
 
    // Empty default constructor
    Grid2D()
@@ -457,22 +463,23 @@ struct OneOverSqrtXGrid {
 };
 
 // Utility function, ensures that the angular grid is generated with only 6
-// subintervals, corresponding to the 6 triangular regions. This is fundamental for the correct working of
-// various parts of the library, especially the routines to determine the support of the weights int the
-// physical momentum coordinates. Moreover, the radial grid is defaulted to the logarithmic grid.
-Grid2D
-generate_compliant_Grid2D(size_t n_pts_for_angle_sector, std::vector<double> radius_inter,
-                          std::vector<size_t> radius_g_size,
-                          std::function<double(double)> radius_to_i_space     = LinearGrid::to_i_space,
-                          std::function<double(double)> radius_to_i_space_der = LinearGrid::to_i_space_der,
-                          std::function<double(double)> radius_to_p_space     = LinearGrid::to_p_space,
-                          std::function<double(double)> radius_to_p_space_der = LinearGrid::to_p_space_der,
-                          std::string radius_grid_descr                       = "LinearGrid",
-                          std::function<double(double)> angle_to_i_space      = LinearGrid::to_i_space,
-                          std::function<double(double)> angle_to_i_space_der  = LinearGrid::to_i_space_der,
-                          std::function<double(double)> angle_to_p_space      = LinearGrid::to_p_space,
-                          std::function<double(double)> angle_to_p_space_der  = LinearGrid::to_p_space_der,
-                          std::string angle_grid_descr                        = "LinearGrid");
+// subintervals, corresponding to the 6 triangular regions. This is fundamental for the correct
+// working of various parts of the library, especially the routines to determine the support of the
+// weights int the physical momentum coordinates. Moreover, the radial grid is defaulted to the
+// logarithmic grid.
+Grid2D generate_compliant_Grid2D(
+    size_t n_pts_for_angle_sector, std::vector<double> radius_inter,
+    std::vector<size_t> radius_g_size,
+    std::function<double(double)> radius_to_i_space     = LinearGrid::to_i_space,
+    std::function<double(double)> radius_to_i_space_der = LinearGrid::to_i_space_der,
+    std::function<double(double)> radius_to_p_space     = LinearGrid::to_p_space,
+    std::function<double(double)> radius_to_p_space_der = LinearGrid::to_p_space_der,
+    std::string radius_grid_descr                       = "LinearGrid",
+    std::function<double(double)> angle_to_i_space      = LinearGrid::to_i_space,
+    std::function<double(double)> angle_to_i_space_der  = LinearGrid::to_i_space_der,
+    std::function<double(double)> angle_to_p_space      = LinearGrid::to_p_space,
+    std::function<double(double)> angle_to_p_space_der  = LinearGrid::to_p_space_der,
+    std::string angle_grid_descr                        = "LinearGrid");
 
 bool check_grid_compatibility(const Grid2D &tmp_grid, const Grid2D &grid);
 

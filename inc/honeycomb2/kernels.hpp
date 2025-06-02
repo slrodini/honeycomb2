@@ -69,8 +69,9 @@ struct Kernels {
       archive(tmp_Nc);
 
       if (std::fabs(tmp_Nc - Nc) > 1.0e-12) {
-         logger(Logger::ERROR, "Trying to load incompatible kernels with the given grid. Numbers of color do "
-                               "not match. Aborting.");
+         logger(Logger::ERROR,
+                "Trying to load incompatible kernels with the given grid. Numbers of color do "
+                "not match. Aborting.");
       }
 
       // Explicitly archive matrix elements

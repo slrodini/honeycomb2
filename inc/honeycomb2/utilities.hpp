@@ -29,7 +29,8 @@ public:
    enum PREV_STATE { UNDEF = -1, TO_FILE = 0, TO_STD = 1 };
 
    // Calling init multiple times with the same filepath closes the old file AND OVERWRITES IT.
-   // Ideally `init` is called exactly once, via the setup_logging utility at the beginning of the program
+   // Ideally `init` is called exactly once, via the setup_logging utility at the beginning of the
+   // program
    void init(std::string filename, int min_lev = 2, bool to_stderr = true)
    {
       if (state == PREV_STATE::UNDEF) {

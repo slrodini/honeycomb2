@@ -8,7 +8,8 @@ Triplet from_rhophi_to_x123(double rho, double phi)
 {
    Triplet x123(0, 0, 0);
    if (phi < 0 || phi > 6) {
-      logger(Logger::ERROR, std::format("[Grid2D::from_rhophi_to_x123] Invalid angle: {:+.16e}", phi));
+      logger(Logger::ERROR,
+             std::format("[Grid2D::from_rhophi_to_x123] Invalid angle: {:+.16e}", phi));
    } else if (0 <= phi && phi < 1) {
       x123[0] = rho * (1 - phi);
       x123[1] = rho * (phi);

@@ -55,7 +55,8 @@ template <typename T, class Archive>
 bool LoadAndVerify(const std::string &file_name, T &data)
 {
    if constexpr (!std::is_base_of<cereal::detail::InputArchiveBase, Archive>::value) {
-      logger(Logger::ERROR, "Trying to use `LoadAndVerify` with an archive that is not an input archive.");
+      logger(Logger::ERROR,
+             "Trying to use `LoadAndVerify` with an archive that is not an input archive.");
    }
    // std::ifstream file(file_name, std::ios::binary | std::ios::ate);
    std::FILE *file = std::fopen(file_name.c_str(), "rb");
@@ -85,8 +86,8 @@ bool LoadAndVerify(const std::string &file_name, T &data)
 
    // Verify checksum
    if (computed_checksum)
-      logger(Logger::ERROR, "[LoadAndVerify]: File: " + file_name
-                                + "has incorrect checksum! Got: " + std::format("{:d}", computed_checksum));
+      logger(Logger::ERROR, "[LoadAndVerify]: File: " + file_name + "has incorrect checksum! Got: "
+                                + std::format("{:d}", computed_checksum));
 
    std::stringstream ss;
    ss.write(buffer.data(), file_size - sizeof(uint64_t));
@@ -99,7 +100,8 @@ template <typename T, class Archive>
 void SaveArchive(const T &data, const std::string &file_name)
 {
    if constexpr (!std::is_base_of<cereal::detail::OutputArchiveBase, Archive>::value) {
-      logger(Logger::ERROR, "Trying to use `SaveArchive` with an archive that is not an output archive.");
+      logger(Logger::ERROR,
+             "Trying to use `SaveArchive` with an archive that is not an output archive.");
    }
    std::ostringstream buffer;
    {
@@ -116,7 +118,8 @@ template <typename T, class Archive>
 bool LoadArchive(const std::string &file_name, T &data)
 {
    if constexpr (!std::is_base_of<cereal::detail::InputArchiveBase, Archive>::value) {
-      logger(Logger::ERROR, "Trying to use `LoadArchive` with an archive that is not an input archive.");
+      logger(Logger::ERROR,
+             "Trying to use `LoadArchive` with an archive that is not an input archive.");
    }
    // std::ifstream file(file_name, std::ios::binary | std::ios::ate);
    std::FILE *file = std::fopen(file_name.c_str(), "rb");

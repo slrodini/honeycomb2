@@ -8,7 +8,7 @@
 namespace
 {
 unsigned int _private_num_av_threads = std::thread::hardware_concurrency();
-unsigned int _private_num_threads    = _private_num_av_threads <= 2 ? 1 : _private_num_av_threads - 2;
+unsigned int _private_num_threads = _private_num_av_threads <= 2 ? 1 : _private_num_av_threads - 2;
 Honeycomb::ThreadPool global_pool(_private_num_threads);
 } // namespace
 
@@ -306,8 +306,9 @@ void Solution::_ker_mul(double pref, const Kernels &ker)
       Eigen::VectorXd tmp_s = _distr_p[1];
 
       _distr_p[0] = pref * (ker.H_gg_p * tmp_g - beta0 * tmp_g + ker.H_gq_p * tmp_s);
-      _distr_p[1]
-          = pref * (ker.H_NS * tmp_s - 3 * ker.CF * tmp_s + nf * ker.H_d13 * tmp_s + nf * ker.H_qg_p * tmp_g);
+      _distr_p[1] = pref
+                  * (ker.H_NS * tmp_s - 3 * ker.CF * tmp_s + nf * ker.H_d13 * tmp_s
+                     + nf * ker.H_qg_p * tmp_g);
 
       tmp_g = _distr_m[0];
       tmp_s = _distr_m[1];
@@ -319,16 +320,15 @@ void Solution::_ker_mul(double pref, const Kernels &ker)
    global_pool.WaitOnJobs();
 }
 
-std::pair<std::vector<double>, Solution> get_initial_solution(double Q02, double Qf2,
-                                                              const std::array<double, 6> &thresholds,
-                                                              const Discretization *discretization,
-                                                              const InputModel &models)
+std::pair<std::vector<double>, Solution>
+get_initial_solution(double Q02, double Qf2, const std::array<double, 6> &thresholds,
+                     const Discretization *discretization, const InputModel &models)
 {
 
    for (size_t i = 0; i < 5; i++) {
       if (thresholds[i + 1] < thresholds[i]) {
-         logger(Logger::ERROR,
-                "get_initial_solution: Thresholds are not increasing, backward evolution not supported yet.");
+         logger(Logger::ERROR, "get_initial_solution: Thresholds are not increasing, backward "
+                               "evolution not supported yet.");
       }
    }
    const double tf = log(Qf2);
@@ -354,7 +354,8 @@ std::pair<std::vector<double>, Solution> get_initial_solution(double Q02, double
 void Solution::RotateToPhysicalBasis()
 {
    if (_curr_basis == PHYS) {
-      logger(Logger::WARNING, "Solution::RotateToPhysicalBasis already in physical basis. I do nothing.");
+      logger(Logger::WARNING,
+             "Solution::RotateToPhysicalBasis already in physical basis. I do nothing.");
       return;
    }
    std::vector<Eigen::VectorXd> tmp_p;
@@ -392,7 +393,8 @@ void Solution::RotateToPhysicalBasis()
 void Solution::RotateToEvolutionBasis()
 {
    if (_curr_basis == EVO) {
-      logger(Logger::WARNING, "Solution::RotateToEvolutionBasis already in evolution basis. I do nothing.");
+      logger(Logger::WARNING,
+             "Solution::RotateToEvolutionBasis already in evolution basis. I do nothing.");
       return;
    }
    std::vector<Eigen::VectorXd> tmp_p;
@@ -428,7 +430,8 @@ bool Solution::is_equalt_to(const Solution &other, double acc) const
    bool ok = true;
    ok      = ok && (nf == other.nf);
    if (!ok) {
-      logger(Logger::WARNING, std::format("Solutions are at different nf: {:d}, {:d}", nf, other.nf));
+      logger(Logger::WARNING,
+             std::format("Solutions are at different nf: {:d}, {:d}", nf, other.nf));
       return false;
    }
 
@@ -447,18 +450,20 @@ bool Solution::is_equalt_to(const Solution &other, double acc) const
          b  = other._distr_p[i][j];
          ok = ok && (std::fabs(a - b) < acc);
          if (!ok) {
-            logger(Logger::WARNING,
-                   std::format("Element [{:d}, {:d}] of _distr_p are too different: {:.16e}, {:.16e}", i, j,
-                               a, b));
+            logger(
+                Logger::WARNING,
+                std::format("Element [{:d}, {:d}] of _distr_p are too different: {:.16e}, {:.16e}",
+                            i, j, a, b));
             return false;
          }
          a  = _distr_m[i][j];
          b  = other._distr_m[i][j];
          ok = ok && (std::fabs(a - b) < acc);
          if (!ok) {
-            logger(Logger::WARNING,
-                   std::format("Element [{:d}, {:d}] of _distr_m are too different: {:.16e}, {:.16e}", i, j,
-                               a, b));
+            logger(
+                Logger::WARNING,
+                std::format("Element [{:d}, {:d}] of _distr_m are too different: {:.16e}, {:.16e}",
+                            i, j, a, b));
             return false;
          }
       }
@@ -521,9 +526,10 @@ void EvolutionOperatorFixedNf::_ker_mul(double pref, const MergedKernelsFixedNf 
 void ApplyEvolutionOperator(Solution &sol, const EvOpNF &O)
 {
    if (sol.nf > O.nf) {
-      logger(Logger::ERROR, std::format("ApplyEvolutionOperator: incompatible nf between Solution ({:d}) and "
-                                        "Evolution Operator ({:d}).",
-                                        sol.nf, O.nf));
+      logger(Logger::ERROR,
+             std::format("ApplyEvolutionOperator: incompatible nf between Solution ({:d}) and "
+                         "Evolution Operator ({:d}).",
+                         sol.nf, O.nf));
    }
    while (sol.nf < O.nf) {
       sol.PushFlavor();
@@ -557,7 +563,8 @@ void ApplyEvolutionOperator(Solution &sol, const EvOpNF &O)
    }
 }
 
-Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std::array<double, 6> &thresholds,
+Solution evolve_solution(const Kernels &kers, double Q02, double Qf2,
+                         const std::array<double, 6> &thresholds,
                          const Discretization *discretization, const InputModel &models,
                          std::function<double(double)> as)
 {
@@ -593,14 +600,16 @@ Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std:
       for (size_t j = 2; j < sol0._distr_p.size(); j++) {
          global_pool.AddTask([&, j]() {
             runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
-                nf_kers[i].H_NS, sol0._distr_p[j], runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
+                nf_kers[i].H_NS, sol0._distr_p[j], runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
+                0.01);
             evolver_p({inter_scales[i + 1]}, n_steps);
             sol0._distr_p[j] = evolver_p.GetSolution();
          });
 
          global_pool.AddTask([&, j]() {
             runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
-                nf_kers[i].H_NS, sol0._distr_m[j], runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
+                nf_kers[i].H_NS, sol0._distr_m[j], runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
+                0.01);
             evolver_m({inter_scales[i + 1]}, n_steps);
             sol0._distr_m[j] = evolver_m.GetSolution();
          });
@@ -663,21 +672,25 @@ OutputModel::OutputModel(const Solution &sol)
          // RnC::Pair rhophi_123 = RnC::from_x123_to_rhophi(x123);
          RnC::Pair rhophi_321 = RnC::from_x123_to_rhophi(x321);
          if (i > 0) {
-            T[i][j] = 0.25
-                    * (sol._distr_p[i][j] + sol._distr_m[i][j]
-                       + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i])
-                       - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
-            DT[i][j] = -0.25
-                     * (sol._distr_p[i][j] + sol._distr_m[i][j]
-                        - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i])
-                        + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
+            T[i][j]
+                = 0.25
+                * (sol._distr_p[i][j] + sol._distr_m[i][j]
+                   + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i])
+                   - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
+            DT[i][j]
+                = -0.25
+                * (sol._distr_p[i][j] + sol._distr_m[i][j]
+                   - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i])
+                   + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
          } else {
-            T[i][j] = 0.5
-                    * (sol._distr_p[i][j]
-                       - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i]));
-            DT[i][j] = 0.5
-                     * (sol._distr_m[i][j]
-                        + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
+            T[i][j]
+                = 0.5
+                * (sol._distr_p[i][j]
+                   - sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_p[i]));
+            DT[i][j]
+                = 0.5
+                * (sol._distr_m[i][j]
+                   + sol._discretization->interpolate_as_weights_v3(rhophi_321, sol._distr_m[i]));
          }
       }
    }

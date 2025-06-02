@@ -18,8 +18,9 @@ ThreadPool::ThreadPool(size_t num_threads) : _remaining(0)
 
             if (_to_stop) {
                if (!_tasks.empty()) {
-                  logger(Logger::WARNING, "The threadpool is not empty, but the user requested to stop. "
-                                          "Ignoring tasks still in the pool.");
+                  logger(Logger::WARNING,
+                         "The threadpool is not empty, but the user requested to stop. "
+                         "Ignoring tasks still in the pool.");
                }
                return;
             }

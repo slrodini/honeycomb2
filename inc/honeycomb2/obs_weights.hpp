@@ -49,7 +49,8 @@ struct G2Weights {
 // 3\int_0^1 dx x^2 g_2(x, Q) = \int Dx \mathfrak{S}^+
 struct D2Weights {
 
-   D2Weights(const Grid2D &_grid, bool to_compute = true, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
+   D2Weights(const Grid2D &_grid, bool to_compute = true, double int_e_r = 1.0e-8,
+             double int_e_a = 1.0e-8);
 
    void GetWeights(double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
 
@@ -167,7 +168,8 @@ struct D2WeightsPartialIntegral {
 // 2\int_0^1 dx x g_2(x, Q) = \int_0^1 dx_2 \int_{-x_2}^0 dx_1 (-x_1/x_2^2)\mathfrak{S}^+
 struct ELTWeights {
 
-   ELTWeights(const Grid2D &_grid, bool to_compute = true, double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
+   ELTWeights(const Grid2D &_grid, bool to_compute = true, double int_e_r = 1.0e-8,
+              double int_e_a = 1.0e-8);
 
    void GetWeights(double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
 
@@ -205,9 +207,9 @@ struct ELTWeights {
 };
 
 template <typename WT>
-concept IsWeight
-    = std::same_as<WT, G2Weights> || std::same_as<WT, D2Weights> || std::same_as<WT, D2WeightsCutted>
-   || std::same_as<WT, D2WeightsPartialIntegral> || std::same_as<WT, ELTWeights>;
+concept IsWeight = std::same_as<WT, G2Weights> || std::same_as<WT, D2Weights>
+                || std::same_as<WT, D2WeightsCutted> || std::same_as<WT, D2WeightsPartialIntegral>
+                || std::same_as<WT, ELTWeights>;
 
 template <typename WT>
 requires IsWeight<WT>
@@ -221,8 +223,8 @@ requires IsWeight<WT>
 inline bool load_weights(const std::string &file_name, WT &result)
 {
    if (!LoadAndVerify<WT, cereal::PortableBinaryInputArchive>(file_name, result)) {
-      logger(Logger::WARNING,
-             "I was not able to correctly load the cereal archive " + file_name + " containing the weights.");
+      logger(Logger::WARNING, "I was not able to correctly load the cereal archive " + file_name
+                                  + " containing the weights.");
       return false;
    }
    return true;

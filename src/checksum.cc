@@ -4,7 +4,8 @@ namespace Honeycomb
 {
 
 // CRC-64/WE, without final xor
-// Resources: https://www.wolfgang-ehrhardt.de/ ; https://reveng.sourceforge.io/crc-catalogue/all.htm
+// Resources: https://www.wolfgang-ehrhardt.de/ ;
+// https://reveng.sourceforge.io/crc-catalogue/all.htm
 #define POLYNOMIAL 0x42F0E1EBA9EA3693UL
 #define MSB_CRC64 0x8000000000000000UL
 #define INITIAL_CRC64 0xFFFFFFFFFFFFFFFFUL
@@ -29,7 +30,9 @@ uint64_t crc64(const uint8_t *data, size_t length)
 uint64_t compute_file_checksum(const char *file_path)
 {
    std::FILE *fp = std::fopen(file_path, "rb");
-   if (!fp) logger(Logger::ERROR, "[compute_file_checksum]: Impossible to open the file " + std::string(file_path));
+   if (!fp)
+      logger(Logger::ERROR,
+             "[compute_file_checksum]: Impossible to open the file " + std::string(file_path));
 
    // Get file size
    std::fseek(fp, 0L, SEEK_END);
@@ -41,9 +44,9 @@ uint64_t compute_file_checksum(const char *file_path)
    // here assume that fread does not append extra null-termination (shoudl not)
    size_t n_char = std::fread((void *)data, 1, file_size, fp);
    if (static_cast<int64_t>(n_char) != file_size)
-      logger(Logger::ERROR, "[compute_file_checksum]: Read" + std::format("{:d}", n_char) +
-                                " character where size of file " + std::string(file_path) + " is " +
-                                std::format("{:d}", file_size));
+      logger(Logger::ERROR, "[compute_file_checksum]: Read" + std::format("{:d}", n_char)
+                                + " character where size of file " + std::string(file_path) + " is "
+                                + std::format("{:d}", file_size));
 
    fclose(fp);
 

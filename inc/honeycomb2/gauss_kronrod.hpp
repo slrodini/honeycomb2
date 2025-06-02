@@ -42,15 +42,16 @@ requires IsGKRule<Rule, Rule::size>
 struct GaussKronrod {
 
    // Note: here I do not return the information on the error outside.
-   static double integrate(std::function<double(double)> const &fnc, double const &a, double const &b,
-                           double eps_rel = 1.0e-10, double eps_abs = 1.0e-10);
+   static double integrate(std::function<double(double)> const &fnc, double const &a,
+                           double const &b, double eps_rel = 1.0e-10, double eps_abs = 1.0e-10);
 
 private:
    static std::tuple<double, double, double>
-   gauss_kronrod_recursive_step(std::function<double(double)> const &fnc, double const &a, double const &b,
-                                size_t depth, double eps_rel, double eps_abs);
+   gauss_kronrod_recursive_step(std::function<double(double)> const &fnc, double const &a,
+                                double const &b, size_t depth, double eps_rel, double eps_abs);
    static std::tuple<double, double, double>
-   gauss_kronrod_simplified(std::function<double(double)> const &fnc, double const &a, double const &b);
+   gauss_kronrod_simplified(std::function<double(double)> const &fnc, double const &a,
+                            double const &b);
 };
 
 } // namespace Integration

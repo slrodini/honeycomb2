@@ -6,14 +6,16 @@
 namespace Honeycomb
 {
 
-Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int_e_r, double int_e_a)
+Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int_e_r,
+                                      double int_e_a)
 {
 
    if (!grid.is_compliant) {
-      logger(Logger::ERROR, "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
-                            "generated via `generate_compliant_Grid2D`.");
+      logger(Logger::ERROR,
+             "G2Weights: The Grid2D is not compliant to the specs. Please use only grids "
+             "generated via `generate_compliant_Grid2D`.");
    }
-   using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
+   using integrator = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
    unsigned int num_av_threads = std::thread::hardware_concurrency();
    unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
    ThreadPool th(num_threads);
@@ -26,13 +28,15 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
    for (size_t k = grid.grid_angle._delim_indexes[0]; k < grid.grid_angle._delim_indexes[1]; k++) {
       for (size_t j = 0; j < grid.grid_radius.size; j++) {
          th.AddTask([&, j, k](void) -> void {
-            auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
-            const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
-            const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            auto r_supp = grid.grid_radius.get_support_weight_aj(j);
+            const double xi_min
+                = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
+            const double xi_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double xi) -> double {
                auto fnc_internal_1 = [&](double eta) -> double {
@@ -42,7 +46,8 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
 
                return integrator::integrate(fnc_internal_1, xBj, xi, int_e_r, int_e_a) / xi;
             };
-            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -56,13 +61,15 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
       for (size_t j = 0; j < grid.grid_radius.size; j++) {
 
          th.AddTask([&, j, k](void) -> void {
-            auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
-            const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
-            const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            auto r_supp = grid.grid_radius.get_support_weight_aj(j);
+            const double xi_min
+                = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
+            const double xi_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double xi) -> double {
                auto fnc_internal_1 = [&](double eta) -> double {
@@ -73,7 +80,8 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
 
                return (integrator::integrate(fnc_internal_1, -xBj, 0, int_e_r, int_e_a)) / xi;
             };
-            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -86,13 +94,15 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
    for (size_t k = grid.grid_angle._delim_indexes[4]; k < grid.grid_angle._delim_indexes[5]; k++) {
       for (size_t j = 0; j < grid.grid_radius.size; j++) {
          th.AddTask([&, j, k](void) -> void {
-            auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
-            const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
-            const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            auto r_supp = grid.grid_radius.get_support_weight_aj(j);
+            const double xi_min
+                = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
+            const double xi_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double xi) -> double {
                auto fnc_internal_1 = [&](double eta) -> double {
@@ -104,7 +114,8 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
                // yes, |t| in denominator
                return (integrator::integrate(fnc_internal_1, xBj, xi, int_e_r, int_e_a)) / xi;
             };
-            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -117,13 +128,15 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
    for (size_t k = grid.grid_angle._delim_indexes[5]; k < grid.grid_angle._delim_indexes[6]; k++) {
       for (size_t j = 0; j < grid.grid_radius.size; j++) {
          th.AddTask([&, j, k](void) -> void {
-            auto r_supp         = grid.grid_radius.get_support_weight_aj(j);
-            const double xi_min = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
-            const double xi_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            auto r_supp = grid.grid_radius.get_support_weight_aj(j);
+            const double xi_min
+                = std::max(grid.grid_radius._d_info.to_phys_space(r_supp.first), xBj);
+            const double xi_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double xi) -> double {
                auto fnc_internal_1 = [&](double eta) -> double {
@@ -140,7 +153,8 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
                        + integrator::integrate(fnc_internal_2, -xBj, 0, int_e_r, int_e_a))
                     / xi;
             };
-            const double tmp = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, xi_min, xi_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -158,7 +172,8 @@ Eigen::VectorXd G2Weights::GetWeights(double xBj, const Grid2D &grid, double int
    return weights;
 }
 
-G2Weights::G2Weights(double _xBj, const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a)
+G2Weights::G2Weights(double _xBj, const Grid2D &_grid, bool to_compute, double int_e_r,
+                     double int_e_a)
     : xBj(_xBj), grid(_grid)
 {
    if (to_compute) weights = G2Weights::GetWeights(_xBj, _grid, int_e_r, int_e_a);
@@ -166,7 +181,8 @@ G2Weights::G2Weights(double _xBj, const Grid2D &_grid, bool to_compute, double i
 
 //================================================================================
 
-D2Weights::D2Weights(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a) : grid(_grid)
+D2Weights::D2Weights(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a)
+    : grid(_grid)
 {
 
    if (to_compute) GetWeights(int_e_r, int_e_a);
@@ -175,13 +191,14 @@ D2Weights::D2Weights(const Grid2D &_grid, bool to_compute, double int_e_r, doubl
 void D2Weights::GetWeights(double int_e_r, double int_e_a)
 {
    if (!grid.is_compliant) {
-      logger(Logger::ERROR, "D2Weights: The Grid2D is not compliant to the specs. Please use only grids "
-                            "generated via `generate_compliant_Grid2D`.");
+      logger(Logger::ERROR,
+             "D2Weights: The Grid2D is not compliant to the specs. Please use only grids "
+             "generated via `generate_compliant_Grid2D`.");
    }
 
    const double r0 = grid.grid_radius._d_info.intervals_phys[0].first;
 
-   using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
+   using integrator = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
    unsigned int num_av_threads = std::thread::hardware_concurrency();
    unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
    ThreadPool th(num_threads);
@@ -202,11 +219,12 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
             if (is_near(lower, r0)) lower = 0.0;
 
             const double x3_r_min = std::max(lower, 0.0);
-            const double x3_r_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index            = grid.get_flatten_index(j, k);
-            size_t c_k            = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j            = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a            = grid.c_get_flatten_index(c_j, c_k);
+            const double x3_r_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x3_r) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -216,7 +234,8 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, 0.0, x3_r, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x3_r_min, x3_r_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x3_r_min, x3_r_max, int_e_r, int_e_a);
 
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
@@ -236,11 +255,12 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
             if (is_near(lower, r0)) lower = 0.0;
 
             const double x3_min = std::max(lower, 0.0);
-            const double x3_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            const double x3_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x3) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -250,7 +270,8 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, -x3, 0.0, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x3_min, x3_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x3_min, x3_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -269,11 +290,12 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
             if (is_near(lower, r0)) lower = 0.0;
 
             const double x2_min = std::max(lower, 0.0);
-            const double x2_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            const double x2_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x2) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -283,7 +305,8 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, -x2, 0.0, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x2_min, x2_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x2_min, x2_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -302,11 +325,12 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
             if (is_near(lower, r0)) lower = 0.0;
 
             const double x2_r_min = std::max(lower, 0.0);
-            const double x2_r_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index            = grid.get_flatten_index(j, k);
-            size_t c_k            = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j            = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a            = grid.c_get_flatten_index(c_j, c_k);
+            const double x2_r_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x2_r) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -316,7 +340,8 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, 0.0, x2_r, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x2_r_min, x2_r_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x2_r_min, x2_r_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -335,11 +360,12 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
             if (is_near(lower, r0)) lower = 0.0;
 
             const double x1_r_min = std::max(lower, 0.0);
-            const double x1_r_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index            = grid.get_flatten_index(j, k);
-            size_t c_k            = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j            = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a            = grid.c_get_flatten_index(c_j, c_k);
+            const double x1_r_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x1_r) -> double {
                auto fnc_internal_1 = [&](double x2) -> double {
@@ -349,7 +375,8 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, 0.0, x1_r, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x1_r_min, x1_r_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x1_r_min, x1_r_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -368,11 +395,12 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
             if (is_near(lower, r0)) lower = 0.0;
 
             const double x1_min = std::max(lower, 0.0);
-            const double x1_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            const double x1_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x1) -> double {
                auto fnc_internal_1 = [&](double x2) -> double {
@@ -382,7 +410,8 @@ void D2Weights::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, -x1, 0.0, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x1_min, x1_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x1_min, x1_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -401,7 +430,8 @@ double D2Weights::ComputeSingleQuark(const Eigen::VectorXd &_f) const
 
 //================================================================================
 
-D2WeightsCutted::D2WeightsCutted(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a)
+D2WeightsCutted::D2WeightsCutted(const Grid2D &_grid, bool to_compute, double int_e_r,
+                                 double int_e_a)
     : grid(_grid)
 {
 
@@ -420,7 +450,7 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
 
    center_approx = 3.0 * r0 * r0 / 8.0;
 
-   using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
+   using integrator = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
    unsigned int num_av_threads = std::thread::hardware_concurrency();
    unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
    ThreadPool th(num_threads);
@@ -440,11 +470,12 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
             double lower = grid.grid_radius._d_info.to_phys_space(r_supp.first);
 
             const double x3_r_min = std::max(lower, 0.0);
-            const double x3_r_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index            = grid.get_flatten_index(j, k);
-            size_t c_k            = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j            = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a            = grid.c_get_flatten_index(c_j, c_k);
+            const double x3_r_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x3_r) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -454,7 +485,8 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, 0.0, x3_r, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x3_r_min, x3_r_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x3_r_min, x3_r_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -472,11 +504,12 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
             double lower = grid.grid_radius._d_info.to_phys_space(r_supp.first);
 
             const double x3_min = std::max(lower, 0.0);
-            const double x3_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            const double x3_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x3) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -486,7 +519,8 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, -x3, 0.0, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x3_min, x3_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x3_min, x3_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -504,11 +538,12 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
             double lower = grid.grid_radius._d_info.to_phys_space(r_supp.first);
 
             const double x2_min = std::max(lower, 0.0);
-            const double x2_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            const double x2_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x2) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -518,7 +553,8 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, -x2, 0.0, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x2_min, x2_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x2_min, x2_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -536,11 +572,12 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
             double lower = grid.grid_radius._d_info.to_phys_space(r_supp.first);
 
             const double x2_r_min = std::max(lower, 0.0);
-            const double x2_r_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index            = grid.get_flatten_index(j, k);
-            size_t c_k            = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j            = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a            = grid.c_get_flatten_index(c_j, c_k);
+            const double x2_r_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x2_r) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -550,7 +587,8 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, 0.0, x2_r, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x2_r_min, x2_r_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x2_r_min, x2_r_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -568,11 +606,12 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
             double lower = grid.grid_radius._d_info.to_phys_space(r_supp.first);
 
             const double x1_r_min = std::max(lower, 0.0);
-            const double x1_r_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index            = grid.get_flatten_index(j, k);
-            size_t c_k            = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j            = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a            = grid.c_get_flatten_index(c_j, c_k);
+            const double x1_r_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x1_r) -> double {
                auto fnc_internal_1 = [&](double x2) -> double {
@@ -582,7 +621,8 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, 0.0, x1_r, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x1_r_min, x1_r_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x1_r_min, x1_r_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -600,11 +640,12 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
             double lower = grid.grid_radius._d_info.to_phys_space(r_supp.first);
 
             const double x1_min = std::max(lower, 0.0);
-            const double x1_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            const double x1_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x1) -> double {
                auto fnc_internal_1 = [&](double x2) -> double {
@@ -614,7 +655,8 @@ void D2WeightsCutted::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, -x1, 0.0, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x1_min, x1_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x1_min, x1_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -653,7 +695,8 @@ double D2WeightsCutted::ComputeSingleQuark_NoCorrections(const Eigen::VectorXd &
 
 //================================================================================
 
-ELTWeights::ELTWeights(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a) : grid(_grid)
+ELTWeights::ELTWeights(const Grid2D &_grid, bool to_compute, double int_e_r, double int_e_a)
+    : grid(_grid)
 {
 
    center_approx = 0;
@@ -663,13 +706,14 @@ ELTWeights::ELTWeights(const Grid2D &_grid, bool to_compute, double int_e_r, dou
 void ELTWeights::GetWeights(double int_e_r, double int_e_a)
 {
    if (!grid.is_compliant) {
-      logger(Logger::ERROR, "ELTWeights: The Grid2D is not compliant to the specs. Please use only grids "
-                            "generated via `generate_compliant_Grid2D`.");
+      logger(Logger::ERROR,
+             "ELTWeights: The Grid2D is not compliant to the specs. Please use only grids "
+             "generated via `generate_compliant_Grid2D`.");
    }
    const double r0 = grid.grid_radius._d_info.intervals_phys[0].first;
    center_approx   = r0 / 2.0;
 
-   using integrator            = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
+   using integrator = Honeycomb::Integration::GaussKronrod<Honeycomb::Integration::GK_61>;
    unsigned int num_av_threads = std::thread::hardware_concurrency();
    unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
    ThreadPool th(num_threads);
@@ -690,11 +734,12 @@ void ELTWeights::GetWeights(double int_e_r, double int_e_a)
             // if (is_near(lower, r0)) lower = 0.0;
 
             const double x2_min = std::max(lower, 0.0);
-            const double x2_max = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
-            auto index          = grid.get_flatten_index(j, k);
-            size_t c_k          = grid.grid_angle._from_iw_to_ic[k];
-            size_t c_j          = grid.grid_radius._from_iw_to_ic[j];
-            size_t c_a          = grid.c_get_flatten_index(c_j, c_k);
+            const double x2_max
+                = std::min(grid.grid_radius._d_info.to_phys_space(r_supp.second), 1.0);
+            auto index = grid.get_flatten_index(j, k);
+            size_t c_k = grid.grid_angle._from_iw_to_ic[k];
+            size_t c_j = grid.grid_radius._from_iw_to_ic[j];
+            size_t c_a = grid.c_get_flatten_index(c_j, c_k);
 
             auto fnc_external = [&](double x2) -> double {
                auto fnc_internal_1 = [&](double x1) -> double {
@@ -704,7 +749,8 @@ void ELTWeights::GetWeights(double int_e_r, double int_e_a)
 
                return integrator::integrate(fnc_internal_1, -x2, 0.0, int_e_r, int_e_a);
             };
-            const double tmp = integrator::integrate(fnc_external, x2_min, x2_max, int_e_r, int_e_a);
+            const double tmp
+                = integrator::integrate(fnc_external, x2_min, x2_max, int_e_r, int_e_a);
             // Works both if key does and does not exist.
             std::unique_lock<std::mutex> lock(done_mutex);
             weights[c_a] += tmp;
@@ -739,8 +785,8 @@ double ELTWeights::ComputeSingleQuark(const Eigen::VectorXd &_f) const
    return ave_r0 * center_approx + tmp;
 }
 
-D2WeightsPartialIntegral::D2WeightsPartialIntegral(const Grid2D &_grid, double _a, double _b, bool to_compute,
-                                                   double int_e_r, double int_e_a)
+D2WeightsPartialIntegral::D2WeightsPartialIntegral(const Grid2D &_grid, double _a, double _b,
+                                                   bool to_compute, double int_e_r, double int_e_a)
     : grid(_grid), a(_a), b(_b)
 {
 

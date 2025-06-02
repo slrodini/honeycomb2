@@ -141,16 +141,18 @@ void Kernels::ComputeKernels()
 
             H_d13(c_a, c_aP) += res_d_13;
 
-            H_gg_p(c_a, c_aP) += Nc * (res_plus_12_gg + res_plus_13_gg + res_minus_12_gg + res_minus_13_gg);
-            H_gg_m(c_a, c_aP) += Nc * (res_plus_12_gg + res_plus_13_gg - res_minus_12_gg - res_minus_13_gg);
+            H_gg_p(c_a, c_aP)
+                += Nc * (res_plus_12_gg + res_plus_13_gg + res_minus_12_gg + res_minus_13_gg);
+            H_gg_m(c_a, c_aP)
+                += Nc * (res_plus_12_gg + res_plus_13_gg - res_minus_12_gg - res_minus_13_gg);
 
             // Note: NO nf here, multiplied in the evolution
             H_qg_p(c_a, c_aP) += -res_v_minus;
             H_qg_m(c_a, c_aP) += +res_v_minus;
 
             H_gq_p(c_a, c_aP) += Nc
-                               * (res_w_plus - res_w_plus_p23 + res_w_minus - res_w_minus_p23 - 2 * res_dw
-                                  + 2 * res_dw_p23);
+                               * (res_w_plus - res_w_plus_p23 + res_w_minus - res_w_minus_p23
+                                  - 2 * res_dw + 2 * res_dw_p23);
             H_gq_m(c_a, c_aP)
                 += -(Nc - 4.0 / Nc) * (res_w_plus + res_w_plus_p23 + res_w_minus + res_w_minus_p23);
 

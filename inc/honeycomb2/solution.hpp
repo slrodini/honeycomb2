@@ -15,10 +15,30 @@ inline double zero_function(double, double, double)
 {
    return 0;
 }
-
+/**
+ * @brief
+ *
+ *
+ *
+ */
 struct InputModel {
 
-   enum FNC { T_DN, T_UP, T_ST, T_CH, T_BM, T_TP, DT_DN, DT_UP, DT_ST, DT_CH, DT_BM, DT_TP, T_P_GL, T_M_GL };
+   enum FNC {
+      T_DN,
+      T_UP,
+      T_ST,
+      T_CH,
+      T_BM,
+      T_TP,
+      DT_DN,
+      DT_UP,
+      DT_ST,
+      DT_CH,
+      DT_BM,
+      DT_TP,
+      T_P_GL,
+      T_M_GL
+   };
    void SetModel(FNC f, std::function<double(double, double, double)> model);
 
    // down, up, strange, charm, bottom, top
@@ -71,7 +91,22 @@ public:
 };
 
 struct OutputModel {
-   enum FNC { T_DN, T_UP, T_ST, T_CH, T_BM, T_TP, DT_DN, DT_UP, DT_ST, DT_CH, DT_BM, DT_TP, T_P_GL, T_M_GL };
+   enum FNC {
+      T_DN,
+      T_UP,
+      T_ST,
+      T_CH,
+      T_BM,
+      T_TP,
+      DT_DN,
+      DT_UP,
+      DT_ST,
+      DT_CH,
+      DT_BM,
+      DT_TP,
+      T_P_GL,
+      T_M_GL
+   };
 
    OutputModel(const Solution &sol);
 
@@ -248,21 +283,22 @@ inline std::pair<bool, EvOp> load_evolution_operator(const std::string &file_nam
 }
 
 EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, double Qf2,
-                                const std::array<double, 6> &thresholds, std::function<double(double)> as);
+                                const std::array<double, 6> &thresholds,
+                                std::function<double(double)> as);
 
 // Thresholds in \mu^2
 // returns vetor of intermediate scales between Q0 and Qf as
 // {log(\mu_1^2), ..., \log(Qf^2)}. Q0 is not in the vector!
-std::pair<std::vector<double>, Solution> get_initial_solution(double Q02, double Qf2,
-                                                              const std::array<double, 6> &thresholds,
-                                                              const Discretization *discretization,
-                                                              const InputModel &models);
+std::pair<std::vector<double>, Solution>
+get_initial_solution(double Q02, double Qf2, const std::array<double, 6> &thresholds,
+                     const Discretization *discretization, const InputModel &models);
 
 void ApplyEvolutionOperator(Solution &sol, const EvOpNF &O);
 void ApplyEvolutionOperator(Solution &sol, const EvOp &O);
 void ApplyEvolutionOperator(Solution &sol, const std::vector<EvOp> &Os);
 
-Solution evolve_solution(const Kernels &kers, double Q02, double Qf2, const std::array<double, 6> &thresholds,
+Solution evolve_solution(const Kernels &kers, double Q02, double Qf2,
+                         const std::array<double, 6> &thresholds,
                          const Discretization *discretization, const InputModel &models,
                          std::function<double(double)> as);
 

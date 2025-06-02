@@ -42,7 +42,8 @@ void EvOp::push_back(const EvOpNF &arg)
 // -----------------------------------------------------------------------------
 
 EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, double Qf2,
-                                const std::array<double, 6> &thresholds, std::function<double(double)> as)
+                                const std::array<double, 6> &thresholds,
+                                std::function<double(double)> as)
 {
 
    EvOp result(grid);
@@ -89,8 +90,8 @@ EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, d
 
       Honeycomb::runge_kutta::GenericRungeKutta<Honeycomb::MergedKernelsFixedNf,
                                                 Honeycomb::EvolutionOperatorFixedNf, 13>
-          evolver_O(nf_kers[curr_nf - nf_in], O1, Honeycomb::runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
-                    0.01);
+          evolver_O(nf_kers[curr_nf - nf_in], O1, Honeycomb::runge_kutta::DOPRI8, as, -1.0,
+                    inter_scales[i], 0.01);
 
       evolver_O({inter_scales[i + 1]}, n_steps);
       result.push_back(EvOpNF(evolver_O.GetSolution()));

@@ -15,7 +15,8 @@ std::function<double(double)> GetAlphaS_o_4pi(std::array<double, 6> thresholds, 
    while (nf_ref < 6 && Q2ref > thresholds[nf_ref]) {
       nf_ref++;
    }
-   logger(Logger::INFO, std::format("Alpha_s: min value of nf: {:d}; nf at ref scale: {:d}", nf_min, nf_ref));
+   logger(Logger::INFO,
+          std::format("Alpha_s: min value of nf: {:d}; nf at ref scale: {:d}", nf_min, nf_ref));
    std::map<int, double> beta_0;
    for (size_t nf = 0; nf <= 6; nf++) {
       beta_0[nf] = 11.0 * Nc / 3.0 - 2.0 * static_cast<double>(nf) / 3.0;

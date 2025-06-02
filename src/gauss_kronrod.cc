@@ -120,8 +120,8 @@ const std::array<double, 31> GK_61::w_gk
 template <typename Rule>
 requires IsGKRule<Rule, Rule::size>
 std::tuple<double, double, double>
-GaussKronrod<Rule>::gauss_kronrod_simplified(std::function<double(double)> const &fnc, double const &a,
-                                             double const &b)
+GaussKronrod<Rule>::gauss_kronrod_simplified(std::function<double(double)> const &fnc,
+                                             double const &a, double const &b)
 {
    const size_t n           = Rule::size;
    const double center      = 0.5 * (a + b);
@@ -161,20 +161,23 @@ GaussKronrod<Rule>::gauss_kronrod_simplified(std::function<double(double)> const
 template <typename Rule>
 requires IsGKRule<Rule, Rule::size>
 std::tuple<double, double, double>
-GaussKronrod<Rule>::gauss_kronrod_recursive_step(std::function<double(double)> const &fnc, double const &a,
-                                                 double const &b, size_t depth, double eps_rel,
-                                                 double eps_abs)
+GaussKronrod<Rule>::gauss_kronrod_recursive_step(std::function<double(double)> const &fnc,
+                                                 double const &a, double const &b, size_t depth,
+                                                 double eps_rel, double eps_abs)
 {
    auto [res, err_rel, err_abs] = gauss_kronrod_simplified(fnc, a, b);
    const double center          = (a + b) * 0.5;
 
-   if (err_abs <= eps_abs || err_rel <= eps_rel || subinterval_too_small(a, center, b) || depth > MAX_DEPTH) {
+   if (err_abs <= eps_abs || err_rel <= eps_rel || subinterval_too_small(a, center, b)
+       || depth > MAX_DEPTH) {
       return {res, err_rel, err_abs};
    }
 
    depth++;
-   auto [res_1, err_rel_1, err_abs_1] = gauss_kronrod_recursive_step(fnc, a, center, depth, eps_rel, eps_abs);
-   auto [res_2, err_rel_2, err_abs_2] = gauss_kronrod_recursive_step(fnc, center, b, depth, eps_rel, eps_abs);
+   auto [res_1, err_rel_1, err_abs_1]
+       = gauss_kronrod_recursive_step(fnc, a, center, depth, eps_rel, eps_abs);
+   auto [res_2, err_rel_2, err_abs_2]
+       = gauss_kronrod_recursive_step(fnc, center, b, depth, eps_rel, eps_abs);
    return {res_1 + res_2, sqrt(err_rel_1 * err_rel_1 + err_rel_2 * err_rel_2),
            sqrt(err_abs_1 * err_abs_1 + err_abs_2 * err_abs_2)};
 }

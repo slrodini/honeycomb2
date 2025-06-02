@@ -16,25 +16,29 @@ inline mark now()
 
 inline double elapsed_ns(const mark &end, const mark &begin)
 {
-   return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
+   return static_cast<double>(
+       std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
 }
 
 inline double elapsed_us(const mark &end, const mark &begin)
 {
    return 1.0e-3
-        * static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
+        * static_cast<double>(
+              std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
 }
 
 inline double elapsed_ms(const mark &end, const mark &begin)
 {
    return 1.0e-6
-        * static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
+        * static_cast<double>(
+              std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
 }
 
 inline double elapsed_s(const mark &end, const mark &begin)
 {
    return 1.0e-9
-        * static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
+        * static_cast<double>(
+              std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
 }
 
 } // namespace timer

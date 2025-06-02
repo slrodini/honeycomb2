@@ -9,7 +9,8 @@ std::string read_file_to_str(const std::string &file_path)
    std::FILE *fp = std::fopen(file_path.c_str(), "rb");
    if (!fp)
       logger(Logger::ERROR,
-             std::format("ConfigParser::_read_entire_file Impossible to open the file <{:s}>", file_path));
+             std::format("ConfigParser::_read_entire_file Impossible to open the file <{:s}>",
+                         file_path));
 
    std::fseek(fp, 0L, SEEK_END);
    long file_size = std::ftell(fp);
@@ -19,10 +20,9 @@ std::string read_file_to_str(const std::string &file_path)
 
    size_t n_char = std::fread(content.data(), 1, file_size, fp);
    if (n_char != (size_t)file_size)
-      logger(
-          Logger::ERROR,
-          std::format("ConfigParser::_read_entire_file Read {:d} character where size of file <{:s}> is {:d}",
-                      n_char, file_path, file_size));
+      logger(Logger::ERROR, std::format("ConfigParser::_read_entire_file Read {:d} character where "
+                                        "size of file <{:s}> is {:d}",
+                                        n_char, file_path, file_size));
    std::fclose(fp);
 
    return content;
@@ -54,7 +54,8 @@ std::vector<std::string> ConfigParser::_get_lines(const std::string &str)
    return tokens;
 }
 
-std::vector<std::string> ConfigParser::_tokenize_string(const std::string &str, const std::string &delim)
+std::vector<std::string> ConfigParser::_tokenize_string(const std::string &str,
+                                                        const std::string &delim)
 {
    if (str.size() == 0) return {};
 
@@ -122,8 +123,8 @@ ConfigParser::ConfigParser(const std::string &content)
          std::string key                 = tokens[0];
          std::vector<std::string> values(tokens.begin() + 1, tokens.end());
          if (false == _key_does_not_exist(key)) {
-            logger(Logger::WARNING,
-                   "ConfigParser::ConfigParser Key " + key + "already exists. I will overwrite the values.");
+            logger(Logger::WARNING, "ConfigParser::ConfigParser Key " + key
+                                        + "already exists. I will overwrite the values.");
          }
          _options[key] = values;
       }

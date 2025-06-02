@@ -35,10 +35,10 @@ void set_up(const std::string &config_name)
    r_values.insert(r_values.begin(), rmin);
 
    state.grid = generate_compliant_Grid2D(n, r_values, r_interv);
-   logger(Logger::INFO,
-          std::format("Total grid size: {:d}x{:d}", state.discr._grid.size, state.discr._grid.size));
-   logger(Logger::INFO,
-          std::format("Total x123 size: {:d}x{:d}", state.discr._grid.c_size, state.discr._grid.c_size));
+   logger(Logger::INFO, std::format("Total grid size: {:d}x{:d}", state.discr._grid.size,
+                                    state.discr._grid.size));
+   logger(Logger::INFO, std::format("Total x123 size: {:d}x{:d}", state.discr._grid.c_size,
+                                    state.discr._grid.c_size));
 
    if (!load_weights(cp.GetValue("wf", 0), state.d2_weights)) {
       state.d2_weights.GetWeights();
@@ -57,14 +57,16 @@ void set_up(const std::string &config_name)
 
    state.thresholds = cp.GetValue<std::vector<double>>("mthr");
    if (state.thresholds.size() != 6) {
-      logger(Logger::ERROR, std::format("Config must contain exactly 6 mass thresholds. {:d} found.",
-                                        state.thresholds.size()));
+      logger(Logger::ERROR,
+             std::format("Config must contain exactly 6 mass thresholds. {:d} found.",
+                         state.thresholds.size()));
    }
 
    // Compute initial nf
    for (size_t i = 0; i < 5; i++) {
       if (state.thresholds[i + 1] < state.thresholds[i]) {
-         logger(Logger::ERROR, "Thresholds are not increasing, backward evolution not supported yet.");
+         logger(Logger::ERROR,
+                "Thresholds are not increasing, backward evolution not supported yet.");
       }
    }
 
@@ -85,9 +87,10 @@ void set_up(const std::string &config_name)
 
    std::vector<std::string> eo_file_list = cp.GetMap().at("eo");
    if (eo_file_list.size() != state.interm_scales.size() - 1) {
-      logger(Logger::ERROR, std::format("Mismatch between number of finale scales ({:d}) requested and list "
-                                        "of files for evolution operators ({:d}).",
-                                        state.interm_scales.size() - 1, eo_file_list.size()));
+      logger(Logger::ERROR,
+             std::format("Mismatch between number of finale scales ({:d}) requested and list "
+                         "of files for evolution operators ({:d}).",
+                         state.interm_scales.size() - 1, eo_file_list.size()));
    }
 
    std::string ker_file = "fi_kernels.cereal";
@@ -113,8 +116,9 @@ void set_up(const std::string &config_name)
          Kernels kers = Honeycomb::load_kernels(ker_file, state.grid, 3);
 
          logger(Logger::INFO, "Computing evolution operator...");
-         begin       = timer::now();
-         eo_load_tmp = compute_evolution_operator(&state.grid, kers, Q02, Qf2, tmp_thr, state.as_fnc);
+         begin = timer::now();
+         eo_load_tmp
+             = compute_evolution_operator(&state.grid, kers, Q02, Qf2, tmp_thr, state.as_fnc);
          save_evolution_operator(eo_load_tmp, f_name);
          end = timer::now();
          logger(Logger::INFO, std::format("  Elapsed: {:.4e} (ms)", timer::elapsed_ms(end, begin)));
@@ -171,7 +175,8 @@ double ForeignInterfaceState::GetMoment(int which, double Q2, bool d2_or_elt)
    else return state.elt_weights.ComputeSingleQuark(state._solutions[j]._distr_p[flavor]);
 }
 
-double ForeignInterfaceState::GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2, double x3)
+double ForeignInterfaceState::GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2,
+                                              double x3)
 {
    size_t j = 0;
    for (size_t i = 0; i < state.interm_scales.size(); i++, j++) {
@@ -206,16 +211,18 @@ void hc2_fi_set_up_(const char *config_name, int len)
    Honeycomb::timer::mark begin = Honeycomb::timer::now();
    Honeycomb::set_up(conf_n);
    Honeycomb::timer::mark end = Honeycomb::timer::now();
-   Honeycomb::logger(Honeycomb::Logger::INFO,
-                     std::format("Full setup took {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
+   Honeycomb::logger(
+       Honeycomb::Logger::INFO,
+       std::format("Full setup took {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 }
 
 void hc2_fi_set_model_(int *what, ModelSign model)
 {
    if (*what < 0 || *what > 13) {
-      Honeycomb::logger(Honeycomb::Logger::ERROR, std::format("Model index {:d} is out of bound"
-                                                              " of available functions to set: [0, 13]",
-                                                              *what));
+      Honeycomb::logger(Honeycomb::Logger::ERROR,
+                        std::format("Model index {:d} is out of bound"
+                                    " of available functions to set: [0, 13]",
+                                    *what));
    }
    Honeycomb::InputModel::FNC f = static_cast<Honeycomb::InputModel::FNC>(*what);
    state._models.SetModel(f, [model](double x1, double x2, double x3) -> double {
@@ -246,9 +253,10 @@ double hc2_fi_get_elt_(int *what, double *Q2)
 double hc2_fi_get_model_(int *what, double *Q2, double *x1, double *x2, double *x3)
 {
    if (*what < 0 || *what > 13) {
-      Honeycomb::logger(Honeycomb::Logger::ERROR, std::format("Model index {:d} is out of bound"
-                                                              " of available functions to set: [0, 13]",
-                                                              *what));
+      Honeycomb::logger(Honeycomb::Logger::ERROR,
+                        std::format("Model index {:d} is out of bound"
+                                    " of available functions to set: [0, 13]",
+                                    *what));
    }
    Honeycomb::OutputModel::FNC f = static_cast<Honeycomb::OutputModel::FNC>(*what);
    return state.GetDistribution(f, *Q2, *x1, *x2, *x3);
