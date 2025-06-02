@@ -160,3 +160,23 @@ configure_file("${PROJECT_SOURCE_DIR}/bin/Honeycomb2-config.in" "${PROJECT_BINAR
 install(TARGETS Honeycomb2 RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
 install(DIRECTORY inc/honeycomb2 DESTINATION include)
 install(FILES ${PROJECT_BINARY_DIR}/bin/Honeycomb2-config DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+
+find_package(Doxygen QUIET)
+
+if(DOXYGEN_FOUND)
+   message(STATUS "Found Doxygen: ${DOXYGEN_EXECUTABLE}")
+
+   set(DOXYGEN_DIR ${CMAKE_SOURCE_DIR}/docs/doxygen)
+   set(DOXYFILE ${DOXYGEN_DIR}/Doxyfile)
+   set(DOC_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/docs)
+
+   add_custom_target(Honeycomb2-doc
+      COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE}
+      WORKING_DIRECTORY ${DOXYGEN_DIR}
+      COMMENT "Generating API documentation with Doxygen"
+      VERBATIM
+   )
+else()
+   message(WARNING "Doxygen not found in the system! Cannot generate documentation.")
+endif()
