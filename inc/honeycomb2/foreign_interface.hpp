@@ -29,6 +29,15 @@ struct ForeignInterfaceState {
        : discr(grid), d2_weights(grid, false), elt_weights(grid, false), _unloaded(false) {};
 
    void Evolve();
+   /**
+    * @brief Get either the D2 moment or the ELT moment
+    *
+    * @param which      quark index: 1=d, 2=u, 3=s,...
+    * @param Q2         Q2 at which we want the moment
+    * @param d2_or_elt  whether to compute d2 (true) or ELT (false)
+    * @return double    the value of the moment
+    */
+   double GetMoment(int which, double Q2, bool d2_or_elt = true);
    double GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2, double x3);
    void Unload();
 

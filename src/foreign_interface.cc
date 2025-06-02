@@ -145,6 +145,32 @@ void ForeignInterfaceState::Evolve()
    }
 }
 
+double ForeignInterfaceState::GetMoment(int which, double Q2, bool d2_or_elt)
+{
+   if (which < 0 || which > 6) {
+      logger(Logger::ERROR, std::format("GetMoment: `which` should be the flavor index, "
+                                        "and as such must be 0 <= which <= 6. I got: {:d}",
+                                        which));
+   }
+   size_t flavor = static_cast<size_t>(which);
+   size_t j      = 0;
+   for (size_t i = 0; i < state.interm_scales.size(); i++, j++) {
+      if (is_near(Q2, state.interm_scales[i], 1.0e-12)) {
+         break;
+      }
+   }
+   if (j == state.interm_scales.size()) {
+      logger(Logger::ERROR, std::format("Scale: {:12e} is not among the available scales: ", Q2)
+                                + vec_to_string(state.interm_scales));
+   }
+   if (flavor > state._solutions[j].nf) {
+      logger(Logger::WARNING, "Requested flavor is not present at the requested scale...");
+      return 0;
+   }
+   if (d2_or_elt) return state.d2_weights.ComputeSingleQuark(state._solutions[j]._distr_p[flavor]);
+   else return state.elt_weights.ComputeSingleQuark(state._solutions[j]._distr_p[flavor]);
+}
+
 double ForeignInterfaceState::GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2, double x3)
 {
    size_t j = 0;
@@ -206,6 +232,15 @@ void hc2_fi_evolve_()
 void hc2_fi_unload_()
 {
    state.Unload();
+}
+
+double hc2_fi_get_d2_(int *what, double *Q2)
+{
+   return state.GetMoment(*what, *Q2, true);
+}
+double hc2_fi_get_elt_(int *what, double *Q2)
+{
+   return state.GetMoment(*what, *Q2, false);
 }
 
 double hc2_fi_get_model_(int *what, double *Q2, double *x1, double *x2, double *x3)

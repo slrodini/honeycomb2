@@ -21,13 +21,11 @@ extern "C" {
 typedef double (*ModelSign)(double *, double *, double *);
 
 void hc2_fi_set_up_(const char *config_name, int len);
-
 void hc2_fi_set_model_(int *what, ModelSign model);
-
 void hc2_fi_evolve_();
-
 void hc2_fi_unload_();
-
+double hc2_fi_get_d2_(int *what, double *Q2);
+double hc2_fi_get_elt_(int *what, double *Q2);
 double hc2_fi_get_model_(int *what, double *Q2, double *x1, double *x2, double *x3);
 
 #ifdef __cplusplus

@@ -1,5 +1,6 @@
 #include <honeycomb2/honeycomb2.hpp>
 #include "alpha_s.hpp"
+#include "discretization.hpp"
 #include "honeycomb_120_25_grid_points.hpp"
 #include "original_model_functions.hpp"
 #include "solution.hpp"
@@ -171,6 +172,7 @@ int main()
 
          // Column 1, 2, and 3 are x1, x2, x3
          std::fprintf(fp, "%.16e\t%.16e\t%.16e\t", x123(0), x123(1), x123(2));
+         std::fprintf(fp_1, "%.16e\t%.16e\t%.16e\t", x123(0), x123(1), x123(2));
 
          // Save distributions. Order is:
          // T_{3F}^+, T_{3F}^-, T_d, DT_d, T_u, DT_u, ...
@@ -183,19 +185,19 @@ int main()
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_M_GL, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_DN, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_DN, x123));
+         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_DN, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_UP, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_UP, x123));
+         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_UP, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_ST, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_ST, x123));
+         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_ST, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_CH, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_CH, x123));
+         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_CH, x123));
 
          std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_BM, x123));
-         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::T_BM, x123));
+         std::fprintf(fp, "%.16e\t", out_model.GetDistribution(Honeycomb::OutputModel::DT_BM, x123));
 
          // Omit Top quark, essentially irrelevant for us.
          std::fprintf(fp, "\n");
@@ -206,21 +208,30 @@ int main()
          std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_P_GL, x123));
          std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_M_GL, x123));
          std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_DN, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_DN, x123));
+         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_DN, x123));
          std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_UP, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_UP, x123));
+         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_UP, x123));
          std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_ST, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_ST, x123));
+         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_ST, x123));
          std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_CH, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_CH, x123));
+         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_CH, x123));
          std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_BM, x123));
-         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_BM, x123));
+         std::fprintf(fp_1, "%.16e\t", out_model_ini.GetDistribution(Honeycomb::OutputModel::DT_BM, x123));
 
          // Omit Top quark, essentially irrelevant for us.
          std::fprintf(fp_1, "\n");
       }
       std::fclose(fp);
       std::fclose(fp_1);
+
+      Honeycomb::RnC::Triplet x123_test
+          = {1.4426435400697815e-01, 7.5928607372093768e-03, -1.5185721474418754e-01};
+      Honeycomb::logger(
+          Honeycomb::Logger::WARNING,
+          std::format("{:.12e}", out_model_ini.GetDistribution(Honeycomb::OutputModel::T_UP, x123_test)));
+      Honeycomb::logger(
+          Honeycomb::Logger::WARNING,
+          std::format("{:.12e}", orignal_models::Tu_test(x123_test[0], x123_test[1], x123_test[2])));
    }
 
    return 0;
