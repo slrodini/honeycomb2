@@ -146,6 +146,7 @@ set(ldflags "-L${prefix}/lib -lHoneycomb2")
 
 string(JOIN " " HONEYCOMB2_CXX_FLAGS_STR ${HONEYCOMB2_CXX_FLAGS})
 set(allflags "-I${prefix}/include -std=c++20 ${HONEYCOMB2_CXX_FLAGS_STR}")
+set(optflags ${HONEYCOMB2_CXX_FLAGS_STR})
 # string(JOIN " " HONEYCOMB2_VEC_FLAGS_STR ${HONEYCOMB2_VEC_FLAGS})
 # set(vecflags "${HONEYCOMB2_VEC_FLAGS_STR}")
 
