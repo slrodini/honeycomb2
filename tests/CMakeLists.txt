@@ -1,10 +1,17 @@
 
-file(GLOB TEST_SOURCES "*.cc")
+# file(GLOB TEST_SOURCES "*.cc")
 
 configure_file(
    ${CMAKE_CURRENT_SOURCE_DIR}/test_config.hpp.in
    ${CMAKE_CURRENT_BINARY_DIR}/test_config.hpp
    @ONLY
+)
+
+set(TEST_SOURCES  test_alpha_s.cc 
+                  test_S_to_T.cc
+                  test_evolution_operator.cc
+                  test_foreign_interface.cc
+                  # test_complete_evolution.cc
 )
 
 foreach(TEST_SOURCE ${TEST_SOURCES})
@@ -26,4 +33,7 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
 
    # Add test
    # add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+   message(STATUS "Adding test for ${TEST_NAME}")
+   add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+
 endforeach()

@@ -60,26 +60,6 @@ concept RungeKuttaCompatible_2 = requires {
    { static_cast<void (S::*)(double, const K &)>(&S::_ker_mul) };
 };
 
-// template <typename K, typename S>
-// concept RungeKuttaCompatible_2 = requires(S a, const S &b, double x, const K &k) {
-//    // This should implement a = b
-//    { a._copy(b) } -> std::same_as<void>;
-
-//    // This shloud implement a += x * b
-//    // { a._plus_eq(x, b) } -> std::same_as<void>;
-//    requires requires {
-//       { std::declval<S>()._plus_eq(std::declval<double>(), std::declval<const S &>()) } ->
-//       std::same_as<void>;
-//    };
-
-//    // This should implement a = x * (k * a)
-//    // { a._ker_mul(x, k) } -> std::same_as<void>;
-//    requires requires {
-//       { std::declval<S>()._ker_mul(std::declval<double>(), std::declval<const K &>()) } ->
-//       std::same_as<void>;
-//    };
-// };
-
 template <typename K, typename S>
 concept RungeKuttaCompatible = RungeKuttaCompatible_1<K, S> || RungeKuttaCompatible_2<K, S>;
 
@@ -120,8 +100,6 @@ public:
       _ki.fill(S);
    };
 
-   // Suggestion: overload operator= and operator += in solution to avoid memory re-allocation every
-   // time
    void operator()()
    {
       if constexpr (RungeKuttaCompatible_1<Kernel, Solution>) {
@@ -168,7 +146,6 @@ public:
 
    void operator()(std::vector<double> const &thresholds, size_t n_step = 10)
    {
-      // Remove callback at each step
       callback_each_step = false;
       for (const double &tf : thresholds) {
          _dt = (tf - _t) / static_cast<double>(n_step);
@@ -179,7 +156,7 @@ public:
                 << "RungeKutta Error: not reached the correct scale. This is a bug. Aborting\n";
             exit(-1);
          }
-         _t = tf; // Set exactly equal to threshold
+         _t = tf;
          _callback(tf, _kernel, _solution);
       }
    }
@@ -189,7 +166,6 @@ public:
       if (thresholds.size() != n_steps.size())
          logger(Logger::ERROR,
                 "runge_kutta operator(): thresholds and step count sizes do not match.");
-      // Remove callback at each step
       callback_each_step = false;
       for (size_t k = 0; k < n_steps.size(); k++) {
          size_t n_step   = n_steps[k];
@@ -203,7 +179,7 @@ public:
                 << "RungeKutta Error: not reached the correct scale. This is a bug. Aborting\n";
             exit(-1);
          }
-         _t = tf; // Set exactly equal to threshold
+         _t = tf;
          _callback(tf, _kernel, _solution);
       }
    }

@@ -6,37 +6,114 @@
 
 #include <honeycomb2/Eigen/Core>
 
+/**
+ * @file discretization.hpp
+ * @author Simone Rodini (rodini.simone.luigi@gmail.com)
+ * @brief  Underlying grid and discretization objects
+ * @version 0.1
+ * @date 2025-06-04
+ *
+ * @copyright Copyright (c) 2025
+ *
+ *
+ * Collection of the various structs that construct a 2D grid
+ * and that perform a discretization of a function on such grid.
+ *
+ *
+ *
+ *
+ */
+
 namespace Honeycomb
 {
 
+/**
+ * @brief Standardized one-dimensional Chebyshev grid
+ * Stores the points, the weights, the derivative matrix and the methods to interpolate
+ */
 struct StandardGrid {
 public:
+   /**
+    * @brief Construct a new Standard Grid object
+    *
+    * @param N The number of points for the grid minus one (i.e. N=1, two points [-1,1]).
+    */
    StandardGrid(size_t N = 3);
 
+   /**
+    * @brief Interpolate a view of a vector on the grid
+    *
+    * @param t        The point in which we want the interpolation
+    * @param fj       The vector of values to use to interpolate
+    * @param start    The begin of the window in the vector.
+    * @param end      The end of the window in the vector (inclusive)
+    * @return         The interpolated value
+    */
    double interpolate(double t, Eigen::VectorXd &fj, long int start, long int end) const;
 
+   /**
+    * @brief Polynomial weight at index j
+    *
+    * @param t The point in which to evaluate the weight
+    * @param j The index of the weight to evaluate
+    * @return  The value of the weight at the asked point
+    */
    double poli_weight(double t, size_t j) const;
+   /**
+    * @brief Extrapolated polynomial weight at index j
+    *
+    * @param t The point in which to evaluate the weight
+    * @param j The index of the weight to evaluate
+    * @return  The value of the weight at the asked point, eventually extrapolated.
+    */
    double poli_weight_extrap(double t, size_t j) const;
+   /**
+    * @brief Polynomial weight minus 1 at index j
+    *
+    * @param t The point in which to evaluate the weight
+    * @param j The index of the weight to evaluate
+    * @return  The value of the weight minus 1 at the asked point (i.e. \f$ w_j(t) - 1\f$)
+    */
    double poli_weight_sub(double t, size_t j) const;
+   /**
+    * @brief Derivative of the polynomial weight at index j
+    *
+    * @param t The point in which to evaluate the derivative weight
+    * @param j The index of the weight to evaluate
+    * @return  The value of the derivaive of the weight at the asked point (i.e. \f$ \partial w_j(t)
+    * / \partial t\f$)
+    */
    double poli_weight_der(double t, size_t j) const;
 
+   /**
+    * @brief    Get the j-th grid point
+    *
+    * @param j  The index on the grid
+    * @return   The value of the grid at the asked index
+    */
    double tj(size_t j) const
    {
       return _tj[j];
    }
 
-   size_t _N;
-   std::vector<double> _tj;
-   std::vector<double> _betaj;
-   std::vector<std::vector<double>> _Dij;
+   size_t _N;                             //!< Number of points minus 1
+   std::vector<double> _tj;               //!< grid values
+   std::vector<double> _betaj;            //!< constants for the weights
+   std::vector<std::vector<double>> _Dij; //!< The derivative matrix
 };
 
 // ================================================================
 
-// For either radius or angle
+/**
+ * @brief Info struct to hold discrtization information
+ *
+ */
 struct SingleDiscretizationInfo {
 public:
-   // Empty default constructor
+   /**
+    * @brief Construct a new Single Discretization Info object, with defaulted idenity maps
+    *
+    */
    SingleDiscretizationInfo()
        : is_periodic(false), to_inter_space(std::function<double(double)>([](double x) {
             return x;
@@ -51,6 +128,19 @@ public:
             return x;
          })) {};
 
+   /**
+    * @brief Construct a new SingleDiscretizationInfo from the specified parameters
+    *
+    * @param inter           Intervals division points in the physical variable
+    * @param g_size          Number of points per interval
+    * @param _grid_descr     Description of the maps
+    * @param is_per          Whether or not the grid is periodic (default: false)
+    * @param to_i_space      Map from physical space to interpolation space (default: identity)
+    * @param to_i_space_der  Derivative map from physical space to interpolation space (default:
+    * 'one' fnc)
+    * @param to_p_space      Map from interpolation space to physical space (default: identity)
+    * @param to_p_space_der  Map from interpolation space to physical space (default: 'one' fnc)
+    */
    SingleDiscretizationInfo(
        std::vector<double> inter, std::vector<size_t> g_size, std::string _grid_descr,
        bool is_per = false,
@@ -90,6 +180,12 @@ public:
       }
    };
 
+   /**
+    * @brief Serialize the struct to an archive, mainly for Cereal interface
+    *
+    * @tparam Archive which type of cereal archive is to be used
+    * @param archive  reference to the archive to use
+    */
    template <class Archive>
    void serialize(Archive &archive)
    {
@@ -98,15 +194,16 @@ public:
       archive(intervals_phys);
    }
 
-   std::string grid_descr;
-   bool is_periodic;
-   std::vector<std::pair<double, double>> intervals;
-   std::vector<std::pair<double, double>> intervals_phys;
-   std::vector<size_t> grid_sizes;
-   std::function<double(double)> to_inter_space;
-   std::function<double(double)> to_inter_space_der;
-   std::function<double(double)> to_phys_space;
-   std::function<double(double)> to_phys_space_der;
+   std::string grid_descr; //!< Description of the struct, for storing purposes
+   bool is_periodic;       //!< Whether the grid is periodic
+   std::vector<std::pair<double, double>> intervals;      //!< Intervals in interpolation space
+   std::vector<std::pair<double, double>> intervals_phys; //!< Intervals in physical space
+   std::vector<size_t> grid_sizes;                        //!< Number of points per interval
+
+   std::function<double(double)> to_inter_space;     //!< Map to interpolation space
+   std::function<double(double)> to_inter_space_der; //!< Derivative of map to interpolation space
+   std::function<double(double)> to_phys_space;      //!< Map to physical space
+   std::function<double(double)> to_phys_space_der;  //!< Derivative of map to physical space
 };
 
 // Store the grid in either the radius or the angle

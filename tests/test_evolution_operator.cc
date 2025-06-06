@@ -1,8 +1,5 @@
 #include <honeycomb2/honeycomb2.hpp>
 #include "honeycomb_120_25_grid_points.hpp"
-#include "original_model_functions.hpp"
-#include "solution.hpp"
-#include "utilities.hpp"
 
 int main()
 {
@@ -33,19 +30,7 @@ int main()
        std::format("  Elapsed: {:.4e} (ms)", Honeycomb::timer::elapsed_ms(end, begin)));
 
    // Initial model setup
-   Honeycomb::InputModel model;
-
-   model.SetModel(Honeycomb::InputModel::T_UP, orignal_models::Tu_test);
-   model.SetModel(Honeycomb::InputModel::DT_UP, orignal_models::DTu_test);
-
-   model.SetModel(Honeycomb::InputModel::T_DN, orignal_models::Td_test);
-   model.SetModel(Honeycomb::InputModel::DT_DN, orignal_models::DTd_test);
-
-   model.SetModel(Honeycomb::InputModel::T_ST, orignal_models::Ts_test);
-   model.SetModel(Honeycomb::InputModel::DT_ST, orignal_models::DTs_test);
-
-   model.SetModel(Honeycomb::InputModel::T_P_GL, orignal_models::TFp_test);
-   model.SetModel(Honeycomb::InputModel::T_M_GL, orignal_models::TFm_test);
+   Honeycomb::InputModel model = Honeycomb::PreImplementedModels::GetModel("pim_original");
 
    // Setup for evolution
    // \alpha_s / 4\pi
@@ -112,6 +97,7 @@ int main()
       Honeycomb::logger(Honeycomb::Logger::INFO, "Solutions match!");
    } else {
       Honeycomb::logger(Honeycomb::Logger::WARNING, "Solutions do not match!");
+      return -1;
    }
 
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Computing evolution operator..."));
@@ -137,7 +123,8 @@ int main()
    Honeycomb::EvOp evol_op_load_1, evol_op_load_2;
 
    if (!ok_load_1 || !ok_load_2) {
-      std::cerr << "An Error occured\n";
+      Honeycomb::logger(Honeycomb::Logger::ERROR, "An Error occured");
+      return -1;
    } else {
       evol_op_load_1 = evol_op_load_foo_1;
       evol_op_load_2 = evol_op_load_foo_2;
@@ -151,6 +138,7 @@ int main()
       Honeycomb::logger(Honeycomb::Logger::INFO, "Solutions match!");
    } else {
       Honeycomb::logger(Honeycomb::Logger::WARNING, "Solutions do not match!");
+      return -1;
    }
 
    return 0;

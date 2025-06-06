@@ -52,6 +52,17 @@ struct InputModel {
    std::function<double(double, double, double)> T_m_gl = zero_function;
 };
 
+struct PreImplementedModels {
+public:
+   static InputModel GetModel(std::string key);
+   static void AddModel(std::string name, std::function<InputModel()> model);
+   static bool QueryModelAvailability(std::string model);
+
+private:
+   PreImplementedModels() = delete;
+   static std::map<std::string, std::function<InputModel()>> _models;
+};
+
 struct Solution {
 
    Solution(const Discretization *discretization, const InputModel &models, size_t nf);
@@ -110,15 +121,15 @@ struct OutputModel {
 
    OutputModel(const Solution &sol);
 
-   double GetDistribution(FNC f, const RnC::Triplet &x123)
+   double GetDistribution(FNC f, const RnC::Triplet &x123) const
    {
       return GetDistribution(f, RnC::from_x123_to_rhophi(x123));
    }
-   double GetDistribution(FNC f, const double x1, const double x2, const double x3)
+   double GetDistribution(FNC f, const double x1, const double x2, const double x3) const
    {
       return GetDistribution(f, RnC::from_x123_to_rhophi({x1, x2, x3}));
    }
-   double GetDistribution(FNC f, const RnC::Pair &rhophi);
+   double GetDistribution(FNC f, const RnC::Pair &rhophi) const;
 
    // Note: First element is gluon T^+ and T^-, not DeltaT!
    std::vector<Eigen::VectorXd> T;

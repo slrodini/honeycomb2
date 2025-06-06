@@ -1,3 +1,4 @@
+#include "solution.hpp"
 #include <honeycomb2/foreign_interface.hpp>
 #include <honeycomb2/alpha_s.hpp>
 #include <honeycomb2/honeycomb2_c_api.h>
@@ -6,6 +7,19 @@ static Honeycomb::ForeignInterfaceState state;
 
 namespace Honeycomb
 {
+
+void set_model(const std::string &what)
+{
+   bool do_I_have_it = Honeycomb::PreImplementedModels::QueryModelAvailability(what);
+   if (do_I_have_it) {
+      state._models = Honeycomb::PreImplementedModels::GetModel(what);
+      Honeycomb::logger(Honeycomb::Logger::INFO, "ForeignInterface: using model <" + what + ">.");
+   } else {
+      Honeycomb::logger(Honeycomb::Logger::ERROR,
+                        "ForeignInterface: model <" + what
+                            + "> is not available in the list of pre-implemented models.");
+   }
+}
 
 bool _compare_thr(const std::vector<double> &v1, const std::vector<double> &v2)
 {
@@ -125,6 +139,20 @@ void set_up(const std::string &config_name)
       }
       state.evol_op.emplace_back(eo_load_tmp);
    }
+
+   if (cp.GetMap().find("model") != cp.GetMap().end()) {
+      std::vector<std::string> models = cp.GetMap().at("model");
+      if (models.size() > 1) {
+         logger(Logger::INFO, "Mulitple models specified, but interface support only evolution of "
+                              "single model. Using the last entry.");
+      }
+      std::string model = models.back();
+      set_model(model);
+
+   } else {
+      logger(Logger::INFO,
+             "No pre-implemented model has been specified. Model must be set by hand.");
+   }
 }
 
 void ForeignInterfaceState::Evolve()
@@ -229,6 +257,13 @@ void hc2_fi_set_model_(int *what, ModelSign model)
       double a = x1, b = x2, c = x3;
       return model(&a, &b, &c);
    });
+}
+
+void hc2_fi_set_pim_model_(char *what, int len)
+{
+   std::string conf_n(what, len);
+   conf_n.erase(conf_n.find_last_not_of(' ') + 1);
+   Honeycomb::set_model(conf_n);
 }
 
 void hc2_fi_evolve_()

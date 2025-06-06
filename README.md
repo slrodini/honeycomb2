@@ -1,4 +1,4 @@
-# Honeycomb2 <img src="resources/logo.png" alt="drawing" width="30"/>
+# Honeycomb2 
 
 This is the new version of the twist-3 evolution code [honeycomb](https://github.com/QCDatHT/honeycomb).
 The new version sees a complete reworking of the discretization procedure and API. 

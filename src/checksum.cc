@@ -3,9 +3,6 @@
 namespace Honeycomb
 {
 
-// CRC-64/WE, without final xor
-// Resources: https://www.wolfgang-ehrhardt.de/ ;
-// https://reveng.sourceforge.io/crc-catalogue/all.htm
 #define POLYNOMIAL 0x42F0E1EBA9EA3693UL
 #define MSB_CRC64 0x8000000000000000UL
 #define INITIAL_CRC64 0xFFFFFFFFFFFFFFFFUL

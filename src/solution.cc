@@ -114,52 +114,22 @@ void InputModel::SetModel(FNC f, std::function<double(double, double, double)> m
 {
    switch (f) {
    case T_DN:
-      check_symmetry_qFq(model, +1);
-      T[0] = model;
-      break;
    case T_UP:
-      check_symmetry_qFq(model, +1);
-      T[1] = model;
-      break;
    case T_ST:
-      check_symmetry_qFq(model, +1);
-      T[2] = model;
-      break;
    case T_CH:
-      check_symmetry_qFq(model, +1);
-      T[3] = model;
-      break;
    case T_BM:
-      check_symmetry_qFq(model, +1);
-      T[4] = model;
-      break;
    case T_TP:
       check_symmetry_qFq(model, +1);
-      T[5] = model;
+      T[f] = model;
       break;
    case DT_DN:
-      check_symmetry_qFq(model, -1);
-      DT[0] = model;
-      break;
    case DT_UP:
-      check_symmetry_qFq(model, -1);
-      DT[1] = model;
-      break;
    case DT_ST:
-      check_symmetry_qFq(model, -1);
-      DT[2] = model;
-      break;
    case DT_CH:
-      check_symmetry_qFq(model, -1);
-      DT[3] = model;
-      break;
    case DT_BM:
-      check_symmetry_qFq(model, -1);
-      DT[4] = model;
-      break;
    case DT_TP:
       check_symmetry_qFq(model, -1);
-      DT[5] = model;
+      DT[f - 6] = model;
       break;
    case T_P_GL:
       check_symmetry_FFF(model, +1);
@@ -696,44 +666,24 @@ OutputModel::OutputModel(const Solution &sol)
    }
 }
 
-double OutputModel::GetDistribution(OutputModel::FNC f, const RnC::Pair &rhophi)
+double OutputModel::GetDistribution(OutputModel::FNC f, const RnC::Pair &rhophi) const
 {
    switch (f) {
    case T_DN:
-      return _discretization->interpolate_as_weights_v3(rhophi, T[1]);
-      break;
    case T_UP:
-      return _discretization->interpolate_as_weights_v3(rhophi, T[2]);
-      break;
    case T_ST:
-      return _discretization->interpolate_as_weights_v3(rhophi, T[3]);
-      break;
    case T_CH:
-      return _discretization->interpolate_as_weights_v3(rhophi, T[4]);
-      break;
    case T_BM:
-      return _discretization->interpolate_as_weights_v3(rhophi, T[5]);
-      break;
    case T_TP:
-      return _discretization->interpolate_as_weights_v3(rhophi, T[6]);
+      return _discretization->interpolate_as_weights_v3(rhophi, T[f + 1]);
       break;
    case DT_DN:
-      return _discretization->interpolate_as_weights_v3(rhophi, DT[1]);
-      break;
    case DT_UP:
-      return _discretization->interpolate_as_weights_v3(rhophi, DT[2]);
-      break;
    case DT_ST:
-      return _discretization->interpolate_as_weights_v3(rhophi, DT[3]);
-      break;
    case DT_CH:
-      return _discretization->interpolate_as_weights_v3(rhophi, DT[4]);
-      break;
    case DT_BM:
-      return _discretization->interpolate_as_weights_v3(rhophi, DT[5]);
-      break;
    case DT_TP:
-      return _discretization->interpolate_as_weights_v3(rhophi, DT[6]);
+      return _discretization->interpolate_as_weights_v3(rhophi, DT[f - 5]);
       break;
    case T_P_GL:
       return _discretization->interpolate_as_weights_v3(rhophi, T[0]);

@@ -15,9 +15,28 @@
 #include <honeycomb2/utilities.hpp>
 #include <honeycomb2/checksum.hpp>
 
+/**
+ * @file cereal_extension.hpp
+ * @author Simone Rodini (rodini.simone.luigi@gmail.com)
+ * @brief  Functions to interface with cereal and to incorporate checksum into the archives.
+ * @version 0.1
+ * @date 2025-06-04
+ *
+ * @copyright Copyright (c) 2025
+ *
+ */
+
 namespace Honeycomb
 {
-
+/**
+ *
+ * @brief Archives data using cereal, appending the checksum to the file
+ *
+ * @tparam T        The type that is being serialized.
+ * @tparam Archive  The archive for serialization.
+ * @param data      The data to be serialized.
+ * @param file_name The name of the output file
+ */
 template <typename T, class Archive>
 void SaveChecksumArchive(const T &data, const std::string &file_name)
 {
@@ -51,6 +70,15 @@ void SaveChecksumArchive(const T &data, const std::string &file_name)
    buffer.clear();
 }
 
+/**
+ * @brief Load data from disk and verify their integrity via the checksum
+ *
+ * @tparam T         The type of data to be read.
+ * @tparam Archive   The archive format to be used.
+ * @param file_name  The name of the file to load.
+ * @param data       The destination for the data to be read.
+ * @return True on successful load, False on faulty load.
+ */
 template <typename T, class Archive>
 bool LoadAndVerify(const std::string &file_name, T &data)
 {
@@ -96,6 +124,15 @@ bool LoadAndVerify(const std::string &file_name, T &data)
    return true;
 }
 
+/**
+ * @brief Same as \ref Honeycomb::SaveChecksumArchive, but without checksum
+ *
+ * @tparam T        The type that is being serialized.
+ * @tparam Archive  The archive for serialization.
+ * @param data      The data to be serialized.
+ * @param file_name The name of the output file
+ *
+ */
 template <typename T, class Archive>
 void SaveArchive(const T &data, const std::string &file_name)
 {
@@ -114,6 +151,16 @@ void SaveArchive(const T &data, const std::string &file_name)
    file.close();
 }
 
+/**
+ * @brief Same as \ref Honeycomb::LoadAndVerify but without checksum
+ *
+ * @tparam T         The type of data to be read.
+ * @tparam Archive   The archive format to be used.
+ * @param file_name  The name of the file to load.
+ * @param data       The destination for the data to be read.
+ * @return True on successful load, False on faulty load.
+ *
+ */
 template <typename T, class Archive>
 bool LoadArchive(const std::string &file_name, T &data)
 {
