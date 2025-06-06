@@ -58,13 +58,74 @@ InputModel OriginalModel()
 
    return model;
 }
+
+InputModel LFWA_asymptotic()
+{
+   InputModel model;
+
+   model.SetModel(InputModel::T_UP, [](double x1, double x2, double x3) -> double {
+      double expr1;
+      if (x1 >= 0 || x3 <= 0) return 0;
+
+      if (x2 <= 0) {
+         expr1 = -1.2533141373155001 * pow(x2, 2) * (-9.89888931329275 * x1 * pow(-1. + x3, 3));
+      } else {
+         expr1 = -(1.2533141373155001 * pow(x2, 2) * (-9.89888931329275 * pow(1 + x1, 3) * x3));
+      }
+
+      return expr1;
+   });
+
+   model.SetModel(InputModel::T_DN, [](double x1, double x2, double x3) -> double {
+      double expr1;
+      if (x1 >= 0 || x3 <= 0) return 0;
+
+      if (x2 <= 0) {
+         expr1 = -(1.2533141373155001 * pow(x2, 2) * (9.898889313292752 * x1 * pow(-1. + x3, 3)));
+      } else {
+         expr1 = -(1.2533141373155001 * pow(x2, 2) * (9.898889313292752 * pow(1 + x1, 3) * x3));
+      }
+
+      return expr1;
+   });
+
+   model.SetModel(InputModel::DT_UP, [](double x1, double x2, double x3) -> double {
+      double expr1;
+      if (x1 >= 0 || x3 <= 0) return 0;
+
+      if (x2 <= 0) {
+         expr1 = 1.2533141373155001 * pow(x2, 2) * (-12.408466885676829 * x1 * pow(-1. + x3, 3));
+      } else {
+         expr1 = 1.2533141373155001 * pow(x2, 2) * (+12.408466885676829 * pow(1 + x1, 3) * x3);
+      }
+
+      return expr1;
+   });
+
+   model.SetModel(InputModel::DT_DN, [](double x1, double x2, double x3) -> double {
+      double expr1;
+      if (x1 >= 0 || x3 <= 0) return 0;
+
+      if (x2 <= 0) {
+         expr1 = 1.2533141373155001 * pow(x2, 2) * (4.879734168524594 * x1 * pow(-1. + x3, 3));
+      } else {
+         expr1 = 1.2533141373155001 * pow(x2, 2) * (-4.879734168524594 * pow(1 + x1, 3) * x3);
+      }
+
+      return expr1;
+   });
+
+   return model;
+}
+
 } // namespace _private_models
 
 namespace Honeycomb
 {
 
 std::map<std::string, std::function<InputModel()>> PreImplementedModels::_models
-    = {{"pim_original", _private_models::OriginalModel}};
+    = {{"pim_original", _private_models::OriginalModel},
+       {"pim_LFWA_asymptotic", _private_models::LFWA_asymptotic}};
 
 InputModel PreImplementedModels::GetModel(std::string key)
 {

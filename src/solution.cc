@@ -694,6 +694,7 @@ double OutputModel::GetDistribution(OutputModel::FNC f, const RnC::Pair &rhophi)
    default:
       break;
    }
+   return NAN;
 }
 
 } // namespace Honeycomb
