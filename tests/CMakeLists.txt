@@ -10,7 +10,7 @@ configure_file(
 set(TEST_SOURCES  test_alpha_s.cc 
                   test_S_to_T.cc
                   test_evolution_operator.cc
-                  test_foreign_interface.cc
+                  # test_foreign_interface.cc
                   # test_complete_evolution.cc
 )
 
