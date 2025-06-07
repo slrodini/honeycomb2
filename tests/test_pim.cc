@@ -7,5 +7,7 @@ int main()
 
    if (!Honeycomb::PreImplementedModels::QueryModelAvailability("pim_LFWA_asymptotic")) return 1;
 
+   if (!Honeycomb::PreImplementedModels::QueryModelAvailability("pim_LFWA_fitted")) return 1;
+
    return 0;
 }
