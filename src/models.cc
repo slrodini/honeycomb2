@@ -1,3 +1,8 @@
+//
+// Author(s): Simone Rodini   <rodini.simone.luigi@gmail.com>
+//            Arianna Vercesi <arianna.vercesi01@universitadipavia.it>
+//
+
 #include <honeycomb2/solution.hpp>
 #include <string>
 
