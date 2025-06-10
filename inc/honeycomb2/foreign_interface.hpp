@@ -26,7 +26,8 @@ namespace Honeycomb
 {
 struct ForeignInterfaceState {
    ForeignInterfaceState()
-       : discr(grid), d2_weights(grid, false), elt_weights(grid, false), _unloaded(false) {};
+       : discr(nullptr), v_g2_weights(nullptr), d2_weights(nullptr), elt_weights(nullptr),
+         _unloaded(false) {};
 
    void Evolve();
    /**
@@ -38,11 +39,22 @@ struct ForeignInterfaceState {
     * @return double    the value of the moment
     */
    double GetMoment(int which, double Q2, bool d2_or_elt = true);
+
+   /**
+    * @brief Get g2 structure function at the specified x Bjorken
+    *
+    * @param xBj        The value of the x Bjorken. Must be \f$ \in [r_min, 1] \f$
+    * @param which      quark index: 1=d, 2=u, 3=s,...
+    * @param Q2         Q2 at which we want the moment
+    * @param d2_or_elt  whether to compute d2 (true) or ELT (false)
+    * @return double    the value of g2
+    */
+   double GetG2(double xBj, int which, double Q2);
    double GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2, double x3);
    void Unload();
 
    Grid2D grid;
-   Discretization discr;
+   Discretization *discr;
    InputModel model;
    std::function<double(double)> as_fnc = [](double) -> double {
       logger(Logger::ERROR, "Alpha_s has not been correctly provided!");
@@ -50,8 +62,10 @@ struct ForeignInterfaceState {
    };
 
    std::vector<double> thresholds = {0, 0, 0, 1.6129, 17.4724, 1.0e+6};
-   D2Weights d2_weights;
-   ELTWeights elt_weights;
+   VectorG2Weights *v_g2_weights;
+   D2Weights *d2_weights;
+   ELTWeights *elt_weights;
+
    std::vector<double> interm_scales; // scales, in GeV^2 (i.e. Q0^2, Qf^2)
    // These are for staggered evolution:
    // Q0^2 -> Q1^2 -> Q2^2 -> .. -> Qf^2

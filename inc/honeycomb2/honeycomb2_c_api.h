@@ -25,6 +25,7 @@ void hc2_fi_set_model_(int *what, ModelSign model);
 void hc2_fi_set_pim_model_(char *what, int len);
 void hc2_fi_evolve_();
 void hc2_fi_unload_();
+double hc2_fi_get_g2_(double *xBj, int *what, double *Q2);
 double hc2_fi_get_d2_(int *what, double *Q2);
 double hc2_fi_get_elt_(int *what, double *Q2);
 double hc2_fi_get_model_(int *what, double *Q2, double *x1, double *x2, double *x3);

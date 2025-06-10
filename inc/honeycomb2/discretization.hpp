@@ -378,8 +378,6 @@ struct Grid2D {
    Grid2D(Grid2D &&other) noexcept            = default;
    Grid2D &operator=(Grid2D &&other) noexcept = default;
 
-   std::function<double(const RnC::Pair &rhophi)> get_dw_dx3_fixed_x1(size_t index) const;
-
    // NOTE: for the weights
    size_t get_flatten_index(size_t i_r, size_t i_a) const
    {
@@ -583,7 +581,7 @@ bool check_grid_compatibility(const Grid2D &tmp_grid, const Grid2D &grid);
 // TODO: Legacy stuff, will be removed later.
 struct Discretization1D {
 public:
-   Discretization1D(const Grid &grid);
+   Discretization1D(Grid *grid);
 
    Eigen::VectorXd discretize(const std::function<double(double)> &function) const
    {
@@ -595,7 +593,7 @@ public:
 
    Eigen::VectorXd operator()(const std::function<double(double)> &function) const;
 
-   const Grid &_grid;
+   Grid *_grid;
 };
 
 } // namespace Honeycomb

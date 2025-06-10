@@ -1,4 +1,3 @@
-#include "solution.hpp"
 #include <honeycomb2/foreign_interface.hpp>
 #include <honeycomb2/alpha_s.hpp>
 #include <honeycomb2/honeycomb2_c_api.h>
@@ -49,18 +48,40 @@ void set_up(const std::string &config_name)
    r_values.insert(r_values.begin(), rmin);
 
    state.grid = generate_compliant_Grid2D(n, r_values, r_interv);
-   logger(Logger::INFO, std::format("Total grid size: {:d}x{:d}", state.discr._grid.size,
-                                    state.discr._grid.size));
-   logger(Logger::INFO, std::format("Total x123 size: {:d}x{:d}", state.discr._grid.c_size,
-                                    state.discr._grid.c_size));
 
-   if (!load_weights(cp.GetValue("wf", 0), state.d2_weights)) {
-      state.d2_weights.GetWeights();
-      save_weights(state.d2_weights, cp.GetValue("wf", 0));
+   state.discr = new Discretization(state.grid);
+
+   logger(Logger::INFO, std::format("Total grid size: {:d}x{:d}", state.discr->_grid.size,
+                                    state.discr->_grid.size));
+   logger(Logger::INFO, std::format("Total x123 size: {:d}x{:d}", state.discr->_grid.c_size,
+                                    state.discr->_grid.c_size));
+
+   const auto entries = cp.GetMap();
+
+   if (entries.find("d2f") != entries.end()) {
+      state.d2_weights = new D2Weights(state.grid, false);
+      if (!load_weights(cp.GetValue("d2f", 0), *state.d2_weights)) {
+         state.d2_weights->GetWeights();
+         save_weights(*state.d2_weights, cp.GetValue("d2f", 0));
+      }
    }
-   if (!load_weights(cp.GetValue("wf", 1), state.elt_weights)) {
-      state.elt_weights.GetWeights();
-      save_weights(state.elt_weights, cp.GetValue("wf", 1));
+
+   if (entries.find("eltf") != entries.end()) {
+      state.elt_weights = new ELTWeights(state.grid, false);
+
+      if (!load_weights(cp.GetValue("eltf", 0), *state.elt_weights)) {
+         state.elt_weights->GetWeights();
+         save_weights(*state.elt_weights, cp.GetValue("eltf", 0));
+      }
+   }
+
+   if (entries.find("g2f") != entries.end()) {
+      state.v_g2_weights = new VectorG2Weights(state.grid, false);
+
+      if (!load_weights(cp.GetValue("g2f", 0), *state.v_g2_weights)) {
+         state.v_g2_weights->GetWeights();
+         save_weights(*state.v_g2_weights, cp.GetValue("g2f", 0));
+      }
    }
 
    state.interm_scales = cp.GetValue<std::vector<double>>("Scales");
@@ -161,7 +182,7 @@ void ForeignInterfaceState::Evolve()
       logger(Logger::ERROR, "Interface was previously unloaded. Cannot evolve.");
    }
    for (size_t i = 0; i < state.interm_scales.size(); i++) {
-      state._solutions.emplace_back(Solution(&state.discr, state._models, state.nf_initial_scale));
+      state._solutions.emplace_back(Solution(state.discr, state._models, state.nf_initial_scale));
 
       // i=0: initial solution
       // i=1: O[0] S[0] = O(Q1 <- Q0) S(Q0)
@@ -179,9 +200,20 @@ void ForeignInterfaceState::Evolve()
 
 double ForeignInterfaceState::GetMoment(int which, double Q2, bool d2_or_elt)
 {
-   if (which < 0 || which > 6) {
+   if (d2_or_elt && state.d2_weights == nullptr) {
+      logger(Logger::WARNING, "GetMoment: trying to obtain `d2`, but the weights has not been "
+                              "requested in the config. Ignoring request.");
+      return NAN;
+   }
+   if (!d2_or_elt && state.elt_weights == nullptr) {
+      logger(Logger::WARNING, "GetMoment: trying to obtain `ELT`, but the weights has not been "
+                              "requested in the config. Ignoring request.");
+      return NAN;
+   }
+
+   if (which < 1 || which > 6) {
       logger(Logger::ERROR, std::format("GetMoment: `which` should be the flavor index, "
-                                        "and as such must be 0 <= which <= 6. I got: {:d}",
+                                        "and as such must be 1 <= which <= 6. I got: {:d}",
                                         which));
    }
    size_t flavor = static_cast<size_t>(which);
@@ -199,8 +231,47 @@ double ForeignInterfaceState::GetMoment(int which, double Q2, bool d2_or_elt)
       logger(Logger::WARNING, "Requested flavor is not present at the requested scale...");
       return 0;
    }
-   if (d2_or_elt) return state.d2_weights.ComputeSingleQuark(state._solutions[j]._distr_p[flavor]);
-   else return state.elt_weights.ComputeSingleQuark(state._solutions[j]._distr_p[flavor]);
+   if (d2_or_elt) return state.d2_weights->ComputeSingleQuark(state._solutions[j]._distr_p[flavor]);
+   else return state.elt_weights->ComputeSingleQuark(state._solutions[j]._distr_p[flavor]);
+}
+
+double ForeignInterfaceState::GetG2(double xBj, int which, double Q2)
+{
+   if (v_g2_weights == nullptr) {
+      logger(Logger::WARNING, "GetG2: trying to obtain result, but the weights has not been "
+                              "requested in the config. Ignoring request.");
+      return NAN;
+   }
+   if (xBj < grid.grid_radius._d_info.intervals_phys[0].first || xBj > 1) {
+      logger(Logger::WARNING, std::format("GetG2: trying to obtain result for xBj outside the "
+                                          "range [{:.6f}, 1.0]. Ignoring request.",
+                                          grid.grid_radius._d_info.intervals_phys[0].first));
+      return NAN;
+   }
+
+   if (which < 0 || which > 6) {
+      logger(Logger::ERROR, std::format("GetMoment: `which` should be the flavor index, "
+                                        "and as such must be 1 <= which <= 6. I got: {:d}",
+                                        which));
+   }
+   size_t flavor = static_cast<size_t>(which);
+   size_t j      = 0;
+   for (size_t i = 0; i < state.interm_scales.size(); i++, j++) {
+      if (is_near(Q2, state.interm_scales[i], 1.0e-12)) {
+         break;
+      }
+   }
+   if (j == state.interm_scales.size()) {
+      logger(Logger::ERROR, std::format("Scale: {:12e} is not among the available scales: ", Q2)
+                                + vec_to_string(state.interm_scales));
+   }
+   if (flavor > state._solutions[j].nf) {
+      logger(Logger::WARNING, "Requested flavor is not present at the requested scale...");
+      return 0;
+   }
+   auto tmp = state.v_g2_weights->interpolate(xBj);
+
+   return (tmp).dot(state._solutions[j]._distr_p[flavor]);
 }
 
 double ForeignInterfaceState::GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2,
@@ -280,6 +351,12 @@ double hc2_fi_get_d2_(int *what, double *Q2)
 {
    return state.GetMoment(*what, *Q2, true);
 }
+
+double hc2_fi_get_g2_(double *xBj, int *what, double *Q2)
+{
+   return state.GetG2(*xBj, *what, *Q2);
+}
+
 double hc2_fi_get_elt_(int *what, double *Q2)
 {
    return state.GetMoment(*what, *Q2, false);

@@ -6,15 +6,18 @@ configure_file(
    ${CMAKE_CURRENT_BINARY_DIR}/test_config.hpp
    @ONLY
 )
-
 set(TEST_SOURCES  test_alpha_s.cc 
                   test_S_to_T.cc
                   test_evolution_operator.cc
                   test_pim.cc
                   test_d2.cc
-                  # test_foreign_interface.cc
                   test_complete_evolution.cc
 )
+if(LONG_TESTS)
+list(APPEND TEST_SOURCES test_g2.cc)
+list(APPEND TEST_SOURCES test_foreign_interface.cc)
+endif()
+
 
 foreach(TEST_SOURCE ${TEST_SOURCES})
    get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)

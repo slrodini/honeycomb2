@@ -15,6 +15,7 @@ struct G2Weights {
    static Eigen::VectorXd GetWeights(double _xBj, const Grid2D &_grid, double int_e_r = 1.0e-8,
                                      double int_e_a = 1.0e-8);
 
+   double ComputeSingleQuark(const Eigen::VectorXd &_f) const;
    double xBj;
    const Grid2D &grid;
    Eigen::VectorXd weights;
@@ -42,6 +43,54 @@ struct G2Weights {
       weights = Eigen::VectorXd::Zero(s);
       for (long int i = 0; i < s; i++)
          archive(weights[i]);
+   }
+};
+
+struct VectorG2Weights {
+
+   VectorG2Weights(const Grid2D &_grid, bool to_compute = true, double int_e_r = 1.0e-8,
+                   double int_e_a = 1.0e-8);
+
+   void GetWeights(double int_e_r = 1.0e-8, double int_e_a = 1.0e-8);
+
+   Eigen::VectorXd interpolate(double xBj);
+
+   const Grid2D &grid;
+   std::vector<Eigen::VectorXd> weights;
+
+   template <class Archive>
+   void save(Archive &archive) const
+   {
+      archive(grid);
+
+      archive(weights.size());
+      if (weights.size() == 0) {
+         logger(Logger::WARNING, "Saving empty vector of weights...");
+         return;
+      }
+      archive(weights[0].size());
+      for (size_t j = 0; j < weights.size(); j++) {
+         for (long int i = 0; i < weights[j].size(); i++)
+            archive(weights[j][i]);
+      }
+   }
+
+   template <class Archive>
+   void load(Archive &archive)
+   {
+      Grid2D tmp_grid;
+      archive(tmp_grid);
+      check_grid_compatibility(tmp_grid, grid);
+
+      size_t s_ext;
+      long int s_int;
+      archive(s_ext);
+      archive(s_int);
+      weights.resize(s_ext, Eigen::VectorXd::Zero(s_int));
+      for (size_t j = 0; j < weights.size(); j++) {
+         for (long int i = 0; i < s_int; i++)
+            archive(weights[j][i]);
+      }
    }
 };
 
@@ -207,9 +256,9 @@ struct ELTWeights {
 };
 
 template <typename WT>
-concept IsWeight = std::same_as<WT, G2Weights> || std::same_as<WT, D2Weights>
-                || std::same_as<WT, D2WeightsCutted> || std::same_as<WT, D2WeightsPartialIntegral>
-                || std::same_as<WT, ELTWeights>;
+concept IsWeight = std::same_as<WT, G2Weights> || std::same_as<WT, VectorG2Weights>
+                || std::same_as<WT, D2Weights> || std::same_as<WT, D2WeightsCutted>
+                || std::same_as<WT, D2WeightsPartialIntegral> || std::same_as<WT, ELTWeights>;
 
 template <typename WT>
 requires IsWeight<WT>

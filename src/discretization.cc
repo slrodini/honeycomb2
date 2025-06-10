@@ -360,8 +360,8 @@ void Grid2D::Initialize(const SingleDiscretizationInfo &d_info_rho,
                   // pass the needed functions by value to the lambdas.
                   auto cached_tis_r      = grid_radius._d_info.to_inter_space;
                   auto cached_tis_a      = grid_angle._d_info.to_inter_space;
-                  auto cached_gr_wj      = grid_radius._weights[j];
                   auto cached_gr_wj_extr = grid_radius._weights_extrap[j];
+                  auto cached_gr_wj      = grid_radius._weights[j];
                   auto cached_ga_wk      = grid_angle._weights[k];
 
                   _w[index] = [cached_tis_r, cached_tis_a, cached_gr_wj,
@@ -378,7 +378,46 @@ void Grid2D::Initialize(const SingleDiscretizationInfo &d_info_rho,
                      return cached_gr_wj_extr(r) * cached_ga_wk(f);
                   };
 
-                  _dw_dx3[index] = get_dw_dx3_fixed_x1(index);
+                  // _dw_dx3[index] = get_dw_dx3_fixed_x1(index);
+
+                  auto cached_supp_r    = grid_radius.get_support_weight_aj(j);
+                  auto cached_supp_a    = grid_angle.get_support_weight_aj(k);
+                  auto cached_tps_der_r = grid_radius._d_info.to_phys_space_der;
+                  auto cached_tps_der_a = grid_angle._d_info.to_phys_space_der;
+
+                  auto cached_gr_wj_der = grid_radius._weights_der[j];
+                  auto cached_ga_wk_der = grid_angle._weights_der[k];
+
+                  _dw_dx3[index]
+                      = [cached_tis_r, cached_tis_a, cached_supp_r, cached_supp_a, cached_tps_der_r,
+                         cached_tps_der_a, cached_gr_wj, cached_ga_wk, cached_gr_wj_der,
+                         cached_ga_wk_der](const RnC::Pair &rhophi) -> double {
+                     const double r = cached_tis_r(rhophi(0));
+                     const double f = cached_tis_a(rhophi(1));
+
+                     if (f < cached_supp_a.first || f > cached_supp_a.second) return 0;
+                     if (r < cached_supp_r.first || r > cached_supp_r.second) return 0;
+
+                     const double drho_dr     = cached_tps_der_r(r);
+                     const double dphi_df     = cached_tps_der_a(f);
+                     const double drrho_dfphi = drho_dr * dphi_df;
+
+                     const auto [dxi_drho, dxi_dphi] = RnC::dx123_drhophi(rhophi);
+
+                     const double den
+                         = drrho_dfphi * (-dxi_dphi(2) * dxi_drho(0) + dxi_dphi(0) * dxi_drho(2));
+
+                     if (std::fabs(den) < 1.0e-15) {
+                        logger(Logger::ERROR, "[interpolate_df_dx3_fixed_x1] Vanishing "
+                                              "denominator, can this be possible?");
+                     }
+
+                     const double num
+                         = (cached_ga_wk(f) * cached_gr_wj_der(r) * (dphi_df * dxi_dphi(0))
+                            - cached_gr_wj(r) * cached_ga_wk_der(f) * (drho_dr * dxi_drho(0)));
+
+                     return num / den;
+                  };
 
                   _x123_minmax[index] = {xmin, xmax};
                }
@@ -398,45 +437,6 @@ void Grid2D::Initialize(const SingleDiscretizationInfo &d_info_rho,
          && is_near(static_cast<double>(a + 1), grid_angle._d_info.intervals_phys[a].second);
    }
 };
-
-std::function<double(const RnC::Pair &rhophi)> Grid2D::get_dw_dx3_fixed_x1(size_t index) const
-{
-   auto [j, k] = get_double_index(index);
-
-   std::function<double(const RnC::Pair &rhophi)> res
-       = [this, j, k](const RnC::Pair &rhophi) -> double {
-      const Grid &radius = grid_radius;
-      const Grid &angle  = grid_angle;
-
-      const double r = radius._d_info.to_inter_space(rhophi(0));
-      const double f = angle._d_info.to_inter_space(rhophi(1));
-
-      auto f_supp = angle.get_support_weight_aj(k);
-      if (f < f_supp.first || f > f_supp.second) return 0;
-      auto r_supp = radius.get_support_weight_aj(j);
-      if (r < r_supp.first || r > r_supp.second) return 0;
-
-      const double drho_dr     = radius._d_info.to_phys_space_der(r);
-      const double dphi_df     = angle._d_info.to_phys_space_der(f);
-      const double drrho_dfphi = drho_dr * dphi_df;
-
-      const auto [dxi_drho, dxi_dphi] = RnC::dx123_drhophi(rhophi);
-
-      const double den = drrho_dfphi * (-dxi_dphi(2) * dxi_drho(0) + dxi_dphi(0) * dxi_drho(2));
-
-      if (std::fabs(den) < 1.0e-15) {
-         logger(Logger::ERROR,
-                "[interpolate_df_dx3_fixed_x1] Vanishing denominator, can this be possible?");
-      }
-
-      const double num
-          = (angle._weights[k](f) * radius._weights_der[j](r) * (dphi_df * dxi_dphi(0))
-             - radius._weights[j](r) * angle._weights_der[k](f) * (drho_dr * dxi_drho(0)));
-
-      return num / den;
-   };
-   return res;
-}
 
 // =======================================================
 // =================== DISCRETIZATION ====================
@@ -866,15 +866,15 @@ bool check_grid_compatibility(const Grid2D &tmp_grid, const Grid2D &grid)
 //========================================================
 //========================================================
 
-Discretization1D::Discretization1D(const Grid &grid) : _grid(grid)
+Discretization1D::Discretization1D(Grid *grid) : _grid(grid)
 {
 }
 
 Eigen::VectorXd Discretization1D::operator()(std::function<double(double)> const &function) const
 {
-   Eigen::VectorXd _fj = Eigen::VectorXd::Zero(_grid.c_size_li);
-   for (size_t k = 0; k < _grid.size; k++) {
-      _fj(_grid._from_iw_to_ic[k]) = function(_grid._coord[_grid._from_iw_to_ic[k]]);
+   Eigen::VectorXd _fj = Eigen::VectorXd::Zero(_grid->c_size_li);
+   for (size_t k = 0; k < _grid->size; k++) {
+      _fj(_grid->_from_iw_to_ic[k]) = function(_grid->_coord[_grid->_from_iw_to_ic[k]]);
    }
    return _fj;
 }
@@ -882,14 +882,14 @@ Eigen::VectorXd Discretization1D::operator()(std::function<double(double)> const
 double Discretization1D::interpolate_as_weights(double x, const Eigen::VectorXd &_fj) const
 {
 
-   const double r = _grid._d_info.to_inter_space(x);
+   const double r = _grid->_d_info.to_inter_space(x);
 
    double res = 0;
 
-   for (size_t k = 0; k < _grid.size; k++) {
-      auto supp = _grid.get_support_weight_aj(k);
+   for (size_t k = 0; k < _grid->size; k++) {
+      auto supp = _grid->get_support_weight_aj(k);
       if (r < supp.first || r > supp.second) continue;
-      res += _fj(_grid._from_iw_to_ic[k]) * _grid._weights[k](r);
+      res += _fj(_grid->_from_iw_to_ic[k]) * _grid->_weights[k](r);
    }
 
    return res;
@@ -898,16 +898,16 @@ double Discretization1D::interpolate_as_weights(double x, const Eigen::VectorXd 
 double Discretization1D::interpolate_der_as_weights(double x, const Eigen::VectorXd &_fj) const
 {
 
-   const double r = _grid._d_info.to_inter_space(x);
+   const double r = _grid->_d_info.to_inter_space(x);
 
    double res = 0;
 
-   for (size_t k = 0; k < _grid.size; k++) {
-      auto supp = _grid.get_support_weight_aj(k);
+   for (size_t k = 0; k < _grid->size; k++) {
+      auto supp = _grid->get_support_weight_aj(k);
       if (r < supp.first || r > supp.second) continue;
 
-      res += _fj(_grid._from_iw_to_ic[k]) * _grid._weights_der[k](r)
-           * _grid._d_info.to_inter_space_der(x);
+      res += _fj(_grid->_from_iw_to_ic[k]) * _grid->_weights_der[k](r)
+           * _grid->_d_info.to_inter_space_der(x);
    }
 
    return res;
