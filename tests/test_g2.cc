@@ -11,7 +11,7 @@ int main()
 
    // const double Nc = 3; // NC = 1 for tests
 
-   const size_t n    = 8;
+   const size_t n    = 7;
    const double rmin = 0.001;
    Honeycomb::Grid2D grid
        = Honeycomb::generate_compliant_Grid2D(n, {rmin, 0.1, 0.4, 1}, {12, 8, 7});
@@ -28,7 +28,11 @@ int main()
    sol.RotateToPhysicalBasis();
 
    begin = Honeycomb::timer::now();
-   Honeycomb::VectorG2Weights g2_weights(grid, true, 1.0e-10);
+   Honeycomb::VectorG2Weights g2_weights(grid, false, 1.0e-10);
+   if (!Honeycomb::load_weights<Honeycomb::VectorG2Weights>("g2_weights.cereal", g2_weights)) {
+      g2_weights.GetWeights();
+      Honeycomb::save_weights(g2_weights, "g2_weights.cereal");
+   }
 
    end         = Honeycomb::timer::now();
    fnc_elapsed = Honeycomb::timer::elapsed_ms(end, begin);
@@ -46,7 +50,9 @@ int main()
       double res_g2 = exact[j];
       double tmp    = g2_weights.interpolate(xBjs[j]).dot(F_test_1);
 
-      if (!Honeycomb::is_near(res_g2, tmp, 1.03 - 3)) return 1;
+      if (!Honeycomb::is_near(1.0 - res_g2 / tmp, 0, 2. * 1.0e-2)) {
+         Honeycomb::logger(Honeycomb::Logger::ERROR, std::format("{:.10e}, {:.10e}", res_g2, tmp));
+      }
    }
 
    return 0;

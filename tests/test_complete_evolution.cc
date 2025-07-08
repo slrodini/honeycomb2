@@ -30,7 +30,7 @@ int main()
    Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Kernel Discretization..."));
    begin                   = Honeycomb::timer::now();
    const double Nc         = 3; // NC = 1 for tests
-   Honeycomb::Kernels kers = Honeycomb::load_kernels("full_kernels.cereal", grid, Nc);
+   Honeycomb::Kernels kers = Honeycomb::load_kernels("fi_kernels.cereal", grid, Nc);
    end                     = Honeycomb::timer::now();
    Honeycomb::logger(
        Honeycomb::Logger::INFO,
