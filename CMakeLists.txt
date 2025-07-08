@@ -23,12 +23,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(ENABLE_VECTORIZATION "Enable vectorization flags" ON)
-option(LONG_TESTS "Compile and perform time-consuming tests" OFF)
+option(REGRESSION_TESTS "Compile and perform regression tests" OFF)
 
-if(LONG_TESTS)
-message(STATUS "Enabling long tests. They will take a while to complete")
+if(REGRESSION_TESTS)
+message(STATUS "Enabling regression tests. They will take a while to complete")
 else()
-message(STATUS "Long tests are disable, will perform only 'fast' tests.")
+message(STATUS "Regression tests are disable.")
 endif()
 
 if(ENABLE_VECTORIZATION)
