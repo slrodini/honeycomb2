@@ -20,13 +20,14 @@ cmake -DCMAKE_INSTALL_PREFIX=/your/installation/path/ ..
 make
 make install
 ```
-*Note:* By the default, if no prefix specification is given, `honeycomb2` will be installed in the `/usr/local/`  directory. If you want (or need) to use a different path, remember to export the `honeycomb2` `/lib` folder into the `LD_LIBRARY_PATH`.
+*Note:* By the default, if no prefix specification is given, `honeycomb2` will be installed in the `/usr/local/`  directory. If you want (or need) to use a different path, remember to export the `<install-prefix>/lib` folder into the `LD_LIBRARY_PATH` and the `<install-prefix>/bin` folder int the `PATH`.
 
 After installation, you can run 
 ```shell
 Honeycomb2-config --help
 ```
 to get the list of available flags to be used in your project when using `honeycomb2`.
+If you are using `cmake` in your project, you can include `honeycomb2` by simply placing `find_package(Honeycomb2)` in your `CMakeLists.txt`. 
 
 `honeycomb2` can be un-installed by running:
 ```shell

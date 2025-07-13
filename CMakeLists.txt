@@ -46,8 +46,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
    )
    if(ENABLE_VECTORIZATION)
       list(APPEND HONEYCOMB2_CXX_FLAGS  -mtune=native -march=native)
+      set(HONEYCOMB2_VEC_FLAGS "${HONEYCOMB2_VEC_FLAGS} -mtune=native -march=native")
+
    endif()
-   add_compile_options(${HONEYCOMB2_CXX_FLAGS})
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
    set(HONEYCOMB2_CXX_FLAGS
@@ -59,13 +60,13 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
    )
    if(ENABLE_VECTORIZATION)
       list(APPEND HONEYCOMB2_CXX_FLAGS  -mtune=native -march=native)
+      set(HONEYCOMB2_VEC_FLAGS "${HONEYCOMB2_VEC_FLAGS} -mtune=native -march=native")
+
    endif()
-   add_compile_options(${HONEYCOMB2_CXX_FLAGS})
 
    set(SANITIZER_FLAGS "-fsanitize=address,undefined,alignment,bounds,null,vptr")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
    set(HONEYCOMB2_CXX_FLAGS "${HONEYCOMB2_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
-   link_libraries(${SANITIZER_FLAGS})
 
 else()
    set(HONEYCOMB2_CXX_FLAGS
@@ -77,12 +78,12 @@ else()
    )
    if(ENABLE_VECTORIZATION)
       list(APPEND HONEYCOMB2_CXX_FLAGS  -mtune=native -march=native)
+      set(HONEYCOMB2_VEC_FLAGS "${HONEYCOMB2_VEC_FLAGS} -mtune=native -march=native")
+
    endif()
    set(SANITIZER_FLAGS "-fsanitize=address,undefined,alignment,bounds,null,vptr")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
    set(HONEYCOMB2_CXX_FLAGS "${HONEYCOMB2_CXX_FLAGS} -DDEBUG ${SANITIZER_FLAGS}")
-   link_libraries(${SANITIZER_FLAGS})
-   add_compile_options(${HONEYCOMB2_CXX_FLAGS})
 endif()
 
 # # -flto causes problems with YAML-CPP
@@ -91,12 +92,14 @@ if(ENABLE_VECTORIZATION)
       if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i[3-6]86|amd64")
          # x86-specific compiler flags
          list(APPEND HONEYCOMB2_CXX_FLAGS -mfpmath=sse -msse2)
-         add_compile_options(-mfpmath=sse -msse2)
+         set(HONEYCOMB2_VEC_FLAGS "${HONEYCOMB2_VEC_FLAGS} -mfpmath=sse -msse2")
+
          message(STATUS "CPU architecture is one of: x86_64|i[3-6]86|amd64")
       elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
          # ARM-specific compiler flags
          list(APPEND HONEYCOMB2_CXX_FLAGS -mcpu=native -mtune=native)
-         add_compile_options(-mcpu=native -mtune=native)
+         set(HONEYCOMB2_VEC_FLAGS "${HONEYCOMB2_VEC_FLAGS} -mcpu=native -mtune=native")
+
 
          message(STATUS "CPU architecture is one of: arm64|aarch64")
       else()
@@ -129,13 +132,34 @@ file(GLOB source_files
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 add_library(Honeycomb2 SHARED ${source_files})
 
-target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc)
-target_include_directories(Honeycomb2 PUBLIC ${PROJECT_SOURCE_DIR}/inc/honeycomb2)
+target_compile_options(Honeycomb2 PRIVATE ${HONEYCOMB2_CXX_FLAGS})
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/lib/llvm-19/lib/clang/19/include")
+target_include_directories(Honeycomb2 PRIVATE ${PROJECT_SOURCE_DIR}/inc)
+target_include_directories(Honeycomb2 PRIVATE ${PROJECT_SOURCE_DIR}/inc/honeycomb2)
+
+target_include_directories(Honeycomb2
+    INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc/honeycomb2>
+        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:include/honeycomb2>
+)
+
 
 # Define libraries to be linked
-target_link_libraries(Honeycomb2)
+target_link_libraries(Honeycomb2 PUBLIC)
+
+if(HONEYCOMB2_VEC_FLAGS)
+   string(REPLACE " " ";" HONEYCOMB2_VEC_FLAGS_LIST "${HONEYCOMB2_VEC_FLAGS}")
+   target_compile_options(Honeycomb2 INTERFACE ${HONEYCOMB2_VEC_FLAGS_LIST})
+endif()
+
+if(SANITIZER_FLAGS)
+   string(REPLACE " " ";" SANITIZER_FLAGS_LIST "${SANITIZER_FLAGS}")
+
+   target_compile_options(Honeycomb2 INTERFACE ${SANITIZER_FLAGS_LIST})
+   target_link_options(Honeycomb2 INTERFACE ${SANITIZER_FLAGS_LIST})
+endif()
 
 # set(USER_INCLUDE_DIR "" CACHE PATH "Path to search for cereal library (Should be path to parent folder of cereal/)")
 
@@ -165,9 +189,55 @@ configure_file("${PROJECT_SOURCE_DIR}/bin/Honeycomb2-config.in" "${PROJECT_BINAR
 # ============================
 
 # Installation of code
-install(TARGETS Honeycomb2 RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
+# install(TARGETS Honeycomb2 RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
+# install(DIRECTORY inc/honeycomb2 DESTINATION include)
+# install(FILES ${PROJECT_BINARY_DIR}/bin/Honeycomb2-config DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+
+
+# Installation of code
+
+include(CMakePackageConfigHelpers)
+
+# Version file
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/Honeycomb2ConfigVersion.cmake"
+    VERSION ${Honeycomb2_Version}
+    COMPATIBILITY SameMajorVersion
+)
+
+# Config file
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Honeycomb2Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/Honeycomb2Config.cmake"
+    INSTALL_DESTINATION lib/cmake/Honeycomb2
+)
+
+# Install config files
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/Honeycomb2Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/Honeycomb2ConfigVersion.cmake"
+    DESTINATION lib/cmake/Honeycomb2
+)
+
+install(TARGETS Honeycomb2
+    EXPORT Honeycomb2Targets
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include
+)
+
+install(EXPORT Honeycomb2Targets
+    FILE Honeycomb2Targets.cmake
+    NAMESPACE Honeycomb2::
+    DESTINATION lib/cmake/Honeycomb2
+)
+
+# install(TARGETS Oros RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
 install(DIRECTORY inc/honeycomb2 DESTINATION include)
 install(FILES ${PROJECT_BINARY_DIR}/bin/Honeycomb2-config DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
 
 
 find_package(Doxygen QUIET)
