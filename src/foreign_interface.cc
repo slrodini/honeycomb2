@@ -182,6 +182,7 @@ void ForeignInterfaceState::Evolve()
       logger(Logger::ERROR, "Interface was previously unloaded. Cannot evolve.");
    }
    for (size_t i = 0; i < state.interm_scales.size(); i++) {
+      // TODO: I think this should clear the _solutions vector.
       state._solutions.emplace_back(Solution(state.discr, state._models, state.nf_initial_scale));
 
       // i=0: initial solution
@@ -249,7 +250,7 @@ double ForeignInterfaceState::GetG2(double xBj, int which, double Q2)
       return NAN;
    }
 
-   if (which < 0 || which > 6) {
+   if (which < 1 || which > 6) {
       logger(Logger::ERROR, std::format("GetMoment: `which` should be the flavor index, "
                                         "and as such must be 1 <= which <= 6. I got: {:d}",
                                         which));
