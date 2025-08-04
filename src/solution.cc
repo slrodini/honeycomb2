@@ -697,4 +697,35 @@ double OutputModel::GetDistribution(OutputModel::FNC f, const RnC::Pair &rhophi)
    return NAN;
 }
 
+double OutputModel::Get_DDistrDx3_fixed_x1(OutputModel::FNC f, const RnC::Pair &rhophi) const
+{
+   switch (f) {
+   case T_DN:
+   case T_UP:
+   case T_ST:
+   case T_CH:
+   case T_BM:
+   case T_TP:
+      return _discretization->interpolate_df_dx3_fixed_x1(rhophi, T[f + 1]);
+      break;
+   case DT_DN:
+   case DT_UP:
+   case DT_ST:
+   case DT_CH:
+   case DT_BM:
+   case DT_TP:
+      return _discretization->interpolate_df_dx3_fixed_x1(rhophi, DT[f - 5]);
+      break;
+   case T_P_GL:
+      return _discretization->interpolate_df_dx3_fixed_x1(rhophi, T[0]);
+      break;
+   case T_M_GL:
+      return _discretization->interpolate_df_dx3_fixed_x1(rhophi, DT[0]);
+      break;
+   default:
+      break;
+   }
+   return NAN;
+}
+
 } // namespace Honeycomb

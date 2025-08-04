@@ -29,6 +29,7 @@ double hc2_fi_get_g2_(double *xBj, int *what, double *Q2);
 double hc2_fi_get_d2_(int *what, double *Q2);
 double hc2_fi_get_elt_(int *what, double *Q2);
 double hc2_fi_get_model_(int *what, double *Q2, double *x1, double *x2, double *x3);
+double hc2_fi_get_d_model_dx3_fix_x1_(int *what, double *Q2, double *x1, double *x2, double *x3);
 
 #ifdef __cplusplus
 }

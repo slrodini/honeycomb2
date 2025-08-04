@@ -131,6 +131,17 @@ struct OutputModel {
    }
    double GetDistribution(FNC f, const RnC::Pair &rhophi) const;
 
+   // Get the dF / dx3 at constant x1
+   double Get_DDistrDx3_fixed_x1(FNC f, const RnC::Triplet &x123) const
+   {
+      return Get_DDistrDx3_fixed_x1(f, RnC::from_x123_to_rhophi(x123));
+   }
+   double Get_DDistrDx3_fixed_x1(FNC f, const double x1, const double x2, const double x3) const
+   {
+      return Get_DDistrDx3_fixed_x1(f, RnC::from_x123_to_rhophi({x1, x2, x3}));
+   }
+   double Get_DDistrDx3_fixed_x1(FNC f, const RnC::Pair &rhophi) const;
+
    // Note: First element is gluon T^+ and T^-, not DeltaT!
    std::vector<Eigen::VectorXd> T;
    std::vector<Eigen::VectorXd> DT;

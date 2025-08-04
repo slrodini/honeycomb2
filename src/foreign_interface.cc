@@ -291,6 +291,22 @@ double ForeignInterfaceState::GetDistribution(OutputModel::FNC f, double Q2, dou
    return state._fin_models[j].GetDistribution(f, x1, x2, x3);
 }
 
+double ForeignInterfaceState::Get_DDistrDx3_fixed_x1(OutputModel::FNC f, double Q2, double x1,
+                                                     double x2, double x3)
+{
+   size_t j = 0;
+   for (size_t i = 0; i < state.interm_scales.size(); i++, j++) {
+      if (is_near(Q2, state.interm_scales[i], 1.0e-12)) {
+         break;
+      }
+   }
+   if (j == state.interm_scales.size()) {
+      logger(Logger::ERROR, std::format("Scale: {:12e} is not among the available scales: ", Q2)
+                                + vec_to_string(state.interm_scales));
+   }
+   return state._fin_models[j].Get_DDistrDx3_fixed_x1(f, x1, x2, x3);
+}
+
 void ForeignInterfaceState::Unload()
 {
    state.evol_op.clear();
@@ -373,5 +389,17 @@ double hc2_fi_get_model_(int *what, double *Q2, double *x1, double *x2, double *
    }
    Honeycomb::OutputModel::FNC f = static_cast<Honeycomb::OutputModel::FNC>(*what);
    return state.GetDistribution(f, *Q2, *x1, *x2, *x3);
+}
+
+double hc2_fi_get_d_model_dx3_fix_x1_(int *what, double *Q2, double *x1, double *x2, double *x3)
+{
+   if (*what < 0 || *what > 13) {
+      Honeycomb::logger(Honeycomb::Logger::ERROR,
+                        std::format("Model index {:d} is out of bound"
+                                    " of available functions to set: [0, 13]",
+                                    *what));
+   }
+   Honeycomb::OutputModel::FNC f = static_cast<Honeycomb::OutputModel::FNC>(*what);
+   return state.Get_DDistrDx3_fixed_x1(f, *Q2, *x1, *x2, *x3);
 }
 }

@@ -51,6 +51,7 @@ struct ForeignInterfaceState {
     */
    double GetG2(double xBj, int which, double Q2);
    double GetDistribution(OutputModel::FNC f, double Q2, double x1, double x2, double x3);
+   double Get_DDistrDx3_fixed_x1(OutputModel::FNC f, double Q2, double x1, double x2, double x3);
    void Unload();
 
    Grid2D grid;
