@@ -1,3 +1,4 @@
+#include "cereal_extension.hpp"
 #include <honeycomb2/foreign_interface.hpp>
 #include <honeycomb2/alpha_s.hpp>
 #include <honeycomb2/honeycomb2_c_api.h>

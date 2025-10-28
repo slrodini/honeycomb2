@@ -3,7 +3,7 @@
 #include <honeycomb2/utilities.hpp>
 #include <honeycomb2/solution.hpp>
 #include <honeycomb2/runge_kutta.hpp>
-#include <honeycomb2/Eigen/Core>
+#include <Eigen/Core>
 
 namespace Honeycomb
 {

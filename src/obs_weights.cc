@@ -2,6 +2,7 @@
 #include <honeycomb2/obs_weights.hpp>
 #include <honeycomb2/thread_pool.hpp>
 #include <honeycomb2/utilities.hpp>
+#include "cereal_extension.hpp"
 
 namespace Honeycomb
 {
@@ -873,5 +874,40 @@ double D2WeightsPartialIntegral::ComputeSingleQuark(const Eigen::VectorXd &_f) c
 {
    return weights.dot(_f);
 }
+
+template <typename WT>
+requires IsWeight<WT>
+inline void save_weights(const WT &O, const std::string &file_name)
+{
+   SaveChecksumArchive<WT, cereal::PortableBinaryOutputArchive>(O, file_name);
+}
+
+template <typename WT>
+requires IsWeight<WT>
+inline bool load_weights(const std::string &file_name, WT &result)
+{
+   if (!LoadAndVerify<WT, cereal::PortableBinaryInputArchive>(file_name, result)) {
+      logger(Logger::WARNING, "I was not able to correctly load the cereal archive " + file_name
+                                  + " containing the weights.");
+      return false;
+   }
+   return true;
+}
+
+template void save_weights<G2Weights>(const G2Weights &, const std::string &);
+template void save_weights<VectorG2Weights>(const VectorG2Weights &, const std::string &);
+template void save_weights<D2Weights>(const D2Weights &, const std::string &);
+template void save_weights<D2WeightsCutted>(const D2WeightsCutted &, const std::string &);
+template void save_weights<D2WeightsPartialIntegral>(const D2WeightsPartialIntegral &,
+                                                     const std::string &);
+template void save_weights<ELTWeights>(const ELTWeights &, const std::string &);
+
+template bool load_weights<G2Weights>(const std::string &, G2Weights &);
+template bool load_weights<VectorG2Weights>(const std::string &, VectorG2Weights &);
+template bool load_weights<D2Weights>(const std::string &, D2Weights &);
+template bool load_weights<D2WeightsCutted>(const std::string &, D2WeightsCutted &);
+template bool load_weights<D2WeightsPartialIntegral>(const std::string &,
+                                                     D2WeightsPartialIntegral &);
+template bool load_weights<ELTWeights>(const std::string &, ELTWeights &);
 
 } // namespace Honeycomb

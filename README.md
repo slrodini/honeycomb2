@@ -11,12 +11,15 @@ There is no backward compatibility.
 **Prerequisite:** 
 1. You should have installed a C++ compiler with support for C++20, including the `format` header.
 2. You should have installed `cmake`
+2. You should have installed the `Eigen3` C++ library. If it is installed in a non-standard location, please provide the path to the location of the `Eigen3Config.cmake` file to cmake, via `-DEigen3_DIR=<path-to-directory>` (the path should be the **directory** of the file, not the path to the file itself!)
 
 **Installation:**
 The usual `cmake` procedure. From within `honeycomb2` directory
 ```shell
 mkdir build && cd build
-cmake -DCMAKE_INSTALL_PREFIX=/your/installation/path/ ..
+cmake -DCMAKE_INSTALL_PREFIX=<your-installation-path> ..
+## OR
+# cmake -DCMAKE_INSTALL_PREFIX=<your-installation-path> -DEigen3_DIR=<path-to-directory> ..
 make
 make install
 ```

@@ -4,7 +4,7 @@
 #include <honeycomb2/default.hpp>
 #include <honeycomb2/utilities.hpp>
 
-#include <honeycomb2/Eigen/Core>
+#include <Eigen/Core>
 
 /**
  * @file discretization.hpp

@@ -1,6 +1,8 @@
 #include "kernel_functions.hpp"
 #include <honeycomb2/kernels.hpp>
 #include <honeycomb2/thread_pool.hpp>
+#include "cereal/archives/portable_binary.hpp"
+#include "cereal_extension.hpp"
 
 namespace Honeycomb
 {
@@ -245,6 +247,24 @@ MergedKernelsFixedNf::MergedKernelsFixedNf(const Kernels &ker, size_t _nf)
          }
       }
    }
+}
+
+void save_kernels(const Kernels &k, const std::string &file_name)
+{
+   SaveChecksumArchive<Kernels, cereal::PortableBinaryOutputArchive>(k, file_name);
+}
+
+Kernels load_kernels(const std::string &file_name, const Grid2D &g, double _Nc)
+{
+   Kernels ker(g, _Nc, false);
+   if (!LoadAndVerify<Kernels, cereal::PortableBinaryInputArchive>(file_name, ker)) {
+      logger(Logger::WARNING, "I was not able to correctly load the cereal archive " + file_name
+                                  + " containing the kernels. "
+                                    "Compute (and possibly overwrite)");
+      ker.ComputeKernels();
+      save_kernels(ker, file_name);
+   }
+   return ker;
 }
 
 } // namespace Honeycomb

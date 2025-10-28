@@ -1,12 +1,10 @@
 #ifndef HC2_KERNELS_HPP
 #define HC2_KERNELS_HPP
 
-#include "honeycomb2/cereal/archives/portable_binary.hpp"
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/kernel_functions.hpp>
-#include <honeycomb2/cereal_extension.hpp>
 
-#include <honeycomb2/Eigen/Core>
+#include <Eigen/Core>
 
 namespace Honeycomb
 {
@@ -103,23 +101,9 @@ struct MergedKernelsFixedNf {
 // So, I have specialized function to compute it
 Eigen::MatrixXd get_CO_kernel(const Grid2D &g, double _Nc);
 
-inline void save_kernels(const Kernels &k, const std::string &file_name)
-{
-   SaveChecksumArchive<Kernels, cereal::PortableBinaryOutputArchive>(k, file_name);
-}
+void save_kernels(const Kernels &k, const std::string &file_name);
 
-inline Kernels load_kernels(const std::string &file_name, const Grid2D &g, double _Nc)
-{
-   Kernels ker(g, _Nc, false);
-   if (!LoadAndVerify<Kernels, cereal::PortableBinaryInputArchive>(file_name, ker)) {
-      logger(Logger::WARNING, "I was not able to correctly load the cereal archive " + file_name
-                                  + " containing the kernels. "
-                                    "Compute (and possibly overwrite)");
-      ker.ComputeKernels();
-      save_kernels(ker, file_name);
-   }
-   return ker;
-}
+Kernels load_kernels(const std::string &file_name, const Grid2D &g, double _Nc);
 
 } // namespace Honeycomb
 

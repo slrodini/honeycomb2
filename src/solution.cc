@@ -3,7 +3,8 @@
 #include <honeycomb2/utilities.hpp>
 #include <honeycomb2/solution.hpp>
 #include <honeycomb2/runge_kutta.hpp>
-#include <honeycomb2/Eigen/Core>
+#include <Eigen/Core>
+#include "cereal_extension.hpp"
 
 namespace
 {
@@ -726,6 +727,22 @@ double OutputModel::Get_DDistrDx3_fixed_x1(OutputModel::FNC f, const RnC::Pair &
       break;
    }
    return NAN;
+}
+
+void save_evolution_operator(const EvOp &O, const std::string &file_name)
+{
+   SaveChecksumArchive<EvOp, cereal::PortableBinaryOutputArchive>(O, file_name);
+}
+
+std::pair<bool, EvOp> load_evolution_operator(const std::string &file_name, Grid2D *g)
+{
+   EvOp result(g);
+   if (!LoadAndVerify<EvOp, cereal::PortableBinaryInputArchive>(file_name, result)) {
+      logger(Logger::WARNING, "I was not able to correctly load the cereal archive " + file_name
+                                  + " containing the evolution operator.");
+      return {false, result};
+   }
+   return {true, result};
 }
 
 } // namespace Honeycomb

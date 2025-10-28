@@ -183,8 +183,8 @@ struct D2WeightsPartialIntegral {
    double ComputeSingleQuark(const Eigen::VectorXd &_f) const;
 
    const Grid2D &grid;
-   const double a;
-   const double b;
+   double a;
+   double b;
    Eigen::VectorXd weights;
 
    template <class Archive>
@@ -262,22 +262,27 @@ concept IsWeight = std::same_as<WT, G2Weights> || std::same_as<WT, VectorG2Weigh
 
 template <typename WT>
 requires IsWeight<WT>
-inline void save_weights(const WT &O, const std::string &file_name)
-{
-   SaveChecksumArchive<WT, cereal::PortableBinaryOutputArchive>(O, file_name);
-}
+void save_weights(const WT &O, const std::string &file_name);
 
 template <typename WT>
 requires IsWeight<WT>
-inline bool load_weights(const std::string &file_name, WT &result)
-{
-   if (!LoadAndVerify<WT, cereal::PortableBinaryInputArchive>(file_name, result)) {
-      logger(Logger::WARNING, "I was not able to correctly load the cereal archive " + file_name
-                                  + " containing the weights.");
-      return false;
-   }
-   return true;
-}
+bool load_weights(const std::string &file_name, WT &result);
+
+extern template void save_weights<G2Weights>(const G2Weights &, const std::string &);
+extern template void save_weights<VectorG2Weights>(const VectorG2Weights &, const std::string &);
+extern template void save_weights<D2Weights>(const D2Weights &, const std::string &);
+extern template void save_weights<D2WeightsCutted>(const D2WeightsCutted &, const std::string &);
+extern template void save_weights<D2WeightsPartialIntegral>(const D2WeightsPartialIntegral &,
+                                                            const std::string &);
+extern template void save_weights<ELTWeights>(const ELTWeights &, const std::string &);
+
+extern template bool load_weights<G2Weights>(const std::string &, G2Weights &);
+extern template bool load_weights<VectorG2Weights>(const std::string &, VectorG2Weights &);
+extern template bool load_weights<D2Weights>(const std::string &, D2Weights &);
+extern template bool load_weights<D2WeightsCutted>(const std::string &, D2WeightsCutted &);
+extern template bool load_weights<D2WeightsPartialIntegral>(const std::string &,
+                                                            D2WeightsPartialIntegral &);
+extern template bool load_weights<ELTWeights>(const std::string &, ELTWeights &);
 
 } // namespace Honeycomb
 

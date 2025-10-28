@@ -6,7 +6,7 @@
 #include <honeycomb2/discretization.hpp>
 #include <honeycomb2/random_engine.hpp>
 #include <honeycomb2/thread_pool.hpp>
-#include <honeycomb2/Eigen/Core>
+#include <Eigen/Core>
 
 namespace Honeycomb
 {
@@ -288,21 +288,9 @@ struct EvOp {
    }
 };
 
-inline void save_evolution_operator(const EvOp &O, const std::string &file_name)
-{
-   SaveChecksumArchive<EvOp, cereal::PortableBinaryOutputArchive>(O, file_name);
-}
+void save_evolution_operator(const EvOp &O, const std::string &file_name);
 
-inline std::pair<bool, EvOp> load_evolution_operator(const std::string &file_name, Grid2D *g)
-{
-   EvOp result(g);
-   if (!LoadAndVerify<EvOp, cereal::PortableBinaryInputArchive>(file_name, result)) {
-      logger(Logger::WARNING, "I was not able to correctly load the cereal archive " + file_name
-                                  + " containing the evolution operator.");
-      return {false, result};
-   }
-   return {true, result};
-}
+std::pair<bool, EvOp> load_evolution_operator(const std::string &file_name, Grid2D *g);
 
 EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, double Qf2,
                                 const std::array<double, 6> &thresholds,

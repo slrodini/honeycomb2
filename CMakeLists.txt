@@ -119,6 +119,8 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Build type specific CXX Flags: ${CMAKE_CXX_FLAGS}")
 
+find_package(Eigen3 3.3 REQUIRED)
+
 # ============================
 # MAIN
 # ============================
@@ -136,6 +138,7 @@ target_compile_options(Honeycomb2 PRIVATE ${HONEYCOMB2_CXX_FLAGS})
 
 target_include_directories(Honeycomb2 PRIVATE ${PROJECT_SOURCE_DIR}/inc)
 target_include_directories(Honeycomb2 PRIVATE ${PROJECT_SOURCE_DIR}/inc/honeycomb2)
+target_include_directories(Honeycomb2 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 target_include_directories(Honeycomb2
     INTERFACE
@@ -147,7 +150,7 @@ target_include_directories(Honeycomb2
 
 
 # Define libraries to be linked
-target_link_libraries(Honeycomb2 PUBLIC)
+target_link_libraries(Honeycomb2 PUBLIC Eigen3::Eigen)
 
 if(HONEYCOMB2_VEC_FLAGS)
    string(REPLACE " " ";" HONEYCOMB2_VEC_FLAGS_LIST "${HONEYCOMB2_VEC_FLAGS}")
