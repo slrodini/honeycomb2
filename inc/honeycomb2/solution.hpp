@@ -81,8 +81,10 @@ struct Solution {
    void RotateToEvolutionBasis();
 
    // Runge-Kutta methods
-   void _copy(const Solution &other);
-   void _plus_eq(double x, const Solution &other);
+   void clone(const Solution &other);
+   void add_with_weight(double w, const Solution &other);
+   void scalar_mult(double w);
+
    void _ker_mul(double pref, const Kernels &ker);
 
    // Utilities
@@ -100,6 +102,10 @@ public:
    std::vector<Eigen::VectorXd> _distr_p;
    std::vector<Eigen::VectorXd> _distr_m;
 };
+
+/// Returns a function to be used in RungeKutta
+std::function<void(double, Solution &)> Get_Solution_rk_rhs(std::function<double(double)> as,
+                                                            Kernels kers);
 
 struct OutputModel {
    enum FNC {
@@ -159,8 +165,9 @@ struct EvolutionOperatorFixedNf {
    void PushFlavor();
 
    // Runge-Kutta methods
-   void _copy(const EvolutionOperatorFixedNf &other);
-   void _plus_eq(double x, const EvolutionOperatorFixedNf &other);
+   void clone(const EvolutionOperatorFixedNf &other);
+   void add_with_weight(double x, const EvolutionOperatorFixedNf &other);
+   void scalar_mult(double x);
    void _ker_mul(double pref, const MergedKernelsFixedNf &ker);
 
 public:
@@ -288,6 +295,10 @@ struct EvOp {
    }
 };
 
+/// Returns a function to be used in RungeKutta
+std::function<void(double, EvolutionOperatorFixedNf &)>
+Get_EvOp_rk_rhs(std::function<double(double)> as, MergedKernelsFixedNf kers);
+
 void save_evolution_operator(const EvOp &O, const std::string &file_name);
 
 std::pair<bool, EvOp> load_evolution_operator(const std::string &file_name, Grid2D *g);
@@ -298,7 +309,7 @@ EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, d
 
 // Thresholds in \mu^2
 // returns vetor of intermediate scales between Q0 and Qf as
-// {log(\mu_1^2), ..., \log(Qf^2)}. Q0 is not in the vector!
+// {log(Q0^2), log(\mu_1^2), ..., log(Qf^2)}.
 std::pair<std::vector<double>, Solution>
 get_initial_solution(double Q02, double Qf2, const std::array<double, 6> &thresholds,
                      const Discretization *discretization, const InputModel &models);
@@ -307,10 +318,10 @@ void ApplyEvolutionOperator(Solution &sol, const EvOpNF &O);
 void ApplyEvolutionOperator(Solution &sol, const EvOp &O);
 void ApplyEvolutionOperator(Solution &sol, const std::vector<EvOp> &Os);
 
-Solution evolve_solution(const Kernels &kers, double Q02, double Qf2,
-                         const std::array<double, 6> &thresholds,
-                         const Discretization *discretization, const InputModel &models,
-                         std::function<double(double)> as);
+// Solution evolve_solution(const Kernels &kers, double Q02, double Qf2,
+//                          const std::array<double, 6> &thresholds,
+//                          const Discretization *discretization, const InputModel &models,
+//                          std::function<double(double)> as);
 
 } // namespace Honeycomb
 

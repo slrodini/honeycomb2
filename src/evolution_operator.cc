@@ -41,6 +41,27 @@ void EvOp::push_back(const EvOpNF &arg)
 
 // -----------------------------------------------------------------------------
 
+std::function<void(double, EvolutionOperatorFixedNf &)>
+Get_EvOp_rk_rhs(std::function<double(double)> as, MergedKernelsFixedNf ker)
+{
+   return [as, ker](double t, EvolutionOperatorFixedNf &S) -> void {
+      double pref = -1.0 * as(t);
+      S.th_pool->AddTask([&]() {
+         S.NS_P = pref * (ker.H_NS * S.NS_P);
+      });
+      S.th_pool->AddTask([&]() {
+         S.NS_M = pref * (ker.H_NS * S.NS_M);
+      });
+      S.th_pool->AddTask([&]() {
+         S.S_P = pref * (ker.H_S_P * S.S_P);
+      });
+      S.th_pool->AddTask([&]() {
+         S.S_M = pref * (ker.H_S_M * S.S_M);
+      });
+      S.th_pool->WaitOnJobs();
+   };
+}
+
 EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, double Qf2,
                                 const std::array<double, 6> &thresholds,
                                 std::function<double(double)> as)
@@ -78,22 +99,31 @@ EvOp compute_evolution_operator(Grid2D *grid, const Kernels &kers, double Q02, d
    for (size_t nf = nf_in; nf <= nf_fin; nf++) {
       nf_kers.emplace_back(MergedKernelsFixedNf(kers, nf));
    }
-   std::vector<size_t> n_steps = {20};
+   size_t n_steps              = 20;
    unsigned int num_av_threads = std::thread::hardware_concurrency();
    unsigned int num_threads    = num_av_threads <= 2 ? 1 : num_av_threads - 2;
    ThreadPool local_pool(num_threads);
 
    size_t curr_nf = nf_in;
+   auto tableau   = rk::PreImplementedTableau::DOPRI8;
+
+   // TODO: FIX THIS
    for (size_t i = 0; i < inter_scales.size() - 1; i++, curr_nf++) {
 
+      using TInfo = rk::TimeInfo;
+
       EvolutionOperatorFixedNf O1(&kers.grid, curr_nf, &local_pool);
+      // Honeycomb::MergedKernelsFixedNf
+      // nf_kers[curr_nf - nf_in]
+      // inter_scales[i] -> inter_scales[i + 1]
 
-      Honeycomb::runge_kutta::GenericRungeKutta<Honeycomb::MergedKernelsFixedNf,
-                                                Honeycomb::EvolutionOperatorFixedNf, 13>
-          evolver_O(nf_kers[curr_nf - nf_in], O1, Honeycomb::runge_kutta::DOPRI8, as, -1.0,
-                    inter_scales[i], 0.01);
+      std::function<void(double, EvolutionOperatorFixedNf &)> rhs
+          = Get_EvOp_rk_rhs(as, nf_kers[curr_nf - nf_in]);
 
-      evolver_O({inter_scales[i + 1]}, n_steps);
+      rk::RungeKutta<EvolutionOperatorFixedNf, tableau.stages> evolver_O(
+          tableau, O1, TInfo({inter_scales[i], inter_scales[i + 1]}, 0.25, n_steps), rhs);
+
+      evolver_O();
       result.push_back(EvOpNF(evolver_O.GetSolution()));
       result.back().SetScales(inter_scales[i], inter_scales[i + 1]);
    }

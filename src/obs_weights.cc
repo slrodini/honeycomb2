@@ -1,4 +1,3 @@
-#include "gauss_kronrod.hpp"
 #include <honeycomb2/obs_weights.hpp>
 #include <honeycomb2/thread_pool.hpp>
 #include <honeycomb2/utilities.hpp>

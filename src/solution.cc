@@ -244,20 +244,29 @@ std::pair<Eigen::VectorXd, Eigen::VectorXd> Solution::PopFlavor()
 }
 
 // Runge-Kutta methods
-void Solution::_copy(const Solution &other)
+void Solution::clone(const Solution &other)
 {
    _distr_p    = other._distr_p;
    _distr_m    = other._distr_m;
    nf          = other.nf;
    _curr_basis = other._curr_basis;
 }
-void Solution::_plus_eq(double x, const Solution &other)
+void Solution::add_with_weight(double x, const Solution &other)
 {
    // TODO: implement S += x*other
    size_t n = _distr_p.size();
    for (size_t i = 0; i < n; i++) {
       _distr_p[i] += x * other._distr_p[i];
       _distr_m[i] += x * other._distr_m[i];
+   }
+}
+void Solution::scalar_mult(double x)
+{
+   // TODO: implement S *= x
+   size_t n = _distr_p.size();
+   for (size_t i = 0; i < n; i++) {
+      _distr_p[i] *= x;
+      _distr_m[i] *= x;
    }
 }
 void Solution::_ker_mul(double pref, const Kernels &ker)
@@ -291,11 +300,46 @@ void Solution::_ker_mul(double pref, const Kernels &ker)
    global_pool.WaitOnJobs();
 }
 
+std::function<void(double, Solution &)> Get_Solution_rk_rhs(std::function<double(double)> as,
+                                                            Kernels ker)
+{
+   return [as, ker](double t, Solution &S) -> void {
+      double pref = -1.0 * as(t);
+
+      global_pool.AddTask([&]() {
+         for (size_t i = 2; i < S._distr_p.size(); i++) {
+            S._distr_p[i] = pref * (ker.H_NS * S._distr_p[i] - 3 * ker.CF * S._distr_p[i]);
+            S._distr_m[i] = pref * (ker.H_NS * S._distr_m[i] - 3 * ker.CF * S._distr_m[i]);
+         }
+      });
+
+      const double beta0 = (11.0 * ker.Nc - 2.0 * S.nf) / 3.0;
+
+      global_pool.AddTask([&]() {
+         Eigen::VectorXd tmp_g = S._distr_p[0];
+         Eigen::VectorXd tmp_s = S._distr_p[1];
+
+         S._distr_p[0] = pref * (ker.H_gg_p * tmp_g - beta0 * tmp_g + ker.H_gq_p * tmp_s);
+         S._distr_p[1] = pref
+                       * (ker.H_NS * tmp_s - 3 * ker.CF * tmp_s + S.nf * ker.H_d13 * tmp_s
+                          + S.nf * ker.H_qg_p * tmp_g);
+
+         tmp_g = S._distr_m[0];
+         tmp_s = S._distr_m[1];
+
+         S._distr_m[0] = pref * (ker.H_gg_m * tmp_g - beta0 * tmp_g + ker.H_gq_m * tmp_s);
+         S._distr_m[1] = pref * (ker.H_NS * tmp_s - 3 * ker.CF * tmp_s + S.nf * ker.H_qg_m * tmp_g);
+      });
+
+      global_pool.WaitOnJobs();
+   };
+}
+
 std::pair<std::vector<double>, Solution>
 get_initial_solution(double Q02, double Qf2, const std::array<double, 6> &thresholds,
                      const Discretization *discretization, const InputModel &models)
 {
-
+   // TODO: check if this function works fine when either Q0 or Qf are exaclty a threshold
    for (size_t i = 0; i < 5; i++) {
       if (thresholds[i + 1] < thresholds[i]) {
          logger(Logger::ERROR, "get_initial_solution: Thresholds are not increasing, backward "
@@ -316,6 +360,7 @@ get_initial_solution(double Q02, double Qf2, const std::array<double, 6> &thresh
       }
    }
    intermediate_scales.push_back(tf);
+   intermediate_scales.insert(intermediate_scales.begin(), log(Q02));
    logger(Logger::INFO, std::format("nf at initial scale:      {:d}", nf));
    logger(Logger::INFO, std::format("# of intermediate scales: {:d}", intermediate_scales.size()));
 
@@ -459,7 +504,7 @@ EvolutionOperatorFixedNf::EvolutionOperatorFixedNf(const Grid2D *grid, size_t _n
    S_M = Eigen::MatrixXd::Identity(2 * grid->c_size_li, 2 * grid->c_size_li);
 }
 
-void EvolutionOperatorFixedNf::_copy(const EvolutionOperatorFixedNf &other)
+void EvolutionOperatorFixedNf::clone(const EvolutionOperatorFixedNf &other)
 {
    NS_P = other.NS_P;
    NS_M = other.NS_M;
@@ -469,12 +514,20 @@ void EvolutionOperatorFixedNf::_copy(const EvolutionOperatorFixedNf &other)
    th_pool = other.th_pool;
 }
 
-void EvolutionOperatorFixedNf::_plus_eq(double x, const EvolutionOperatorFixedNf &other)
+void EvolutionOperatorFixedNf::add_with_weight(double x, const EvolutionOperatorFixedNf &other)
 {
    NS_P += x * other.NS_P;
    NS_M += x * other.NS_M;
    S_P  += x * other.S_P;
    S_M  += x * other.S_M;
+}
+
+void EvolutionOperatorFixedNf::scalar_mult(double x)
+{
+   NS_P *= x;
+   NS_M *= x;
+   S_P  *= x;
+   S_M  *= x;
 }
 
 void EvolutionOperatorFixedNf::_ker_mul(double pref, const MergedKernelsFixedNf &ker)
@@ -534,94 +587,95 @@ void ApplyEvolutionOperator(Solution &sol, const EvOpNF &O)
    }
 }
 
-Solution evolve_solution(const Kernels &kers, double Q02, double Qf2,
-                         const std::array<double, 6> &thresholds,
-                         const Discretization *discretization, const InputModel &models,
-                         std::function<double(double)> as)
-{
-   auto [inter_scales, sol0] = get_initial_solution(Q02, Qf2, thresholds, discretization, models);
+// Solution evolve_solution(const Kernels &kers, double Q02, double Qf2,
+//                          const std::array<double, 6> &thresholds,
+//                          const Discretization *discretization, const InputModel &models,
+//                          std::function<double(double)> as)
+// {
+//    auto [inter_scales, sol0] = get_initial_solution(Q02, Qf2, thresholds, discretization,
+//    models);
 
-   const long int r = sol0._distr_p[0].size();
+//    const long int r = sol0._distr_p[0].size();
 
-   inter_scales.insert(inter_scales.begin(), log(Q02));
+//    inter_scales.insert(inter_scales.begin(), log(Q02));
 
-   size_t nf_fin = 0;
-   size_t nf_in  = 0;
-   for (size_t i = 0; i < thresholds.size(); i++) {
-      if (thresholds[i] <= Qf2) {
-         nf_fin++;
-      }
+//    size_t nf_fin = 0;
+//    size_t nf_in  = 0;
+//    for (size_t i = 0; i < thresholds.size(); i++) {
+//       if (thresholds[i] <= Qf2) {
+//          nf_fin++;
+//       }
 
-      if (thresholds[i] <= Q02) {
-         nf_in++;
-      }
-   }
+//       if (thresholds[i] <= Q02) {
+//          nf_in++;
+//       }
+//    }
 
-   logger(Logger::INFO, std::format("nf in {:d}, nf end {:d}", nf_in, nf_fin));
+//    logger(Logger::INFO, std::format("nf in {:d}, nf end {:d}", nf_in, nf_fin));
 
-   std::vector<MergedKernelsFixedNf> nf_kers;
-   for (size_t nf = nf_in; nf <= nf_fin; nf++) {
-      nf_kers.emplace_back(MergedKernelsFixedNf(kers, nf));
-   }
-   std::vector<size_t> n_steps = {20};
+//    std::vector<MergedKernelsFixedNf> nf_kers;
+//    for (size_t nf = nf_in; nf <= nf_fin; nf++) {
+//       nf_kers.emplace_back(MergedKernelsFixedNf(kers, nf));
+//    }
+//    std::vector<size_t> n_steps = {20};
 
-   for (size_t i = 0; i < inter_scales.size() - 1; i++) {
+//    for (size_t i = 0; i < inter_scales.size() - 1; i++) {
 
-      // Non-singlets
-      for (size_t j = 2; j < sol0._distr_p.size(); j++) {
-         global_pool.AddTask([&, j]() {
-            runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
-                nf_kers[i].H_NS, sol0._distr_p[j], runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
-                0.01);
-            evolver_p({inter_scales[i + 1]}, n_steps);
-            sol0._distr_p[j] = evolver_p.GetSolution();
-         });
+//       // Non-singlets
+//       for (size_t j = 2; j < sol0._distr_p.size(); j++) {
+//          global_pool.AddTask([&, j]() {
+//             runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
+//                 nf_kers[i].H_NS, sol0._distr_p[j], runge_kutta::DOPRI8, as, -1.0,
+//                 inter_scales[i], 0.01);
+//             evolver_p({inter_scales[i + 1]}, n_steps);
+//             sol0._distr_p[j] = evolver_p.GetSolution();
+//          });
 
-         global_pool.AddTask([&, j]() {
-            runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
-                nf_kers[i].H_NS, sol0._distr_m[j], runge_kutta::DOPRI8, as, -1.0, inter_scales[i],
-                0.01);
-            evolver_m({inter_scales[i + 1]}, n_steps);
-            sol0._distr_m[j] = evolver_m.GetSolution();
-         });
-      }
+//          global_pool.AddTask([&, j]() {
+//             runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
+//                 nf_kers[i].H_NS, sol0._distr_m[j], runge_kutta::DOPRI8, as, -1.0,
+//                 inter_scales[i], 0.01);
+//             evolver_m({inter_scales[i + 1]}, n_steps);
+//             sol0._distr_m[j] = evolver_m.GetSolution();
+//          });
+//       }
 
-      global_pool.AddTask([&]() {
-         Eigen::VectorXd tmp_p = Eigen::VectorXd::Zero(r * 2);
-         Eigen::VectorXd tmp_m = Eigen::VectorXd::Zero(r * 2);
+//       global_pool.AddTask([&]() {
+//          Eigen::VectorXd tmp_p = Eigen::VectorXd::Zero(r * 2);
+//          Eigen::VectorXd tmp_m = Eigen::VectorXd::Zero(r * 2);
 
-         for (long int k = 0; k < r; k++) {
-            tmp_p(k)     = sol0._distr_p[0](k);
-            tmp_p(k + r) = sol0._distr_p[1](k);
+//          for (long int k = 0; k < r; k++) {
+//             tmp_p(k)     = sol0._distr_p[0](k);
+//             tmp_p(k + r) = sol0._distr_p[1](k);
 
-            tmp_m(k)     = sol0._distr_m[0](k);
-            tmp_m(k + r) = sol0._distr_m[1](k);
-         }
+//             tmp_m(k)     = sol0._distr_m[0](k);
+//             tmp_m(k + r) = sol0._distr_m[1](k);
+//          }
 
-         runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
-             nf_kers[i].H_S_P, tmp_p, runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
-         evolver_p({inter_scales[i + 1]}, n_steps);
-         tmp_p = evolver_p.GetSolution();
+//          runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_p(
+//              nf_kers[i].H_S_P, tmp_p, runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
+//          evolver_p({inter_scales[i + 1]}, n_steps);
+//          tmp_p = evolver_p.GetSolution();
 
-         runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
-             nf_kers[i].H_S_M, tmp_m, runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
-         evolver_m({inter_scales[i + 1]}, n_steps);
-         tmp_m = evolver_m.GetSolution();
+//          runge_kutta::GenericRungeKutta<Eigen::MatrixXd, Eigen::VectorXd, 13> evolver_m(
+//              nf_kers[i].H_S_M, tmp_m, runge_kutta::DOPRI8, as, -1.0, inter_scales[i], 0.01);
+//          evolver_m({inter_scales[i + 1]}, n_steps);
+//          tmp_m = evolver_m.GetSolution();
 
-         for (long int k = 0; k < r; k++) {
-            sol0._distr_p[0](k) = tmp_p(k);
-            sol0._distr_p[1](k) = tmp_p(k + r);
-            sol0._distr_m[0](k) = tmp_m(k);
-            sol0._distr_m[1](k) = tmp_m(k + r);
-         }
-      });
-      global_pool.WaitOnJobs();
+//          for (long int k = 0; k < r; k++) {
+//             sol0._distr_p[0](k) = tmp_p(k);
+//             sol0._distr_p[1](k) = tmp_p(k + r);
+//             sol0._distr_m[0](k) = tmp_m(k);
+//             sol0._distr_m[1](k) = tmp_m(k + r);
+//          }
+//       });
+//       global_pool.WaitOnJobs();
 
-      if (i != inter_scales.size() - 2) sol0.PushFlavor();
-   }
+//       if (i != inter_scales.size() - 2) sol0.PushFlavor();
+//    }
 
-   return sol0;
-}
+//    return sol0;
+// }
 
 //==============================================================================
 OutputModel::OutputModel(const Solution &sol)

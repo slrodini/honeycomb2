@@ -53,14 +53,25 @@ int main()
    // Generate 'Solution' at initial scale and list of intermediate scales for evolution
    auto [inter_scale, sol1] = get_initial_solution(Q02, Qf2, thresholds, &discr, model);
 
-   // Copy only the log(m_q^2) scales, to push new flavors in evolution
-   std::vector<double> log_active_thresholds(inter_scale.begin(), inter_scale.end() - 1);
+   // Copy only the log(m_q^2) scales, to push new flavors in evolution.
+   // First and last elements are always initial and final scales.
+   std::vector<double> log_active_thresholds(inter_scale.begin() + 1, inter_scale.end() - 1);
+
+   auto tableau = Honeycomb::rk::PreImplementedTableau::DOPRI8;
+
+   auto rhs = Honeycomb::Get_Solution_rk_rhs(as, kers);
+
+   using TInfo = Honeycomb::rk::TimeInfo;
+   // Construct the evolver, object which will perform the actual evolution
+   Honeycomb::rk::RungeKutta<Honeycomb::Solution, tableau.stages> evolver(
+       tableau, sol1, TInfo{inter_scale, 0.1, 10}, rhs);
 
    std::vector<std::pair<double, Honeycomb::Solution>> solutions;
 
    // Setup callback for evolution to add new flavor at the threshold
-   auto callback = [&log_active_thresholds, &solutions](double t, const Honeycomb::Kernels &,
-                                                        Honeycomb::Solution &S) -> void {
+   std::function<void(double, const TInfo &, Honeycomb::Solution &)> callback
+       = [&log_active_thresholds, &solutions](double t, const TInfo &,
+                                              Honeycomb::Solution &S) -> void {
       auto it
           = std::find_if(log_active_thresholds.begin(), log_active_thresholds.end(), [t](double x) {
                return std::abs(x - t) < 1.0e-14;
@@ -73,14 +84,12 @@ int main()
       return;
    };
 
-   // Construct the evolver, object which will perform the actual evolution
-   Honeycomb::runge_kutta::GenericRungeKutta<Honeycomb::Kernels, Honeycomb::Solution, 13> evolver(
-       kers, sol1, Honeycomb::runge_kutta::DOPRI8, as, pref, t0, 0.01, callback);
+   evolver.AddCallback(callback);
 
    // Evolve from initial to final scale, between each threshold uses 40 steps
-   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Evolving..."), false);
+   Honeycomb::logger(Honeycomb::Logger::INFO, std::format("Evolving..."));
    begin = Honeycomb::timer::now();
-   evolver(inter_scale, 40);
+   evolver();
    end = Honeycomb::timer::now();
    Honeycomb::logger(
        Honeycomb::Logger::NONE,

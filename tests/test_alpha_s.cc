@@ -1,4 +1,3 @@
-#include "utilities.hpp"
 #include <honeycomb2/honeycomb2.hpp>
 #include "test_rd_alpha_s.hpp"
 

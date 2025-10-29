@@ -136,16 +136,12 @@ add_library(Honeycomb2 SHARED ${source_files})
 
 target_compile_options(Honeycomb2 PRIVATE ${HONEYCOMB2_CXX_FLAGS})
 
-target_include_directories(Honeycomb2 PRIVATE ${PROJECT_SOURCE_DIR}/inc)
-target_include_directories(Honeycomb2 PRIVATE ${PROJECT_SOURCE_DIR}/inc/honeycomb2)
 target_include_directories(Honeycomb2 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 target_include_directories(Honeycomb2
-    INTERFACE
+    PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc/honeycomb2>
-        $<INSTALL_INTERFACE:include>
-        $<INSTALL_INTERFACE:include/honeycomb2>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 
@@ -238,7 +234,7 @@ install(EXPORT Honeycomb2Targets
 )
 
 # install(TARGETS Oros RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
-install(DIRECTORY inc/honeycomb2 DESTINATION include)
+install(DIRECTORY inc/ DESTINATION include)
 install(FILES ${PROJECT_BINARY_DIR}/bin/Honeycomb2-config DESTINATION bin PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 
